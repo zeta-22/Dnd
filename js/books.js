@@ -320,13 +320,14 @@ async function callAi(payload) {
 
 function buildAiContext(found) {
   const parts = [];
-  found.glossary.forEach(g => parts.push(`[Glossario] ${g.name}: ${g.desc}`));
-  found.pages.slice(0, 5).forEach(p => {
+  // Pochi estratti mirati: con troppo testo il modello tende a riassumerlo invece di rispondere
+  found.glossary.slice(0, 3).forEach(g => parts.push(`[Glossario] ${g.name}: ${g.desc}`));
+  found.pages.slice(0, 3).forEach(p => {
     const norm = normalizeSearchText(p.text);
-    const snippet = makeSnippet(p.text, norm, found.terms, 1200);
+    const snippet = makeSnippet(p.text, norm, found.terms, 600);
     parts.push(`[${p.title}, p. ${p.page}]\n${snippet}`);
   });
-  return parts.join('\n\n').slice(0, 24000);
+  return parts.join('\n\n').slice(0, 12000);
 }
 
 async function askAssistant(question, history) {
@@ -336,11 +337,13 @@ async function askAssistant(question, history) {
     try {
       const data = await callAi({
         task: 'ask', question, context: buildAiContext(found),
-        history: (history || []).filter(m => m.text).map(m => ({ role: m.role === 'user' ? 'user' : 'model', text: String(m.text).slice(0, 1500) }))
+        // Nella conversazione mandiamo solo domande e risposte vere di Gemini, non gli elenchi della ricerca locale
+        history: (history || []).filter(m => m.text && (m.role === 'user' || m.fromAi))
+          .map(m => ({ role: m.role === 'user' ? 'user' : 'model', text: String(m.text).slice(0, 1500) }))
       });
-      if (data.text) return { text: data.text, sources };
+      if (data.text) return { text: data.text, sources, fromAi: true };
     } catch (e) {
-      return Object.assign(localAnswer(found), { sources, note: 'L\'IA non ha risposto, ecco cosa ho trovato da solo.' });
+      return Object.assign(localAnswer(found), { sources, note: `⚠️ Gemini non ha risposto (${String(e.message || 'errore').slice(0, 160)}): questi sono solo i risultati della ricerca nel glossario e nei manuali.` });
     }
   }
   return Object.assign(localAnswer(found), { sources, note: App.ai.reason ? `Senza IA: ${App.ai.reason}` : '' });

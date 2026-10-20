@@ -15,9 +15,12 @@ const recentRequests = new Map();
 
 const ASK_PROMPT = [
   'Sei l\'assistente regole di un tavolo di Dungeons & Dragons 5ª edizione (regole 2014) usato da un gruppo di amici italiani.',
-  'Rispondi in italiano, in modo breve e pratico (al massimo 150 parole), usando i nomi italiani ufficiali di regole, condizioni e incantesimi.',
-  'Se gli estratti dai manuali dell\'utente sono pertinenti, basati su quelli e cita libro e pagina tra parentesi, per esempio (Manuale del Giocatore, p. 192).',
-  'Se una regola è opzionale, ambigua o non la conosci con sicurezza, dillo chiaramente e suggerisci di decidere con il DM. Non inventare regole.'
+  'Rispondi esattamente alla domanda, in italiano: la prima frase deve già contenere la risposta (se la domanda è sì/no, comincia con "Sì" o "No").',
+  'Poi aggiungi al massimo due o tre frasi utili per applicarla al tavolo. Niente introduzioni, niente elenchi, non ripetere la domanda.',
+  'Gli estratti dei manuali e del glossario sono solo materiale da consultare: usali per verificare la regola, ma non riassumerli, non elencarli e non copiarne le frasi. Ignora quelli che non c\'entrano.',
+  'Se negli estratti la risposta non c\'è, rispondi con ciò che sai delle regole di D&D 5e.',
+  'Se hai usato un manuale, chiudi con il riferimento tra parentesi, per esempio (Manuale del Giocatore, p. 192).',
+  'Se la regola è ambigua o opzionale dillo in una frase e suggerisci di decidere con il DM. Non inventare regole. Usa i nomi italiani ufficiali di regole, condizioni e incantesimi.'
 ].join(' ');
 
 const EXTRACT_PROMPT = [
@@ -77,7 +80,7 @@ async function callGemini(key, payload) {
 async function handleAsk(key, body) {
   const question = clip(body.question, 2000).trim();
   if (!question) return { status: 400, json: { error: 'Domanda mancante' } };
-  const history = Array.isArray(body.history) ? body.history.slice(-6) : [];
+  const history = Array.isArray(body.history) ? body.history.slice(-4) : [];
   const contents = history
     .filter(m => m && m.text)
     .map(m => ({ role: m.role === 'model' ? 'model' : 'user', parts: [{ text: clip(m.text, 1500) }] }));
@@ -85,12 +88,13 @@ async function handleAsk(key, body) {
   while (contents.length && contents[0].role !== 'user') contents.shift();
   contents.push({
     role: 'user',
-    parts: [{ text: `Domanda: ${question}\n\nEstratti dai manuali e dal glossario (possono essere incompleti o non pertinenti):\n${clip(body.context, 24000) || '(nessuno)'}` }]
+    // La domanda va per ultima, così il modello risponde a quella e non agli estratti
+    parts: [{ text: `Estratti da consultare (possono essere incompleti o non pertinenti):\n${clip(body.context, 12000) || '(nessuno)'}\n\nDomanda: ${question}\nRispondi solo a questa domanda.` }]
   });
   const text = await callGemini(key, {
     systemInstruction: { parts: [{ text: ASK_PROMPT }] },
     contents,
-    generationConfig: { temperature: 0.3, maxOutputTokens: 4096 }
+    generationConfig: { temperature: 0.2, maxOutputTokens: 4096 }
   });
   return { status: 200, json: { text } };
 }

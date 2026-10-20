@@ -336,7 +336,7 @@ async function submitAssistantQuestion(question) {
   renderChat();
   try {
     const answer = await askAssistant(q, App.chat.filter(m => !m.pending).slice(-8, -1));
-    Object.assign(pending, { pending: false, text: answer.text, sources: answer.sources, note: answer.note });
+    Object.assign(pending, { pending: false, text: answer.text, sources: answer.sources, note: answer.note, fromAi: Boolean(answer.fromAi) });
   } catch (err) {
     Object.assign(pending, { pending: false, text: 'Non sono riuscito a rispondere. Riprova tra poco.' });
   }
