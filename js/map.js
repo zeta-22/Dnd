@@ -22,6 +22,7 @@ function renderMap() {
   sizer.style.width = `${Math.round(dims.width * App.zoom)}px`;
   sizer.style.height = `${Math.round(dims.height * App.zoom)}px`;
   setText('zoomLevelText', `${Math.round(App.zoom * 100)}%`);
+  renderSceneBar();
   renderMapBackground(dims);
   renderGridOverlay(scene, dims);
   renderFog(scene, dims);
@@ -32,7 +33,7 @@ function renderMap() {
 function renderMapBackground(dims) {
   const img = $('customMapImage');
   const canvas = $('defaultDungeonCanvas');
-  const url = ent('map')?.dataUrl || null;
+  const url = ent(mapKey(currentSceneId()))?.dataUrl || null;
   if (url) {
     if (url !== lastMapUrl) { img.src = url; lastMapUrl = url; }
     img.classList.remove('hidden');
@@ -221,8 +222,9 @@ function getActiveTurnTokenId() {
   if (!meta.inCombat || !meta.activeId) return null;
   const entry = ent(`init:${meta.activeId}`);
   if (!entry) return null;
-  if (entry.tokenId && getToken(entry.tokenId)) return entry.tokenId;
+  // I PG hanno una pedina per ogni mappa: si cerca quella della mappa mostrata
   if (entry.charId) return tokenForChar(entry.charId)?.id || null;
+  if (entry.tokenId && getToken(entry.tokenId)) return entry.tokenId;
   // Voci della prima versione: collegate solo per nome
   return getTokens().find(t => tokenStats(t).name === entry.name)?.id || null;
 }
@@ -365,7 +367,7 @@ function setGridSize(n) {
   scene.fog = resampleFog(gridBase.fog, gridBase.dims.cols, gridBase.dims.rows, dims.cols, dims.rows);
   scene.fogCols = dims.cols;
   scene.fogRows = dims.rows;
-  touchEnt('scene');
+  touchScene();
   gridBase.tokens.forEach(b => {
     const tok = getToken(b.id);
     if (!tok) return;
@@ -402,7 +404,7 @@ function paintFogAt(cx, cy, target) {
   }
   if (!changed) return;
   scene.fog = chars.join('');
-  touchEnt('scene');
+  touchScene();
   renderFog(scene, dims);
 }
 
@@ -445,7 +447,7 @@ function setAllFog(value) {
   scene.fog = (value ? '1' : '0').repeat(dims.cols * dims.rows);
   scene.fogCols = dims.cols;
   scene.fogRows = dims.rows;
-  touchEnt('scene');
+  touchScene();
   renderMap();
 }
 
@@ -599,8 +601,61 @@ function fillTokenPopover() {
   showEl(status, !publicStats && stats.maxHp > 0, '');
   showEl('popoverHpControls', canControlToken(tok) && stats.maxHp > 0);
   showEl('btnPopoverOpenSheet', Boolean(stats.char), '');
+  const holder = conditionHolderForToken(tok);
+  const canCond = canControlToken(tok);
+  showEl('popoverConditions', canCond || stats.conditions.length > 0);
+  $('popoverConditionList').innerHTML = stats.conditions.length
+    ? stats.conditions.map(c => `<button type="button" class="condition-btn active text-[11px] py-0.5 px-2 popover-cond-chip" data-condition="${escapeHtml(c)}" ${canCond ? 'title="Tocca per togliere"' : 'disabled'}>${escapeHtml(conditionLabel(holder.obj, c))}${canCond ? ' ✕' : ''}</button>`).join('')
+    : '<span class="text-[11px] text-[var(--muted)]">Nessuna condizione</span>';
+  const sel = $('popoverConditionSelect');
+  if (!sel.options.length) {
+    sel.innerHTML = DND5E_CONDITIONS.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+    $('popoverConditionRounds').innerHTML = CONDITION_DURATIONS.map(([v, l]) => `<option value="${v}">${v ? `${v} round` : '∞'}</option>`).join('');
+  }
+  [sel, $('popoverConditionRounds'), $('btnPopoverAddCondition')].forEach(el => el.closest('div').classList.toggle('hidden', !canCond));
+  fillPopoverStatBlock(tok, dm);
   showEl('popoverDmActions', dm);
   setText('btnPopoverToggleHidden', tok.hidden ? '👁️ Mostra ai giocatori' : '👁️‍🗨️ Nascondi ai giocatori');
+}
+
+// Per i mostri del regolamento il Master vede la scheda completa e tira attacchi e danni da qui
+function fillPopoverStatBlock(tok, dm) {
+  const wrap = $('popoverStatBlockWrap');
+  const box = $('popoverStatBlock');
+  const hasSrd = dm && tok.srd !== undefined && tok.srd !== null;
+  showEl(wrap, hasSrd, '');
+  if (!hasSrd) { box.dataset.for = ''; return; }
+  const key = `${tok.id}:${tok.srd}`;
+  if (box.dataset.for === key) return;
+  const m = srdMonster(tok.srd);
+  if (!m) {
+    box.innerHTML = '<div class="text-[11px] text-[var(--muted)]">Carico la scheda…</div>';
+    loadSrd('monsters').then(() => { box.dataset.for = ''; refreshTokenPopover(); }).catch(() => { box.innerHTML = `<div class="text-[11px] text-[var(--danger)]">${escapeHtml(srdUnavailableMessage())}</div>`; });
+    return;
+  }
+  box.dataset.for = key;
+  box.innerHTML = monsterStatBlockHtml(m);
+}
+
+function onStatBlockRoll(e) {
+  const tok = getToken(App.selectedTokenId);
+  const m = tok && srdMonster(tok.srd);
+  if (!m || !isDM()) return;
+  const btn = e.target.closest('.monster-attack-btn, .monster-damage-btn');
+  if (!btn) return;
+  const a = m[btn.dataset.kind]?.[parseInt(btn.dataset.idx, 10)];
+  if (!a) return;
+  const secret = $('inputSecretRoll').checked;
+  if (btn.classList.contains('monster-attack-btn')) {
+    const roll = performD20Roll({ label: `${tok.name}: ${a.n}`, bonus: a.hit || 0, vsAc: parseInt($('inputTargetAc').value, 10) || null, secret, by: 'DM' });
+    App.lastAttack = { tokenId: tok.id, name: a.n, crit: roll.crit, at: Date.now() };
+  } else {
+    const d = a.dmg[parseInt(btn.dataset.dmg, 10)];
+    const last = App.lastAttack;
+    const crit = Boolean(last && last.crit && last.tokenId === tok.id && last.name === a.n && Date.now() - last.at < 120000);
+    performDamageRoll({ label: `${tok.name}: ${a.n}${d.t ? ` (${d.t})` : ''}`, formula: d.f, crit, secret });
+    if (crit) App.lastAttack = null;
+  }
 }
 
 function refreshTokenPopover() {
@@ -687,11 +742,26 @@ function revealedCenterCell() {
 function createTokenForChar(ch) {
   if (!ch || tokenForChar(ch.id)) return;
   const cell = findFreeCell(revealedCenterCell());
-  const tok = normalizeToken({ id: uid('tok'), name: ch.name, type: ch.isNpc ? 'npc' : 'pc', charId: ch.id, gridX: cell.x, gridY: cell.y, hp: ch.hp, maxHp: ch.maxHp, ac: ch.ac });
+  const tok = normalizeToken({ id: uid('tok'), name: ch.name, type: ch.isNpc ? 'npc' : 'pc', charId: ch.id, gridX: cell.x, gridY: cell.y, hp: ch.hp, maxHp: ch.maxHp, ac: ch.ac, sceneId: currentSceneId() });
   putEnt(`token:${tok.id}`, tok);
 }
 
+function setAddTokenMonster(m) {
+  App.addTokenSrd = m ? m.i : null;
+  const chosen = $('tokenMonsterChosen');
+  showEl(chosen, Boolean(m));
+  if (!m) { chosen.innerHTML = ''; return; }
+  chosen.innerHTML = `<span>📜 <strong>${escapeHtml(m.n)}</strong> · GS ${escapeHtml(m.cr)} · CA ${m.ca} · PF ${m.hp}</span><button type="button" class="btn text-[11px] py-0 px-1.5" id="btnClearTokenMonster" aria-label="Togli il mostro">✕</button>`;
+  $('inputNewTokenName').value = m.n;
+  $('inputNewTokenAc').value = m.ca;
+  $('inputNewTokenHp').value = m.hp;
+  $('inputNewTokenMaxHp').value = m.hp;
+  $('selectNewTokenType').value = 'enemy';
+}
+
 function openAddTokenModal() {
+  setAddTokenMonster(null);
+  $('inputNewTokenQty').value = 1;
   showEl('modalAddToken', true);
   focusSoon('inputNewTokenName', true);
 }
@@ -699,18 +769,24 @@ function openAddTokenModal() {
 function closeAddTokenModal() { showEl('modalAddToken', false); }
 
 function confirmAddToken() {
-  const name = $('inputNewTokenName').value.trim() || 'Pedina';
+  const base = $('inputNewTokenName').value.trim() || 'Pedina';
   const maxHp = Math.max(0, parseInt($('inputNewTokenMaxHp').value, 10) || 0);
   const hp = Math.max(0, Math.min(maxHp || 9999, parseInt($('inputNewTokenHp').value, 10) || maxHp));
-  const cell = findFreeCell(visibleCenterCell(), false);
-  const tok = normalizeToken({
-    id: uid('tok'), name, type: $('selectNewTokenType').value, gridX: cell.x, gridY: cell.y,
-    hp, maxHp, ac: parseInt($('inputNewTokenAc').value, 10) || 10, hidden: $('inputNewTokenHidden').checked
+  const qty = clampInt($('inputNewTokenQty').value, 1, 20, 1);
+  const monster = App.addTokenSrd !== null && App.addTokenSrd !== undefined ? srdMonster(App.addTokenSrd) : null;
+  const names = numberedNames(base, qty, getTokens().map(t => t.name));
+  names.forEach(name => {
+    const cell = findFreeCell(visibleCenterCell(), false);
+    const tok = normalizeToken({
+      id: uid('tok'), name, type: $('selectNewTokenType').value, gridX: cell.x, gridY: cell.y,
+      hp, maxHp, ac: parseInt($('inputNewTokenAc').value, 10) || 10, hidden: $('inputNewTokenHidden').checked, sceneId: currentSceneId(),
+      srd: monster ? monster.i : undefined, initMod: monster ? monsterInitMod(monster) : 0
+    });
+    putEnt(`token:${tok.id}`, tok);
   });
-  putEnt(`token:${tok.id}`, tok);
   closeAddTokenModal();
   renderMap();
-  showToast(`➕ ${name} aggiunta alla mappa`);
+  showToast(qty > 1 ? `➕ ${qty} pedine “${base}” aggiunte alla mappa` : `➕ ${base} aggiunta alla mappa`);
 }
 
 // ---------------------------------------------------------------------------
@@ -752,8 +828,8 @@ async function uploadMapImage(file) {
     scene.fogRows = dims.rows;
     scene.hasMap = true;
     scene.mapVersion = (scene.mapVersion || 0) + 1;
-    putEnt('map', { dataUrl });
-    touchEnt('scene');
+    putEnt(mapKey(currentSceneId()), { dataUrl });
+    touchScene();
     clampTokensToScene();
     App.zoomUserSet = false;
     fitZoom();
@@ -765,11 +841,11 @@ async function uploadMapImage(file) {
 
 function resetDefaultMap() {
   const scene = getScene();
-  if (ent('map')) removeEnt('map');
+  if (ent(mapKey(currentSceneId()))) removeEnt(mapKey(currentSceneId()));
   scene.hasMap = false;
   scene.height = DEFAULT_MAP_HEIGHT;
   normalizeScene(scene);
-  touchEnt('scene');
+  touchScene();
   clampTokensToScene();
   App.zoomUserSet = false;
   fitZoom();
@@ -785,10 +861,102 @@ function clampTokensToScene() {
 }
 
 // ---------------------------------------------------------------------------
+// Più mappe per avventura
+// ---------------------------------------------------------------------------
+
+function renderSceneBar() {
+  const scenes = listScenes();
+  const current = currentSceneId();
+  const live = getStage().activeSceneId;
+  const select = $('sceneSelect');
+  if (document.activeElement !== select) {
+    select.innerHTML = scenes.map(sc => `<option value="${escapeHtml(sc.id)}" ${sc.id === current ? 'selected' : ''}>${sc.id === live ? '👥 ' : ''}${escapeHtml(sceneName(sc.id))}</option>`).join('');
+  }
+  setText('sceneNameLabel', sceneName(current));
+  const badge = $('sceneLiveBadge');
+  const isLive = current === live;
+  badge.textContent = isLive ? '👥 La vedono i giocatori' : `🔒 In preparazione · i giocatori vedono “${sceneName(live)}”`;
+  badge.style.borderColor = isLive ? 'var(--ok)' : 'var(--brass)';
+  badge.style.color = isLive ? 'var(--ok)' : 'var(--brass)';
+  $('btnShowSceneToPlayers').classList.toggle('hidden', isLive);
+  // La mappa principale non si elimina: è quella su cui ripiegare sempre
+  $('btnDeleteScene').classList.toggle('hidden', current === 'main');
+}
+
+// Ogni PG ha una pedina su ogni mappa: quando una mappa diventa visibile, si aggiungono quelle che mancano
+function ensurePcTokensInScene() {
+  getPCs().forEach(ch => { if (!tokenForChar(ch.id)) createTokenForChar(ch); });
+}
+
+function switchDmScene(sceneId) {
+  App.dmSceneId = sceneId;
+  App.fogEdit = false;
+  closeTokenPopover();
+  App.zoomUserSet = false;
+  fitZoom();
+  scheduleRender();
+}
+
+function createScene() {
+  if (!isDM()) return;
+  const name = (window.prompt('Nome della nuova mappa (es. Taverna, Cripta, Bosco):', '') || '').trim();
+  if (!name) return;
+  const id = uid('scn');
+  const maxOrder = Math.max(0, ...listScenes().map(sc => sc.scene.order || 0));
+  const scene = normalizeScene({ id, name, order: maxOrder + 1, gridSize: 16, height: DEFAULT_MAP_HEIGHT, fogEnabled: true, gridEnabled: true });
+  scene.fog = '1'.repeat(scene.fogCols * scene.fogRows);
+  putEnt(sceneKey(id), scene);
+  switchDmScene(id);
+  showToast(`🗺️ “${name}” pronta: preparala con calma, i giocatori la vedranno quando premi “Mostra ai giocatori”`, 4500);
+}
+
+function renameScene() {
+  if (!isDM()) return;
+  const id = currentSceneId();
+  const name = (window.prompt('Nuovo nome della mappa:', sceneName(id)) || '').trim();
+  if (!name) return;
+  getScene().name = name;
+  touchScene();
+  scheduleRender();
+}
+
+function deleteScene() {
+  if (!isDM()) return;
+  const scenes = listScenes();
+  const id = currentSceneId();
+  if (id === 'main' || scenes.length <= 1) return;
+  if (!window.confirm(`Eliminare la mappa “${sceneName(id)}” con le sue pedine?`)) return;
+  getTokens(id).forEach(t => removeEnt(`token:${t.id}`));
+  if (ent(mapKey(id))) removeEnt(mapKey(id));
+  removeEnt(sceneKey(id));
+  const fallback = scenes.find(sc => sc.id !== id).id;
+  if (getStage().activeSceneId === id) {
+    getStage().activeSceneId = fallback;
+    touchEnt('stage');
+  }
+  switchDmScene(fallback);
+}
+
+function showSceneToPlayers() {
+  if (!isDM()) return;
+  const id = currentSceneId();
+  getStage().activeSceneId = id;
+  touchEnt('stage');
+  ensurePcTokensInScene();
+  scheduleRender();
+  showToast(`📣 I giocatori ora vedono “${sceneName(id)}”`);
+}
+
+// ---------------------------------------------------------------------------
 // Eventi
 // ---------------------------------------------------------------------------
 
 function initMapEvents() {
+  $('sceneSelect').addEventListener('change', (e) => { e.target.blur(); if (isDM()) switchDmScene(e.target.value); });
+  $('btnNewScene').addEventListener('click', createScene);
+  $('btnRenameScene').addEventListener('click', renameScene);
+  $('btnDeleteScene').addEventListener('click', deleteScene);
+  $('btnShowSceneToPlayers').addEventListener('click', showSceneToPlayers);
   $('btnZoomIn').addEventListener('click', () => setZoom(App.zoom * 1.25));
   $('btnZoomOut').addEventListener('click', () => setZoom(App.zoom / 1.25));
   $('btnZoomFit').addEventListener('click', () => { App.zoomUserSet = false; fitZoom(); });
@@ -803,7 +971,7 @@ function initMapEvents() {
     if (!isDM()) return;
     const scene = getScene();
     scene.gridEnabled = !scene.gridEnabled;
-    touchEnt('scene');
+    touchScene();
     renderMap();
   });
   const onGridInput = (e) => { if (isDM()) setGridSize(e.target.value); };
@@ -813,14 +981,14 @@ function initMapEvents() {
     if (!isDM()) return;
     const scene = getScene();
     scene.fogEnabled = !scene.fogEnabled;
-    touchEnt('scene');
+    touchScene();
     renderMap();
   });
   $('btnToggleFogBrush').addEventListener('click', () => {
     App.fogEdit = !App.fogEdit;
     if (App.fogEdit && !getScene().fogEnabled) {
       getScene().fogEnabled = true;
-      touchEnt('scene');
+      touchScene();
     }
     renderMap();
     if (App.fogEdit) showToast('🖌️ Trascina sulla mappa: partendo da una zona coperta la scopri, altrimenti la copri');
@@ -860,6 +1028,22 @@ function initMapEvents() {
     closeTokenPopover();
     switchTab('personaggio');
   });
+  $('popoverStatBlock').addEventListener('click', onStatBlockRoll);
+  bindMonsterSearch('inputTokenMonsterSearch', 'tokenMonsterResults', setAddTokenMonster);
+  $('tokenMonsterChosen').addEventListener('click', (e) => { if (e.target.closest('#btnClearTokenMonster')) setAddTokenMonster(null); });
+  $('btnPopoverAddCondition').addEventListener('click', () => {
+    const tok = getToken(App.selectedTokenId);
+    if (!tok || !canControlToken(tok)) return;
+    setCondition(conditionHolderForToken(tok), $('popoverConditionSelect').value, true, parseInt($('popoverConditionRounds').value, 10) || 0);
+    scheduleRender();
+  });
+  $('popoverConditionList').addEventListener('click', (e) => {
+    const chip = e.target.closest('.popover-cond-chip');
+    const tok = getToken(App.selectedTokenId);
+    if (!chip || !tok || !canControlToken(tok)) return;
+    setCondition(conditionHolderForToken(tok), chip.dataset.condition, false);
+    scheduleRender();
+  });
   $('btnPopoverToggleHidden').addEventListener('click', () => {
     const tok = getToken(App.selectedTokenId);
     if (!tok || !isDM()) return;
@@ -873,6 +1057,12 @@ function initMapEvents() {
   $('btnPopoverAddInit').addEventListener('click', () => {
     const tok = getToken(App.selectedTokenId);
     if (tok && isDM()) { addTokenToInitiative(tok); closeTokenPopover(); }
+  });
+  // Aprendo la scheda del mostro la finestrella si allunga: la teniamo dentro lo schermo
+  $('popoverStatBlockWrap').addEventListener('toggle', () => {
+    const pop = $('tokenQuickPopover');
+    const r = pop.getBoundingClientRect();
+    if (!pop.classList.contains('hidden') && r.bottom > window.innerHeight - 8) pop.style.top = `${Math.max(8, window.innerHeight - r.height - 8)}px`;
   });
   document.addEventListener('pointerdown', (e) => {
     const pop = $('tokenQuickPopover');

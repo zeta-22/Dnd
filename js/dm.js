@@ -22,6 +22,7 @@ async function unlockDm(campId, password) {
   App.viewMode = 'DM';
   Prefs.set(`iltavolo_role_${campId}`, 'DM');
   Prefs.set(`iltavolo_dmpwd_${campId}`, App.dmPassword);
+  startInboxPolling();
   return res;
 }
 
@@ -34,6 +35,7 @@ function lockDm() {
   App.fogEdit = false;
   if (App.activeId) Prefs.del(`iltavolo_dmpwd_${App.activeId}`);
   App.secretRolls = [];
+  stopInboxPolling();
 }
 
 function scheduleVaultSave() {
@@ -53,6 +55,7 @@ async function saveVaultNow() {
 function vaultReasonMessage(reason) {
   if (reason === 'wrong_password') return 'Password errata.';
   if (reason === 'offline') return 'Cloud non raggiungibile: riprova tra poco.';
+  if (reason === 'not_member') return 'Serve il codice del gruppo: inseriscilo nella schermata Home.';
   return 'Non è stato possibile aprire lo schermo del Master.';
 }
 
@@ -74,6 +77,7 @@ function renderDmView() {
     setText('btnUnlockDmView', open ? '👑 Entra come Master' : '🔓 Sblocca');
     return;
   }
+  if (document.activeElement !== $('dmHandoutTo')) populateHandoutTargets();
   setText('dmPasswordStatusBadge', meta.hasPassword ? '🔒 Protetta da password' : '🔓 Nessuna password: chiunque può fare il Master');
   setText('btnSaveDmPassword', meta.hasPassword ? '🔑 Cambia password' : '🔑 Imposta password');
   $('btnLockDmNow').classList.toggle('hidden', !meta.hasPassword);
@@ -124,7 +128,7 @@ function renderEncounter() {
         <label class="flex items-center gap-2 min-w-0 cursor-pointer">
           <input type="checkbox" class="w-4 h-4 accent-[var(--felt)] enemy-include" ${e.included ? 'checked' : ''} title="Includi nel calcolo" />
           <span class="min-w-0">
-            <strong class="block truncate">${escapeHtml(e.name)}</strong>
+            <strong class="block truncate">${e.srd !== undefined && e.srd !== null ? '📜 ' : ''}${escapeHtml(e.name)}</strong>
             <span class="text-[10px] text-[var(--muted)]">GS ${escapeHtml(e.cr)} · ${getXpByCr(e.cr).toLocaleString('it-IT')} PE · CA ${e.ac} · PF ${e.hp}</span>
           </span>
         </label>
@@ -241,20 +245,25 @@ function addExtractedToJournal() {
 // ---------------------------------------------------------------------------
 
 function sendEnemyGroupToMap(enemy) {
-  const existing = new Set(getTokens().map(t => t.name));
-  const created = [];
-  let n = 1;
-  for (let i = 0; i < enemy.qty; i++) {
-    let name = enemy.qty > 1 || existing.has(enemy.name) ? `${enemy.name} ${n}` : enemy.name;
-    while (existing.has(name)) { n++; name = `${enemy.name} ${n}`; }
-    existing.add(name);
-    n++;
+  const monster = enemy.srd !== undefined && enemy.srd !== null ? srdMonster(enemy.srd) : null;
+  return numberedNames(enemy.name, enemy.qty, getTokens().map(t => t.name)).map(name => {
     const cell = findFreeCell(visibleCenterCell(), false);
-    const tok = normalizeToken({ id: uid('tok'), name, type: 'enemy', gridX: cell.x, gridY: cell.y, hp: enemy.hp, maxHp: enemy.hp, ac: enemy.ac });
+    const tok = normalizeToken({
+      id: uid('tok'), name, type: 'enemy', gridX: cell.x, gridY: cell.y, hp: enemy.hp, maxHp: enemy.hp, ac: enemy.ac,
+      sceneId: currentSceneId(), srd: monster ? monster.i : undefined, initMod: monster ? monsterInitMod(monster) : 0
+    });
     putEnt(`token:${tok.id}`, tok);
-    created.push(tok);
+    return tok;
+  });
+}
+
+function sendEnemiesWhenReady(enemies) {
+  // Servono i dati dei mostri per collegare le schede: li carichiamo se non ci sono ancora
+  if (enemies.some(e => e.srd !== undefined && e.srd !== null) && !SRD.monsters) {
+    loadSrd('monsters').catch(() => {}).finally(() => sendEnemiesToMap(enemies));
+  } else {
+    sendEnemiesToMap(enemies);
   }
-  return created;
 }
 
 function sendEnemiesToMap(enemies) {
@@ -429,13 +438,24 @@ function initDmEvents() {
     renderEncounter();
     showToast(`🔄 ${def.count} PG di livello medio ${def.level}`);
   });
+  bindMonsterSearch('dmEnemySearch', 'dmEnemySearchResults', (m) => {
+    App.enemySrd = m.i;
+    App.enemySrdName = m.n;
+    $('dmNewEnemyName').value = m.n;
+    $('dmNewEnemyCr').value = m.cr;
+    $('dmNewEnemyAc').value = m.ca;
+    $('dmNewEnemyHp').value = m.hp;
+    $('dmNewEnemyQty').focus();
+  });
   $('btnAddPreparedEnemy').addEventListener('click', () => {
     if (!App.vault) return;
     const name = $('dmNewEnemyName').value.trim() || 'Nemico';
     App.vault.enemies.push(normalizeVault({ enemies: [{
       id: uid('en'), name, cr: $('dmNewEnemyCr').value,
-      ac: $('dmNewEnemyAc').value, hp: $('dmNewEnemyHp').value, qty: $('dmNewEnemyQty').value, included: true
+      ac: $('dmNewEnemyAc').value, hp: $('dmNewEnemyHp').value, qty: $('dmNewEnemyQty').value, included: true,
+      srd: App.enemySrd !== null && App.enemySrd !== undefined && name === App.enemySrdName ? App.enemySrd : undefined
     }] }).enemies[0]);
+    App.enemySrd = null;
     scheduleVaultSave();
     renderEncounter();
   });
@@ -449,7 +469,7 @@ function initDmEvents() {
       scheduleVaultSave();
       renderEncounter();
     }
-    if (e.target.closest('.enemy-to-map')) sendEnemiesToMap([enemy]);
+    if (e.target.closest('.enemy-to-map')) sendEnemiesWhenReady([enemy]);
   });
   enemyList.addEventListener('change', (e) => {
     const row = e.target.closest('[data-enemy-id]');
@@ -462,7 +482,7 @@ function initDmEvents() {
   });
   $('btnSendEnemiesToMap').addEventListener('click', () => {
     if (!App.vault) return;
-    sendEnemiesToMap(App.vault.enemies.filter(x => x.included));
+    sendEnemiesWhenReady(App.vault.enemies.filter(x => x.included));
     switchTab('tavolo');
   });
 

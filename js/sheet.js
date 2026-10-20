@@ -70,6 +70,7 @@ function adjustCharHp(ch, delta) {
       } else {
         const overflow = dmg - ch.hp;
         ch.hp = Math.max(0, ch.hp - dmg);
+        concentrationCheckNeeded(ch, dmg);
         if (ch.hp === 0) {
           showToast(overflow >= ch.maxHp ? `☠️ ${ch.name}: il danno in eccesso supera i PF massimi, morte istantanea!` : `💀 ${ch.name} è a 0 PF!`);
         }
@@ -94,7 +95,7 @@ function shortRest(ch) {
   ch.hp = Math.min(ch.maxHp, ch.hp + heal);
   if (heal > 0) ch.deathSaves = { successes: 0, failures: 0 };
   touchEnt(`char:${ch.id}`);
-  recordRoll({ id: uid('roll'), at: Date.now(), by: ch.name, byId: DEVICE_ID, label: 'Dado Vita (riposo breve)', formula: describeFormula(1, sides, conMod), dice: [v], bonus: conMod, total: heal }, false);
+  recordRoll({ id: uid('roll'), at: Date.now(), by: ch.name, byId: DEVICE_ID, label: 'Dado Vita (riposo breve)', formula: describeFormula(1, sides, conMod), dice: [v], diceSides: [sides], bonus: conMod, total: heal }, false);
   showToast(`⛺ ${ch.name} recupera ${heal} PF`);
   scheduleRender();
 }
@@ -106,6 +107,7 @@ function longRest(ch) {
   for (let lvl = 1; lvl <= 9; lvl++) ch.spellSlots[lvl].used = 0;
   ch.deathSaves = { successes: 0, failures: 0 };
   ch.conditions = ch.conditions.filter(c => c !== 'Indebolimento');
+  ch.concentration = null;
   touchEnt(`char:${ch.id}`);
   showToast(`🌙 ${ch.name} si è riposato: PF, Dadi Vita e slot recuperati`);
   scheduleRender();
@@ -131,7 +133,7 @@ function rollDeathSave(ch) {
   if (ch.deathSaves.successes >= 3) msg += ` — ${ch.name} è stabile`;
   if (ch.deathSaves.failures >= 3) msg += ` — ${ch.name} è morto…`;
   touchEnt(`char:${ch.id}`);
-  recordRoll({ id: uid('roll'), at: Date.now(), by: ch.name, byId: DEVICE_ID, label: 'TS contro morte', formula: '1d20', dice: [d], bonus: 0, total: d, nat: d, crit: d === 20, fumble: d === 1 }, false);
+  recordRoll({ id: uid('roll'), at: Date.now(), by: ch.name, byId: DEVICE_ID, label: 'TS contro morte', formula: '1d20', dice: [d], diceSides: [20], bonus: 0, total: d, nat: d, crit: d === 20, fumble: d === 1 }, false);
   showToast(msg, 3500);
   scheduleRender();
 }
@@ -202,6 +204,7 @@ function renderSheet() {
 
   renderSheetAttacks(ch, editable);
   renderSpellSlots(ch, editable, complete);
+  renderSpellsCard(ch, editable);
   renderConditions(ch, editable);
 
   // Vista semplice / completa
@@ -225,6 +228,7 @@ function renderSheet() {
   // Sola lettura per le schede degli altri
   $('sheetBody').querySelectorAll('input, textarea, select, button').forEach(el => { el.disabled = !editable; });
   $('btnSwitchToCompleteFromGuide').disabled = false;
+  $('btnLevelUp').classList.toggle('hidden', !editable || ch.level >= 20);
   $('btnSheetRollInit').disabled = !editable;
   ['btnShortRest', 'btnLongRest'].forEach(id => { $(id).disabled = !editable; });
 }
@@ -274,11 +278,19 @@ function renderSpellSlots(ch, editable, complete) {
 
 function renderConditions(ch, editable) {
   const wrap = $('sheetConditionsButtons');
-  wrap.innerHTML = DND5E_CONDITIONS.map(c => `<button type="button" class="condition-btn ${ch.conditions.includes(c.name) ? 'active' : ''}" data-condition="${escapeHtml(c.name)}" title="${escapeHtml(c.desc)}" ${editable ? '' : 'disabled'}>${escapeHtml(c.name)}</button>`).join('');
+  wrap.innerHTML = DND5E_CONDITIONS.map(c => `<button type="button" class="condition-btn ${ch.conditions.includes(c.name) ? 'active' : ''}" data-condition="${escapeHtml(c.name)}" title="${escapeHtml(c.desc)}" ${editable ? '' : 'disabled'}>${escapeHtml(conditionLabel(ch, c.name))}</button>`).join('');
   const info = $('sheetActiveConditionsInfo');
   const active = DND5E_CONDITIONS.filter(c => ch.conditions.includes(c.name));
   showEl(info, active.length > 0);
-  info.innerHTML = active.map(c => `<div><strong class="text-[var(--danger)]">${escapeHtml(c.name)}:</strong> ${escapeHtml(c.desc)}</div>`).join('');
+  safeRebuild(info, () => {
+    info.innerHTML = active.map(c => `
+      <div class="flex flex-wrap items-start justify-between gap-2">
+        <div class="min-w-0 flex-1"><strong class="text-[var(--danger)]">${escapeHtml(c.name)}:</strong> ${escapeHtml(c.desc)}</div>
+        <label class="flex items-center gap-1 text-[10px] text-[var(--muted)]">Durata
+          <select class="input-field text-xs py-0.5 cond-duration" data-condition="${escapeHtml(c.name)}" ${editable ? '' : 'disabled'}>${durationOptionsHtml(ch.conditionRounds[c.name])}</select>
+        </label>
+      </div>`).join('') + '<div class="text-[10px] text-[var(--muted)]">La durata scende di uno all\'inizio di ogni tuo turno in combattimento.</div>';
+  });
 }
 
 function renderSavingThrows(ch, editable) {
@@ -321,9 +333,10 @@ function createCharacter(fields, { isNpc = false, own = true } = {}) {
 
 function deleteCharacter(ch) {
   if (!ch || !canEditChar(ch)) return;
-  const tok = tokenForChar(ch.id);
-  if (tok) removeEnt(`token:${tok.id}`);
+  getAllTokens().filter(t => t.charId === ch.id).forEach(t => removeEnt(`token:${t.id}`));
   getInitEntries().filter(e => e.charId === ch.id).forEach(e => removeEnt(`init:${e.id}`));
+  // I messaggi e le dispense cifrati per lui non li potrebbe più leggere nessuno
+  ['msg:', 'handout:'].forEach(prefix => entList(prefix).filter(m => m.to === ch.id).forEach(m => removeEnt(prefix + m.id)));
   removeEnt(`char:${ch.id}`);
   if (App.myCharId === ch.id) {
     App.myCharId = null;
@@ -396,8 +409,7 @@ function onSheetClick(e) {
   const cond = t.closest('.condition-btn');
   if (cond) {
     const name = cond.dataset.condition;
-    ch.conditions = ch.conditions.includes(name) ? ch.conditions.filter(c => c !== name) : ch.conditions.concat(name);
-    touchEnt(`char:${ch.id}`);
+    setCondition({ obj: ch, key: `char:${ch.id}` }, name, !ch.conditions.includes(name));
     scheduleRender();
     return;
   }
@@ -481,7 +493,15 @@ function initSheetEvents() {
   $('btnLongRest').addEventListener('click', withChar(longRest));
   $('btnRollDeathSave').addEventListener('click', withChar(rollDeathSave));
   $('btnSheetRollInit').addEventListener('click', withChar(ch => { rollInitiativeForChar(ch); scheduleRender(); }));
-  $('btnClearAllConditions').addEventListener('click', withChar(ch => { ch.conditions = []; touchEnt(`char:${ch.id}`); scheduleRender(); }));
+  $('btnClearAllConditions').addEventListener('click', withChar(ch => { ch.conditions = []; ch.conditionRounds = {}; touchEnt(`char:${ch.id}`); scheduleRender(); }));
+  $('sheetActiveConditionsInfo').addEventListener('change', (e) => {
+    if (!e.target.classList.contains('cond-duration')) return;
+    const ch = currentSheetChar();
+    if (!ch || !canEditChar(ch)) return;
+    setCondition({ obj: ch, key: `char:${ch.id}` }, e.target.dataset.condition, true, parseInt(e.target.value, 10) || 0);
+    e.target.blur();
+    scheduleRender();
+  });
 
   $('btnNewPcSheet').addEventListener('click', () => {
     if (!App.activeId) return;

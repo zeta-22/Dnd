@@ -1,0 +1,2 @@
+/* Reset di base di Tailwind: viene caricato prima di style.css */
+@tailwind base;

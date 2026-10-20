@@ -12,12 +12,115 @@
 --                        preparati, password). I giocatori NON possono leggerla:
 --                        si apre solo tramite le funzioni qui sotto, con la
 --                        password giusta.
+--   • codice del gruppo → facoltativo: chiude il tavolo ai soli amici che
+--                        conoscono il codice (vedi sezione 0).
 --  Se esiste la vecchia tabella "campaigns", le campagne vengono copiate nel
 --  nuovo formato e la vecchia tabella viene resa illeggibile dal sito (conteneva
 --  le password in chiaro). I dati restano lì come backup.
 -- =====================================================================
 
 create extension if not exists pgcrypto with schema extensions;
+
+-- ---------------------------------------------------------------------
+-- 0. Codice del gruppo (facoltativo)
+-- ---------------------------------------------------------------------
+-- Finché non imposti un codice, chiunque abbia il link del sito può entrare.
+-- Per riservare il tavolo al tuo gruppo:
+--   1) Supabase → Authentication → Sign In / Providers → attiva
+--      "Allow anonymous sign-ins" e salva;
+--   2) SQL Editor → esegui:   select tavolo_set_group_code('il-vostro-codice');
+-- Ogni dispositivo dovrà scrivere il codice una volta (maiuscole e minuscole
+-- non contano). Se cambi il codice, tutti dovranno inserire quello nuovo.
+-- Per riaprire il tavolo a chiunque:   select tavolo_set_group_code(null);
+create table if not exists public.tavolo_settings (
+  id              int primary key default 1 check (id = 1),
+  group_code_hash text
+);
+insert into public.tavolo_settings (id) values (1) on conflict do nothing;
+alter table public.tavolo_settings enable row level security;  -- nessuna policy: nessun accesso diretto
+revoke all on public.tavolo_settings from anon, authenticated;
+
+create table if not exists public.tavolo_members (
+  user_id   uuid primary key,
+  joined_at timestamptz not null default now()
+);
+alter table public.tavolo_members enable row level security;
+revoke all on public.tavolo_members from anon, authenticated;
+
+-- Vero se il tavolo è aperto o se chi chiama ha già inserito il codice giusto
+create or replace function public.tavolo_is_member()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((select group_code_hash from public.tavolo_settings where id = 1), '') = ''
+      or exists (select 1 from public.tavolo_members where user_id = auth.uid())
+$$;
+revoke execute on function public.tavolo_is_member() from public;
+grant execute on function public.tavolo_is_member() to anon, authenticated;
+
+create or replace function public.tavolo_access()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'protected', coalesce((select group_code_hash from public.tavolo_settings where id = 1), '') <> '',
+    'member', public.tavolo_is_member(),
+    'signedIn', auth.uid() is not null)
+$$;
+revoke execute on function public.tavolo_access() from public;
+grant execute on function public.tavolo_access() to anon, authenticated;
+
+create or replace function public.tavolo_join(p_code text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare v_hash text;
+begin
+  select group_code_hash into v_hash from public.tavolo_settings where id = 1;
+  if coalesce(v_hash, '') = '' then
+    return jsonb_build_object('ok', true);
+  end if;
+  if auth.uid() is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_signed_in');
+  end if;
+  if v_hash <> extensions.crypt(lower(trim(coalesce(p_code, ''))), v_hash) then
+    perform pg_sleep(0.8);
+    return jsonb_build_object('ok', false, 'reason', 'wrong_code');
+  end if;
+  insert into public.tavolo_members (user_id) values (auth.uid()) on conflict do nothing;
+  return jsonb_build_object('ok', true);
+end
+$$;
+revoke execute on function public.tavolo_join(text) from public;
+grant execute on function public.tavolo_join(text) to anon, authenticated;
+
+-- Solo dal SQL Editor di Supabase (il sito non può chiamarla)
+create or replace function public.tavolo_set_group_code(p_code text)
+returns text
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare v_code text := lower(trim(coalesce(p_code, '')));
+begin
+  update public.tavolo_settings
+     set group_code_hash = case when v_code = '' then null
+                                else extensions.crypt(v_code, extensions.gen_salt('bf')) end
+   where id = 1;
+  delete from public.tavolo_members;
+  return case when v_code = '' then 'Tavolo aperto: chiunque abbia il link può entrare.'
+              else 'Codice del gruppo impostato: ogni dispositivo dovrà inserirlo una volta.' end;
+end
+$$;
+revoke execute on function public.tavolo_set_group_code(text) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------
 -- 1. Pezzi delle campagne
@@ -58,11 +161,15 @@ create trigger tavolo_entities_touch
   before insert or update on public.tavolo_entities
   for each row execute function public.tavolo_touch();
 
--- Niente login: chi ha il link del sito può leggere e modificare le campagne.
+-- Senza codice del gruppo chi ha il link del sito può leggere e modificare le
+-- campagne; con il codice, solo i dispositivi che l'hanno inserito.
 alter table public.tavolo_entities enable row level security;
 drop policy if exists tavolo_entities_open on public.tavolo_entities;
-create policy tavolo_entities_open on public.tavolo_entities
-  for all to anon, authenticated using (true) with check (true);
+drop policy if exists tavolo_entities_members on public.tavolo_entities;
+create policy tavolo_entities_members on public.tavolo_entities
+  for all to anon, authenticated
+  using ((select public.tavolo_is_member()))
+  with check ((select public.tavolo_is_member()));
 grant select, insert, update, delete on public.tavolo_entities to anon, authenticated;
 
 -- Aggiornamenti in tempo reale
@@ -135,6 +242,9 @@ security definer
 set search_path = public, extensions
 as $$
 begin
+  if not public.tavolo_is_member() then
+    return jsonb_build_object('ok', false, 'reason', 'not_member');
+  end if;
   insert into public.tavolo_dm_vault (campaign_id, pwd_hash, data)
   values (p_campaign, public.tavolo_hash(p_password), coalesce(p_data, '{}'::jsonb))
   on conflict (campaign_id) do nothing;
@@ -155,6 +265,9 @@ set search_path = public, extensions
 as $$
 declare v public.tavolo_dm_vault%rowtype;
 begin
+  if not public.tavolo_is_member() then
+    return jsonb_build_object('ok', false, 'reason', 'not_member');
+  end if;
   select * into v from public.tavolo_dm_vault where campaign_id = p_campaign;
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'no_vault');
@@ -175,6 +288,9 @@ set search_path = public, extensions
 as $$
 declare v_hash text;
 begin
+  if not public.tavolo_is_member() then
+    return jsonb_build_object('ok', false, 'reason', 'not_member');
+  end if;
   select pwd_hash into v_hash from public.tavolo_dm_vault where campaign_id = p_campaign;
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'no_vault');
@@ -198,6 +314,9 @@ set search_path = public, extensions
 as $$
 declare v_hash text;
 begin
+  if not public.tavolo_is_member() then
+    return jsonb_build_object('ok', false, 'reason', 'not_member');
+  end if;
   select pwd_hash into v_hash from public.tavolo_dm_vault where campaign_id = p_campaign;
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'no_vault');
@@ -222,6 +341,9 @@ set search_path = public, extensions
 as $$
 declare v_hash text;
 begin
+  if not public.tavolo_is_member() then
+    return jsonb_build_object('ok', false, 'reason', 'not_member');
+  end if;
   select pwd_hash into v_hash from public.tavolo_dm_vault where campaign_id = p_campaign;
   if found and not public.tavolo_pwd_ok(v_hash, p_password) then
     perform pg_sleep(0.4);
@@ -229,6 +351,9 @@ begin
   end if;
   delete from public.tavolo_entities where campaign_id = p_campaign;
   delete from public.tavolo_dm_vault where campaign_id = p_campaign;
+  if to_regclass('public.tavolo_dm_inbox') is not null then
+    execute 'delete from public.tavolo_dm_inbox where campaign_id = $1' using p_campaign;
+  end if;
   return jsonb_build_object('ok', true);
 end
 $$;
@@ -245,7 +370,96 @@ grant execute on function public.tavolo_dm_set_password(text, text, text) to ano
 grant execute on function public.tavolo_delete_campaign(text, text) to anon, authenticated;
 
 -- ---------------------------------------------------------------------
--- 3. Migrazione dalla vecchia tabella "campaigns" (se c'è)
+-- 3. Messaggi privati per il Master
+-- ---------------------------------------------------------------------
+-- I giocatori possono solo scrivere; leggere e cancellare richiede la password del Master.
+create table if not exists public.tavolo_dm_inbox (
+  id          text primary key,
+  campaign_id text not null,
+  from_name   text,
+  from_char   text,
+  text        text not null,
+  created_at  timestamptz not null default now()
+);
+create index if not exists tavolo_dm_inbox_campaign_idx on public.tavolo_dm_inbox (campaign_id, created_at);
+alter table public.tavolo_dm_inbox enable row level security;
+revoke all on public.tavolo_dm_inbox from anon, authenticated;
+
+create or replace function public.tavolo_whisper_dm(p_campaign text, p_id text, p_from_name text, p_from_char text, p_text text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.tavolo_is_member() then
+    return jsonb_build_object('ok', false, 'reason', 'not_member');
+  end if;
+  if coalesce(trim(p_text), '') = '' then
+    return jsonb_build_object('ok', false, 'reason', 'empty');
+  end if;
+  insert into public.tavolo_dm_inbox (id, campaign_id, from_name, from_char, text)
+  values (p_id, p_campaign, left(p_from_name, 80), left(p_from_char, 80), left(p_text, 4000))
+  on conflict (id) do nothing;
+  return jsonb_build_object('ok', true);
+end
+$$;
+
+create or replace function public.tavolo_dm_inbox_list(p_campaign text, p_password text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare v_hash text;
+begin
+  if not public.tavolo_is_member() then
+    return jsonb_build_object('ok', false, 'reason', 'not_member');
+  end if;
+  select pwd_hash into v_hash from public.tavolo_dm_vault where campaign_id = p_campaign;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'no_vault');
+  end if;
+  if not public.tavolo_pwd_ok(v_hash, p_password) then
+    perform pg_sleep(0.4);
+    return jsonb_build_object('ok', false, 'reason', 'wrong_password');
+  end if;
+  return jsonb_build_object('ok', true, 'items', coalesce((
+    select jsonb_agg(jsonb_build_object('id', id, 'fromName', from_name, 'fromChar', from_char, 'text', text,
+                                        'at', (extract(epoch from created_at) * 1000)::bigint) order by created_at)
+      from public.tavolo_dm_inbox where campaign_id = p_campaign), '[]'::jsonb));
+end
+$$;
+
+create or replace function public.tavolo_dm_inbox_delete(p_campaign text, p_password text, p_id text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare v_hash text;
+begin
+  if not public.tavolo_is_member() then
+    return jsonb_build_object('ok', false, 'reason', 'not_member');
+  end if;
+  select pwd_hash into v_hash from public.tavolo_dm_vault where campaign_id = p_campaign;
+  if not found or not public.tavolo_pwd_ok(v_hash, p_password) then
+    return jsonb_build_object('ok', false, 'reason', 'wrong_password');
+  end if;
+  delete from public.tavolo_dm_inbox where campaign_id = p_campaign and id = p_id;
+  return jsonb_build_object('ok', true);
+end
+$$;
+
+revoke execute on function public.tavolo_whisper_dm(text, text, text, text, text) from public;
+revoke execute on function public.tavolo_dm_inbox_list(text, text) from public;
+revoke execute on function public.tavolo_dm_inbox_delete(text, text, text) from public;
+grant execute on function public.tavolo_whisper_dm(text, text, text, text, text) to anon, authenticated;
+grant execute on function public.tavolo_dm_inbox_list(text, text) to anon, authenticated;
+grant execute on function public.tavolo_dm_inbox_delete(text, text, text) to anon, authenticated;
+
+-- ---------------------------------------------------------------------
+-- 4. Migrazione dalla vecchia tabella "campaigns" (se c'è)
 -- ---------------------------------------------------------------------
 do $mig$
 declare
