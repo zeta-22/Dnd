@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Tavolo virtuale per giocare a D&amp;D 5e online con gli amici: mappa, nebbia, pedine, dadi, schede e diario condivisi." />
+  <meta name="theme-color" content="#2E5B44" />
+  <title>Il Tavolo — D&amp;D 5e</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
+  <script>
+    // Applica subito il tema salvato per evitare il lampo chiaro/scuro
+    try { const t = localStorage.getItem('iltavolo_theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <header class="lg:sticky top-0 z-40 card-surface rounded-none border-x-0 border-t-0 px-3 py-2 shadow-sm">
+    <div class="max-w-[1600px] mx-auto flex flex-col gap-2">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2 min-w-0">
+          <button id="btnOpenLobbyHome" type="button" class="btn btn-felt text-xs font-bold px-2.5 py-1.5" title="Torna alla schermata Home delle avventure">
+            🏠 <span class="hidden sm:inline">Home</span>
+          </button>
+          <div class="flex items-center gap-2 pr-2 sm:border-r border-[var(--line)] min-w-0">
+            <span class="hidden sm:flex w-8 h-8 rounded-lg bg-[var(--felt)] text-[var(--felt-ink)] items-center justify-center font-serif-title font-bold text-lg shadow-sm">🎲</span>
+            <div class="min-w-0">
+              <div class="text-xs uppercase tracking-wider font-bold text-[var(--muted)] leading-none">Il Tavolo — D&amp;D 5e</div>
+              <input
+                id="campaignTitleInput"
+                type="text"
+                class="font-serif-title font-bold text-lg bg-transparent border-b border-transparent hover:border-[var(--line)] focus:border-[var(--brass)] focus:outline-none px-0.5 leading-tight w-full max-w-[16rem]"
+                title="Clicca per rinominare la campagna corrente"
+                value=""
+              />
+            </div>
+          </div>
+
+          <select id="campaignSelect" class="input-field font-medium min-w-[170px] hidden md:block" title="Cambia campagna"></select>
+
+          <div class="hidden md:flex flex-wrap items-center gap-2">
+            <button id="btnNewCampaign" class="btn" title="Crea una nuova campagna">+ Nuova</button>
+            <button id="btnDuplicateCampaign" class="btn dm-only" title="Duplica la campagna corrente">Duplica</button>
+            <button id="btnExportJson" class="btn export-json-btn" title="Esporta campagna in formato .json">Salva file (.json)</button>
+            <label class="btn cursor-pointer" title="Importa campagna da file .json">
+              Carica (.json)
+              <input id="inputImportJson" type="file" accept=".json,application/json" class="hidden import-json-input" />
+            </label>
+          </div>
+
+          <span id="saveStatusBadge" class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-[var(--surface2)] text-[var(--ok)] border border-[var(--line)]">
+            ✓ Salvato
+          </span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="btnOpenSupabaseModal" type="button" class="btn text-xs px-2.5 py-1.5" title="Stato della sincronizzazione Cloud">
+            ☁️ <span id="headerCloudStatusLabel" class="hidden sm:inline">Cloud</span>
+          </button>
+          <button id="btnSwitchRoleOrChar" type="button" class="btn text-xs px-2.5 py-1.5" title="Cambia il tuo personaggio o ruolo">
+            👤 <span class="hidden sm:inline">Ruolo / PG</span>
+          </button>
+          <button id="btnToggleViewMode" class="btn btn-brass px-3 py-1.5 text-sm shadow-sm" title="Cambia tra visuale DM e Giocatore">
+            👁️ <span class="hidden sm:inline">Vista:</span> <span id="viewModeLabel" class="underline">DM</span>
+          </button>
+          <button id="btnToggleTheme" class="btn px-2.5 py-1.5" title="Cambia tema Chiaro / Scuro">🌓</button>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between border-t border-[var(--line)] pt-1 -mb-2 overflow-x-auto">
+        <nav class="flex items-center gap-1" aria-label="Navigazione principale">
+          <button class="nav-tab active" data-tab="tavolo">🗺️ Tavolo</button>
+          <button class="nav-tab" data-tab="personaggio">🧝‍♀️ Personaggio</button>
+          <button class="nav-tab" data-tab="diario">📖 Diario</button>
+          <button class="nav-tab" data-tab="regole">⚖️ Regole &amp; PDF</button>
+          <button class="nav-tab" data-tab="vistadm" id="navTabVistaDm">🐉 Vista DM</button>
+        </nav>
+        <div class="flex items-center gap-2 pb-1">
+          <span id="playerModeBanner" class="hidden text-xs font-bold px-2.5 py-0.5 rounded bg-[var(--felt)] text-[var(--felt-ink)]">
+            Modalità Giocatore Attiva
+          </span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-[1600px] w-full mx-auto p-3 flex flex-col gap-3">
+    <!-- Scheda 1: Tavolo -->
+    <section id="tab-tavolo" class="flex flex-col gap-3">
+      <div class="tavolo-grid">
+        <!-- Mappa A Sinistra -->
+        <div class="card-surface p-3 flex flex-col gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+            <div class="flex items-center gap-2">
+              <h2 class="font-serif-title font-bold text-xl">🗺️ Mappa Tattica</h2>
+              <div class="hidden sm:flex items-center gap-1 text-xs text-[var(--muted)]">
+                <span>Zoom: <strong id="zoomLevelText">100%</strong></span>
+                <span>• Griglia: <strong id="gridStatusText">accesa</strong></span>
+                <span>• Nebbia: <strong id="fogStatusText">accesa</strong></span>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5 text-xs">
+              <button id="btnZoomIn" class="btn text-xs px-2" title="Ingrandisci">+</button>
+              <button id="btnZoomOut" class="btn text-xs px-2" title="Riduci">−</button>
+              <button id="btnZoomFit" class="btn text-xs px-2" title="Adatta la mappa allo schermo">⤢</button>
+              <button id="btnToggleGrid" class="btn text-xs dm-only">Griglia</button>
+              <div class="flex items-center gap-1 px-1 bg-[var(--surface2)] border border-[var(--line)] rounded dm-only">
+                <span class="text-[10px] text-[var(--muted)]">Colonne:</span>
+                <input id="inputGridSize" type="range" min="4" max="120" value="16" class="w-16 accent-[var(--felt)]" />
+                <input id="inputGridSizeNumber" type="number" min="4" max="120" value="16" class="input-field w-12 text-center text-xs py-0 px-1 font-bold" />
+              </div>
+              <button id="btnToggleFog" class="btn text-xs dm-only">Nebbia</button>
+              <button id="btnAddTokenModal" class="btn btn-felt text-xs dm-only">+ Pedina</button>
+            </div>
+          </div>
+
+          <div id="fogToolbar" class="dm-only flex flex-wrap items-center justify-between gap-2 bg-[var(--surface2)] px-3 py-1.5 rounded-lg border border-[var(--line)] text-xs">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-bold text-[var(--brass)]">⚔️ Strumenti DM:</span>
+              <button id="btnToggleFogBrush" class="btn text-xs" title="Trascina sulla mappa: se parti da una zona coperta la scopri, altrimenti la copri">🖌️ <span id="fogBrushText">Pennello nebbia</span></button>
+              <button id="btnFogCoverAll" class="btn text-xs">Copri tutto</button>
+              <button id="btnFogRevealAll" class="btn text-xs">Scopri tutto</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="btn cursor-pointer text-xs">
+                📁 Carica mappa
+                <input id="inputUploadMap" type="file" accept="image/*" class="hidden" />
+              </label>
+              <button id="btnResetDefaultMap" class="btn text-xs">Ripristina default</button>
+            </div>
+          </div>
+
+          <div id="mapViewport" class="map-viewport">
+            <div id="mapSizer" class="map-sizer">
+              <div id="mapStage" class="map-stage">
+                <canvas id="defaultDungeonCanvas" width="800" height="600" class="absolute inset-0 w-full h-full"></canvas>
+                <img id="customMapImage" alt="Mappa" class="absolute inset-0 w-full h-full hidden" draggable="false" />
+                <canvas id="gridOverlayCanvas" width="800" height="600" class="map-grid-overlay"></canvas>
+                <canvas id="fogCanvas" width="800" height="600" class="fog-canvas"></canvas>
+                <svg id="dragMeasureSvg" class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 45;">
+                  <circle id="dragMeasureOrigin" cx="0" cy="0" r="5" class="hidden" fill="#D4A73A" stroke="#fff" stroke-width="2" />
+                  <line id="dragMeasureLine" x1="0" y1="0" x2="0" y2="0" class="hidden" stroke="#D4A73A" stroke-width="3" stroke-dasharray="6 6" />
+                </svg>
+                <div id="dragDistanceBadge" class="drag-distance-badge hidden">0 m</div>
+                <div id="tokenLayer" class="token-layer"></div>
+              </div>
+            </div>
+          </div>
+          <p class="text-[11px] text-[var(--muted)] leading-snug">Trascina le pedine per muoverle (1 casella = 1,5 m). Tocca una pedina per PF, danni e cure.</p>
+        </div>
+
+        <!-- Colonna Destra: Iniziativa, Gemini, Dadi -->
+        <div class="flex flex-col gap-3">
+          <div class="card-surface p-3 flex flex-col gap-2">
+            <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+              <div class="flex items-center gap-1.5">
+                <h3 class="font-serif-title font-bold text-lg">⚡ Iniziativa</h3>
+                <span id="initStatusBadge" class="text-[11px] px-2 py-0.5 rounded bg-[var(--surface2)] border border-[var(--line)]">Fuori combattimento</span>
+              </div>
+              <button id="btnToggleInitPanel" class="btn text-xs px-2">▲</button>
+            </div>
+            <div id="initiativePanelBody" class="flex flex-col gap-2.5">
+              <div class="flex flex-wrap items-center justify-between gap-1 text-xs">
+                <div class="flex items-center gap-1">
+                  <span class="font-bold text-[var(--muted)]">Round:</span>
+                  <span id="initRoundNumber" class="font-serif-title font-bold text-base px-2 py-0.5 rounded bg-[var(--surface2)] border border-[var(--line)]">1</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-1">
+                  <button id="btnRollMyInitiative" class="btn btn-felt text-xs py-1 px-2" title="Tira l'iniziativa">🎲 Tira</button>
+                  <button id="btnNextTurn" class="btn btn-brass text-xs py-1 px-2">Turno →</button>
+                  <button id="btnAddMapEnemiesInit" class="btn text-xs py-1 px-2 dm-only" title="Aggiungi all'iniziativa tutti i nemici sulla mappa">👹 Nemici</button>
+                  <button id="btnEndCombat" class="btn text-xs py-1 px-2 text-[var(--danger)] dm-only" title="Termina il combattimento e svuota l'iniziativa">Fine</button>
+                </div>
+              </div>
+              <div id="initiativeList" class="flex flex-col gap-1.5 max-h-56 overflow-y-auto pr-1"></div>
+            </div>
+          </div>
+
+          <div class="card-surface p-3 flex flex-col gap-2">
+            <div class="flex items-center justify-between border-b border-[var(--line)] pb-1.5">
+              <h3 class="font-serif-title font-bold text-base flex items-center gap-1.5">
+                🤖 Chiedi a Gemini <span class="text-[10px] font-normal px-1.5 py-0.5 rounded bg-[var(--brass-soft)] text-[var(--ink)] border border-[var(--brass)]">Regole &amp; PDF</span>
+              </h3>
+              <span id="geminiApiKeyStatusBadge" class="text-[10px] text-[var(--muted)]">…</span>
+            </div>
+            <div id="geminiChatMessagesBox" class="h-44 overflow-y-auto text-xs flex flex-col gap-1.5 bg-[var(--surface2)] p-2.5 rounded border border-[var(--line)]">
+              <div><strong class="text-[var(--ink)]">Assistente:</strong> Ciao! Chiedimi qualsiasi regola, incantesimo o informazione presente nei manuali PDF indicizzati o nel glossario D&amp;D 5e.</div>
+            </div>
+            <form id="geminiChatForm" class="flex flex-col gap-1.5">
+              <div class="flex gap-1.5">
+                <input id="inputGeminiQuery" type="text" placeholder="Es. Come funziona la condizione Stordito?" class="input-field flex-1 text-xs" />
+                <button type="submit" class="btn btn-felt text-xs py-1 px-2.5">Chiedi</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card-surface p-3 flex flex-col gap-2">
+            <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+              <h3 class="font-serif-title font-bold text-lg">🎲 Lancia-dadi</h3>
+              <button id="btnToggleModPanel" class="btn text-xs">⚙️ Opzioni</button>
+            </div>
+            <div class="grid grid-cols-4 gap-1.5">
+              <button class="btn btn-felt font-serif-title font-bold text-sm dice-btn" data-sides="4">d4</button>
+              <button class="btn btn-felt font-serif-title font-bold text-sm dice-btn" data-sides="6">d6</button>
+              <button class="btn btn-felt font-serif-title font-bold text-sm dice-btn" data-sides="8">d8</button>
+              <button class="btn btn-felt font-serif-title font-bold text-sm dice-btn" data-sides="10">d10</button>
+              <button class="btn btn-felt font-serif-title font-bold text-sm dice-btn" data-sides="12">d12</button>
+              <button class="btn btn-brass font-serif-title font-bold text-sm dice-btn" data-sides="20">d20</button>
+              <button class="btn btn-felt font-serif-title font-bold text-sm dice-btn" data-sides="100">d100</button>
+              <button id="btnClearRolls" class="btn text-xs text-[var(--danger)] dm-only" title="Cancella lo storico dei tiri per tutti">Pulisci</button>
+            </div>
+            <div id="diceModPanel" class="hidden flex flex-col gap-2 pt-2 border-t border-[var(--line)] text-xs">
+              <div class="grid grid-cols-3 gap-2">
+                <div>
+                  <label class="block font-bold text-[var(--muted)] mb-0.5">Quanti dadi</label>
+                  <input id="inputDiceCount" type="number" min="1" max="30" value="1" class="input-field w-full text-center font-bold" />
+                </div>
+                <div>
+                  <label class="block font-bold text-[var(--muted)] mb-0.5">Bonus (+/-)</label>
+                  <input id="inputDiceBonus" type="number" value="0" class="input-field w-full text-center font-bold" />
+                </div>
+                <div>
+                  <label class="block font-bold text-[var(--muted)] mb-0.5">Contro CA</label>
+                  <input id="inputTargetAc" type="number" min="1" max="40" placeholder="Es. 15" class="input-field w-full text-center font-bold" />
+                </div>
+              </div>
+              <div>
+                <label class="block font-bold text-[var(--muted)] mb-0.5">Etichetta del tiro</label>
+                <input id="inputRollLabel" type="text" placeholder="Es. Spada lunga..." class="input-field w-full" />
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1 bg-[var(--surface2)] p-1 rounded border border-[var(--line)]">
+                  <button type="button" class="adv-mode-btn py-1 px-2 rounded font-bold bg-[var(--felt)] text-[var(--felt-ink)] text-xs" data-adv="normal">Normale</button>
+                  <button type="button" class="adv-mode-btn py-1 px-2 rounded font-medium text-[var(--muted)] text-xs" data-adv="adv">Vantaggio</button>
+                  <button type="button" class="adv-mode-btn py-1 px-2 rounded font-medium text-[var(--muted)] text-xs" data-adv="dis">Svantaggio</button>
+                </div>
+                <div id="dmSecretRollRow" class="flex items-center gap-1.5 dm-only" title="Il tiro resta visibile solo a te">
+                  <input id="inputSecretRoll" type="checkbox" class="w-4 h-4 accent-[var(--felt)]" />
+                  <label for="inputSecretRoll" class="font-bold text-[var(--muted)] cursor-pointer">Segreto DM</label>
+                </div>
+              </div>
+              <div class="flex justify-end">
+                <button id="btnQuickResetMod" class="btn text-[11px] py-0.5">Azzera opzioni</button>
+              </div>
+            </div>
+            <div id="lastRollDisplay" class="hidden last-roll"></div>
+            <div class="flex flex-col gap-1.5 pt-1">
+              <div class="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">Storico Tiri</div>
+              <div id="rollHistoryList" class="flex flex-col gap-1.5 max-h-64 overflow-y-auto pr-1"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scheda 2: Personaggio -->
+    <section id="tab-personaggio" class="hidden flex-col gap-3">
+      <div class="card-surface p-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xl">🧝‍♀️</span>
+          <select id="sheetCharSelect" class="input-field font-serif-title font-bold text-base min-w-[200px]"></select>
+          <button id="btnNewPcSheet" type="button" class="btn btn-felt text-xs font-bold">+ Nuovo PG</button>
+          <button id="btnNewNpcSheet" type="button" class="btn btn-brass text-xs font-bold dm-only">+ Nuova scheda PNG</button>
+          <button id="btnDeleteSheet" type="button" class="btn text-xs text-[var(--danger)]">Elimina scheda</button>
+        </div>
+        <div id="deleteSheetConfirmBar" class="hidden items-center gap-2 bg-[var(--surface2)] px-2 py-1 rounded border border-[var(--danger)] text-xs">
+          <span class="font-bold text-[var(--danger)]">Confermi l'eliminazione?</span>
+          <button id="btnConfirmDeleteSheetYes" type="button" class="btn btn-danger text-xs py-0.5 px-2">Sì</button>
+          <button id="btnConfirmDeleteSheetNo" type="button" class="btn text-xs py-0.5 px-2">Annulla</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-[var(--muted)]">Vista:</span>
+          <div class="flex items-center bg-[var(--surface2)] p-1 rounded-lg border border-[var(--line)] text-xs">
+            <button id="btnSheetViewSimple" type="button" class="px-3 py-1 rounded-md font-bold transition-all bg-[var(--felt)] text-[var(--felt-ink)]">Semplice</button>
+            <button id="btnSheetViewComplete" type="button" class="px-3 py-1 rounded-md font-medium transition-all text-[var(--muted)]">Completa</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="sheetEmptyState" class="hidden card-surface p-6 flex-col items-center text-center gap-3">
+        <div class="text-3xl">🧝‍♀️</div>
+        <h3 class="font-serif-title font-bold text-xl">Nessuna scheda da mostrare</h3>
+        <p class="text-xs text-[var(--muted)] max-w-sm">Crea il tuo personaggio con “+ Nuovo PG” oppure sceglilo da “👤 Ruolo / PG”.</p>
+      </div>
+
+      <div id="sheetReadOnlyBanner" class="hidden card-surface2 px-3 py-2 text-xs font-bold text-[var(--muted)] border-[var(--brass)]">
+        👀 Stai guardando la scheda di un altro giocatore: solo lettura.
+      </div>
+
+      <div id="sheetBody" class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+        <div class="lg:col-span-8 flex flex-col gap-3">
+          <div class="card-surface p-4 flex flex-col gap-3.5">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+              <div class="flex items-center gap-2">
+                <h3 class="font-serif-title font-bold text-xl" id="sheetCardMainTitle">Scheda Avventuriero</h3>
+                <span id="sheetCharTypeBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--brass-soft)] border border-[var(--brass)] text-[var(--ink)]">PG</span>
+              </div>
+              <button id="btnSheetRollInit" type="button" class="btn btn-felt text-xs">🎲 Tira Iniziativa</button>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+              <div class="col-span-2">
+                <label for="sheetInputName" class="block font-bold text-[var(--muted)] mb-1">Nome</label>
+                <input id="sheetInputName" type="text" class="input-field w-full font-bold text-base" />
+              </div>
+              <div>
+                <label for="sheetInputRace" class="block font-bold text-[var(--muted)] mb-1">Razza</label>
+                <input id="sheetInputRace" type="text" class="input-field w-full font-bold" />
+              </div>
+              <div>
+                <label for="sheetInputClass" class="block font-bold text-[var(--muted)] mb-1">Classe</label>
+                <input id="sheetInputClass" type="text" class="input-field w-full font-bold" />
+              </div>
+              <div>
+                <label for="sheetInputLevel" class="block font-bold text-[var(--muted)] mb-1">Livello (1-20)</label>
+                <input id="sheetInputLevel" type="number" min="1" max="20" class="input-field w-full text-center font-bold" />
+              </div>
+              <div id="sheetBackgroundFieldWrap" class="col-span-2 hidden">
+                <label for="sheetInputBackground" class="block font-bold text-[var(--muted)] mb-1">Background</label>
+                <input id="sheetInputBackground" type="text" class="input-field w-full font-bold" />
+              </div>
+              <div class="col-span-3">
+                <label for="sheetInputBonusAction" class="block font-bold text-[var(--muted)] mb-1">⚡ Azione bonus principale</label>
+                <input id="sheetInputBonusAction" type="text" class="input-field w-full font-bold" />
+              </div>
+            </div>
+
+            <div class="card-surface2 p-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs items-center">
+              <div class="flex flex-col gap-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-[var(--ink)]">Punti Ferita</span>
+                  <span id="sheetHpPercentBadge" class="text-[10px] font-bold text-[var(--muted)]">100%</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button id="btnSheetHpMinus" type="button" class="btn text-xs py-0.5 px-2 font-bold">−</button>
+                  <input id="sheetInputHp" type="number" class="input-field w-14 text-center font-serif-title font-bold text-base" />
+                  <span class="text-[var(--muted)]">/</span>
+                  <input id="sheetInputMaxHp" type="number" class="input-field w-14 text-center font-serif-title font-bold text-base" />
+                  <button id="btnSheetHpPlus" type="button" class="btn text-xs py-0.5 px-2 font-bold">+</button>
+                </div>
+                <div class="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)] mt-0.5">
+                  <div id="sheetHpBarFill" class="h-full bg-[var(--ok)] transition-all" style="width: 100%;"></div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label for="sheetInputAc" class="block font-bold text-[var(--muted)] mb-1">CA</label>
+                  <input id="sheetInputAc" type="number" min="1" max="40" class="input-field w-full text-center font-bold text-base" />
+                </div>
+                <div>
+                  <label for="sheetInputSpeed" class="block font-bold text-[var(--muted)] mb-1">Velocità (m)</label>
+                  <input id="sheetInputSpeed" type="number" min="0" max="30" step="1.5" class="input-field w-full text-center font-bold text-base" />
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-1 col-span-2">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-[var(--ink)]">Dadi Vita (<span id="sheetHitDiceRemainingBadge">2/2</span>)</span>
+                  <span class="text-[10px] text-[var(--muted)]">Dado: <input id="sheetInputHitDie" type="text" placeholder="d8" class="input-field w-12 text-center py-0 px-1 font-bold text-xs" /></span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button id="btnShortRest" type="button" class="btn text-xs py-1 px-2.5 flex-1">⛺ Riposo breve</button>
+                  <button id="btnLongRest" type="button" class="btn btn-felt text-xs py-1 px-2.5 flex-1">🌙 Riposo lungo</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="sheetDeathSavesBox" class="hidden flex-col gap-2 p-3 rounded-lg bg-[var(--surface2)] border-2 border-[var(--danger)] text-xs">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">💀</span>
+                  <div>
+                    <strong class="font-serif-title font-bold text-base text-[var(--danger)]">Personaggio a 0 Punti Ferita!</strong>
+                    <span class="block text-[11px] text-[var(--muted)]">Tiri Salvezza contro Morte</span>
+                  </div>
+                </div>
+                <button id="btnRollDeathSave" type="button" class="btn btn-danger text-xs font-bold py-1 px-3">🎲 Tira 1d20</button>
+              </div>
+              <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--line)]">
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-[var(--ok)]">Successi:</span>
+                  <div class="flex items-center gap-1">
+                    <span class="death-save-dot" data-ds-type="success" data-ds-index="1"></span>
+                    <span class="death-save-dot" data-ds-type="success" data-ds-index="2"></span>
+                    <span class="death-save-dot" data-ds-type="success" data-ds-index="3"></span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-[var(--danger)]">Fallimenti:</span>
+                  <div class="flex items-center gap-1">
+                    <span class="death-save-dot" data-ds-type="failure" data-ds-index="1"></span>
+                    <span class="death-save-dot" data-ds-type="failure" data-ds-index="2"></span>
+                    <span class="death-save-dot" data-ds-type="failure" data-ds-index="3"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Caratteristiche</div>
+              <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center">
+                <div class="card-surface2 p-2 flex flex-col gap-1 items-center">
+                  <span class="text-xs font-bold text-[var(--muted)]">FOR</span>
+                  <input type="number" min="1" max="30" data-ability-input="FOR" class="input-field w-12 text-center font-bold text-sm" />
+                  <button type="button" class="btn py-0.5 px-2 text-xs font-serif-title font-bold w-full" data-ability-roll="FOR"><span id="sheetMod_FOR">+0</span> 🎲</button>
+                </div>
+                <div class="card-surface2 p-2 flex flex-col gap-1 items-center">
+                  <span class="text-xs font-bold text-[var(--muted)]">DES</span>
+                  <input type="number" min="1" max="30" data-ability-input="DES" class="input-field w-12 text-center font-bold text-sm" />
+                  <button type="button" class="btn py-0.5 px-2 text-xs font-serif-title font-bold w-full" data-ability-roll="DES"><span id="sheetMod_DES">+4</span> 🎲</button>
+                </div>
+                <div class="card-surface2 p-2 flex flex-col gap-1 items-center">
+                  <span class="text-xs font-bold text-[var(--muted)]">COS</span>
+                  <input type="number" min="1" max="30" data-ability-input="COS" class="input-field w-12 text-center font-bold text-sm" />
+                  <button type="button" class="btn py-0.5 px-2 text-xs font-serif-title font-bold w-full" data-ability-roll="COS"><span id="sheetMod_COS">+2</span> 🎲</button>
+                </div>
+                <div class="card-surface2 p-2 flex flex-col gap-1 items-center">
+                  <span class="text-xs font-bold text-[var(--muted)]">INT</span>
+                  <input type="number" min="1" max="30" data-ability-input="INT" class="input-field w-12 text-center font-bold text-sm" />
+                  <button type="button" class="btn py-0.5 px-2 text-xs font-serif-title font-bold w-full" data-ability-roll="INT"><span id="sheetMod_INT">+2</span> 🎲</button>
+                </div>
+                <div class="card-surface2 p-2 flex flex-col gap-1 items-center">
+                  <span class="text-xs font-bold text-[var(--muted)]">SAG</span>
+                  <input type="number" min="1" max="30" data-ability-input="SAG" class="input-field w-12 text-center font-bold text-sm" />
+                  <button type="button" class="btn py-0.5 px-2 text-xs font-serif-title font-bold w-full" data-ability-roll="SAG"><span id="sheetMod_SAG">+1</span> 🎲</button>
+                </div>
+                <div class="card-surface2 p-2 flex flex-col gap-1 items-center">
+                  <span class="text-xs font-bold text-[var(--muted)]">CAR</span>
+                  <input type="number" min="1" max="30" data-ability-input="CAR" class="input-field w-12 text-center font-bold text-sm" />
+                  <button type="button" class="btn py-0.5 px-2 text-xs font-serif-title font-bold w-full" data-ability-roll="CAR"><span id="sheetMod_CAR">+0</span> 🎲</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+              <div class="card-surface2 p-2"><span class="block text-[11px] text-[var(--muted)]">Iniziativa</span><span id="sheetInitModDisplay" class="font-serif-title font-bold text-base">+4</span></div>
+              <div class="card-surface2 p-2"><span class="block text-[11px] text-[var(--muted)]">Competenza</span><span id="sheetProfBonusDisplay" class="font-serif-title font-bold text-base">+2</span></div>
+              <div class="card-surface2 p-2"><span class="block text-[11px] text-[var(--muted)]">Percezione Passiva</span><span id="sheetPassivePerceptionDisplay" class="font-serif-title font-bold text-base">13</span></div>
+            </div>
+          </div>
+
+          <div class="card-surface p-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+              <h3 class="font-serif-title font-bold text-lg">⚔️ Attacchi &amp; Incantesimi d'Offesa</h3>
+              <span class="text-[11px] text-[var(--muted)]">Formato: Nome | +bonus | danno</span>
+            </div>
+            <div id="sheetGeneratedAttacksList" class="flex flex-col gap-2"></div>
+            <div class="pt-1">
+              <label for="sheetTextareaAttacks" class="block font-bold text-[var(--muted)] mb-1 text-xs">Modifica testo attacchi</label>
+              <textarea id="sheetTextareaAttacks" rows="3" class="input-field w-full text-xs font-mono"></textarea>
+            </div>
+          </div>
+
+          <div class="card-surface p-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+              <h3 class="font-serif-title font-bold text-lg">✨ Slot Incantesimo (Livelli 1–9)</h3>
+              <span class="text-[11px] text-[var(--muted)]">Imposta il massimo, poi tocca i quadratini per spenderli</span>
+            </div>
+            <div id="sheetSpellSlotsGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
+          </div>
+
+          <div class="card-surface p-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+              <h3 class="font-serif-title font-bold text-lg">⚠️ Condizioni Attive</h3>
+              <button id="btnClearAllConditions" type="button" class="btn text-xs">Rimuovi tutte</button>
+            </div>
+            <div class="flex flex-wrap gap-1.5" id="sheetConditionsButtons"></div>
+            <div id="sheetActiveConditionsInfo" class="hidden flex-col gap-1.5 p-3 rounded-lg bg-[var(--surface2)] border border-[var(--danger)] text-xs"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 flex flex-col gap-3">
+          <div id="sheetSimpleTurnGuide" class="turn-guide-box p-4 flex flex-col gap-3">
+            <div class="flex items-center gap-2 border-b border-[var(--brass)] pb-2">
+              <span class="text-xl">💡</span>
+              <h3 class="font-serif-title font-bold text-lg">Nel tuo turno puoi...</h3>
+            </div>
+            <ul class="text-xs flex flex-col gap-2 leading-relaxed">
+              <li><strong>1. Movimento:</strong> Puoi muoverti fino alla tua velocità.</li>
+              <li><strong>2. Azione:</strong> Scegli tra Attaccare, Scattare, Schivare, ecc.</li>
+              <li><strong>3. Azione Bonus:</strong> La tua azione bonus attuale è <strong id="guideBonusActionHighlight" class="underline">Azione scaltra</strong>.</li>
+              <li><strong>4. Reazione:</strong> 1 reazione per round.</li>
+            </ul>
+            <div class="pt-2 border-t border-[var(--brass)] flex justify-between items-center">
+              <span class="text-[11px] font-bold">Vuoi tirare competenze?</span>
+              <button id="btnSwitchToCompleteFromGuide" type="button" class="btn btn-felt text-xs">Passa a Completa</button>
+            </div>
+          </div>
+
+          <div id="sheetCompleteSkillsColumn" class="hidden flex-col gap-3">
+            <div class="card-surface p-4 flex flex-col gap-3">
+              <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+                <h3 class="font-serif-title font-bold text-lg">🛡️ Tiri Salvezza</h3>
+              </div>
+              <div id="sheetSavingThrowsList" class="flex flex-col gap-1.5 text-xs"></div>
+            </div>
+            <div class="card-surface p-4 flex flex-col gap-3">
+              <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+                <h3 class="font-serif-title font-bold text-lg">🏅 Abilità</h3>
+              </div>
+              <div id="sheetSkillsList" class="flex flex-col gap-1.5 text-xs max-h-96 overflow-y-auto pr-1"></div>
+            </div>
+          </div>
+
+          <div id="sheetCompleteTextAreas" class="hidden flex-col gap-3">
+            <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
+              <label class="font-bold text-[var(--muted)]">🎒 Equipaggiamento</label>
+              <textarea id="sheetTextareaEquipment" rows="3" class="input-field w-full text-xs"></textarea>
+            </div>
+            <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
+              <label class="font-bold text-[var(--muted)]">✨ Incantesimi conosciuti</label>
+              <textarea id="sheetTextareaSpells" rows="3" class="input-field w-full text-xs"></textarea>
+            </div>
+            <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
+              <label class="font-bold text-[var(--muted)]">📜 Privilegi</label>
+              <textarea id="sheetTextareaFeatures" rows="3" class="input-field w-full text-xs"></textarea>
+            </div>
+            <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
+              <label class="font-bold text-[var(--muted)]">📝 Note</label>
+              <textarea id="sheetTextareaNotes" rows="3" class="input-field w-full text-xs"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scheda 3: Diario -->
+    <section id="tab-diario" class="hidden flex-col gap-3">
+      <div class="card-surface p-3.5 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-1.5" id="journalFilterButtons">
+          <button type="button" class="btn btn-felt text-xs journal-filter-btn" data-jfilter="Tutto">📚 Tutto</button>
+          <button type="button" class="btn text-xs journal-filter-btn" data-jfilter="Missioni">🗺️ Missioni</button>
+          <button type="button" class="btn text-xs journal-filter-btn" data-jfilter="Personaggi incontrati">🧙 Personaggi</button>
+          <button type="button" class="btn text-xs journal-filter-btn" data-jfilter="Bottino">💰 Bottino</button>
+          <button type="button" class="btn text-xs journal-filter-btn" data-jfilter="Domande per il DM">❓ Domande DM</button>
+          <button type="button" class="btn text-xs journal-filter-btn" data-jfilter="Sessioni">📜 Sessioni</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnToggleJournalForm" type="button" class="btn btn-brass text-xs font-bold">+ Aggiungi voce</button>
+          <button type="button" class="btn text-xs" data-goto-tab="tavolo">← Tavolo</button>
+        </div>
+      </div>
+
+      <div id="journalAddFormCard" class="hidden card-surface p-4 flex-col gap-3 border-2 border-[var(--brass)]">
+        <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+          <h3 class="font-serif-title font-bold text-lg">✍️ Aggiungi voce al Diario</h3>
+          <button id="btnCloseJournalForm" type="button" class="btn text-xs">✕</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div>
+            <label class="block font-bold text-[var(--muted)] mb-1">Categoria</label>
+            <select id="journalInputCategory" class="input-field w-full font-bold">
+              <option value="Missioni">🗺️ Missioni</option>
+              <option value="Personaggi incontrati">🧙 Personaggi incontrati</option>
+              <option value="Bottino">💰 Bottino</option>
+              <option value="Domande per il DM">❓ Domande per il DM</option>
+              <option value="Sessioni">📜 Sessioni</option>
+            </select>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block font-bold text-[var(--muted)] mb-1">Titolo</label>
+            <input id="journalInputTitle" type="text" class="input-field w-full font-serif-title font-bold text-base" placeholder="Titolo..." />
+          </div>
+          <div class="md:col-span-3">
+            <label class="block font-bold text-[var(--muted)] mb-1">Dettagli</label>
+            <textarea id="journalInputDetails" rows="3" class="input-field w-full" placeholder="Dettagli..."></textarea>
+          </div>
+        </div>
+        <div class="flex justify-end pt-1">
+          <button id="btnSubmitJournalEntry" type="button" class="btn btn-felt text-xs font-bold px-4 py-1.5">📥 Aggiungi</button>
+        </div>
+      </div>
+
+      <div class="card-surface p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+          <h2 class="font-serif-title font-bold text-xl">📖 Cronache della Campagna</h2>
+          <span id="journalEntriesCountBadge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-[var(--surface2)] border border-[var(--line)]">0 voci</span>
+        </div>
+        <div id="journalEntriesList" class="flex flex-col gap-2.5"></div>
+      </div>
+    </section>
+
+    <!-- Scheda 4: Regole & PDF -->
+    <section id="tab-regole" class="hidden flex-col gap-4">
+      <div class="card-surface p-6 flex flex-col gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-3">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-[var(--brass)]">Compendio D&amp;D 5e</span>
+            <h2 class="font-serif-title font-bold text-2xl">📚 Manuali e Appunti PDF</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="btn btn-felt text-xs cursor-pointer">
+              📁 Aggiungi e Indicizza PDF
+              <input id="inputUploadPdf" type="file" accept="application/pdf" multiple class="hidden" />
+            </label>
+            <button class="btn text-xs" data-goto-tab="tavolo">← Tavolo</button>
+          </div>
+        </div>
+
+        <div id="pdfIndexingStatusBox" class="hidden card-surface2 p-3 text-xs flex items-center justify-between gap-3 border-2 border-[var(--brass)]">
+          <span id="pdfIndexingStatusText" class="font-bold">Indicizzazione in corso...</span>
+          <div class="w-48 bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
+            <div id="pdfIndexingBarFill" class="h-full bg-[var(--brass)] transition-all" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <div class="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">Documenti indicizzati su questo dispositivo</div>
+            <span class="text-[11px] text-[var(--muted)]">I PDF non vengono caricati online: restano nel tuo browser.</span>
+          </div>
+          <div id="indexedPdfsList" class="grid grid-cols-1 md:grid-cols-2 gap-2.5"></div>
+        </div>
+
+        <form id="rulesSearchForm" class="flex flex-col gap-2 pt-4 border-t border-[var(--line)]">
+          <label for="inputRulesSearch" class="font-serif-title font-bold text-xl">🔎 Cerca nei manuali e nel glossario</label>
+          <div class="flex gap-2">
+            <input id="inputRulesSearch" type="search" placeholder="Es. lottare, attacco di opportunità, riposo breve…" class="input-field flex-1" />
+            <button type="submit" class="btn btn-felt text-xs">Cerca</button>
+          </div>
+          <div id="rulesSearchResults" class="flex flex-col gap-2"></div>
+        </form>
+
+        <div id="pdfReaderModalBox" class="hidden flex-col gap-2 pt-4 border-t border-[var(--line)]">
+          <div class="flex items-center justify-between">
+            <h3 id="pdfReaderTitle" class="font-serif-title font-bold text-lg">Visualizzatore PDF</h3>
+            <div class="flex items-center gap-2">
+              <a id="pdfReaderOpenNewTab" class="btn text-xs" target="_blank" rel="noopener">↗ Apri a schermo intero</a>
+              <button id="btnClosePdfReader" class="btn text-xs">✕ Chiudi</button>
+            </div>
+          </div>
+          <div class="w-full h-[70vh] min-h-[400px] bg-black/10 rounded-lg overflow-hidden border border-[var(--line)]">
+            <iframe id="pdfReaderIframe" class="w-full h-full border-0"></iframe>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3 pt-4 border-t border-[var(--line)]">
+          <div class="flex items-center justify-between">
+            <h3 class="font-serif-title font-bold text-xl">📖 Glossario Rapido delle Condizioni</h3>
+            <span class="text-[11px] text-[var(--muted)]">Tocca una condizione per leggerla</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2" id="rulesGlossaryGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scheda 5: Vista DM -->
+    <section id="tab-vistadm" class="hidden flex-col gap-3">
+      <div id="dmPasswordLockScreen" class="hidden card-surface p-8 max-w-md mx-auto my-8 w-full flex-col items-center text-center gap-4 border-2 border-[var(--brass)] shadow-lg">
+        <div class="w-12 h-12 rounded-full bg-[var(--brass-soft)] border border-[var(--brass)] flex items-center justify-center text-2xl">🔒</div>
+        <div>
+          <h2 class="font-serif-title font-bold text-2xl">Vista DM Protetta</h2>
+          <p id="dmLockScreenDesc" class="text-xs text-[var(--muted)] mt-1">Questa sezione è protetta da password per evitare spoiler.</p>
+        </div>
+        <form id="dmUnlockForm" class="w-full flex flex-col gap-2">
+          <input id="inputUnlockDmPassword" type="password" autocomplete="current-password" class="input-field w-full text-center font-bold" placeholder="Password del DM..." />
+          <div id="dmUnlockErrorMsg" class="hidden text-xs font-bold text-[var(--danger)]">Password errata.</div>
+          <button id="btnUnlockDmView" type="submit" class="btn btn-felt w-full py-2 font-bold">🔓 Sblocca</button>
+        </form>
+      </div>
+
+      <div id="dmUnlockedContent" class="flex flex-col gap-3">
+        <div class="card-surface p-3.5 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🐉</span>
+            <div>
+              <h2 class="font-serif-title font-bold text-lg leading-tight">Schermo del Dungeon Master</h2>
+              <span id="dmPasswordStatusBadge" class="text-[11px] text-[var(--muted)]">Nessuna password</span>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <input id="inputSetDmPassword" type="password" autocomplete="new-password" placeholder="Nuova password DM..." class="input-field w-36 text-xs" />
+            <button id="btnSaveDmPassword" type="button" class="btn btn-brass text-xs">🔑 Imposta password</button>
+            <button id="btnLockDmNow" type="button" class="btn text-xs hidden">🔒 Blocca ora</button>
+            <button id="btnRemoveDmPassword" type="button" class="btn text-xs text-[var(--danger)] hidden">Rimuovi password</button>
+            <button type="button" class="btn text-xs" data-goto-tab="tavolo">← Tavolo</button>
+          </div>
+        </div>
+
+        <div class="card-surface p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🤖</span>
+            <div>
+              <strong class="font-serif-title font-bold text-sm">Assistente IA (Google Gemini)</strong>
+              <span id="dmAiStatusText" class="block text-[11px] text-[var(--muted)]">Controllo in corso…</span>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="btn text-xs export-json-btn">💾 Salva file (.json)</button>
+            <label class="btn cursor-pointer text-xs">
+              📂 Carica (.json)
+              <input type="file" accept=".json,application/json" class="hidden import-json-input" />
+            </label>
+          </div>
+        </div>
+
+        <div id="dmLocalOnlyCard" class="hidden card-surface2 p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs border-2 border-[var(--brass)]">
+          <div>
+            <strong class="font-serif-title font-bold text-sm">📱 Questa avventura è salvata solo su questo dispositivo</strong>
+            <span class="block text-[11px] text-[var(--muted)]">Caricala nel cloud per giocarla con gli amici dai loro dispositivi.</span>
+          </div>
+          <button id="btnUploadCampaignToCloud" type="button" class="btn btn-felt text-xs font-bold">☁️ Carica nel cloud</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+          <div class="lg:col-span-5 flex flex-col gap-3">
+            <div class="card-surface p-4 flex flex-col gap-3">
+              <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+                <h3 class="font-serif-title font-bold text-lg">🏰 Gestione Campagna &amp; Segreti</h3>
+                <span class="text-[11px] text-[var(--muted)]">Invisibile ai Giocatori</span>
+              </div>
+              <div class="text-xs">
+                <label class="block font-bold text-[var(--muted)] mb-1">Nome campagna</label>
+                <input id="dmInputCampaignName" type="text" class="input-field w-full font-serif-title font-bold text-base" />
+              </div>
+              <div class="text-xs flex flex-col gap-1">
+                <label class="flex items-center justify-between font-bold text-[var(--muted)]"><span>🕵️ Note segrete del DM</span><span id="dmVaultSaveStatus" class="font-normal text-[10px]"></span></label>
+                <textarea id="dmTextareaSecretNotes" rows="7" class="input-field w-full leading-relaxed text-xs" placeholder="Note segrete..."></textarea>
+              </div>
+              <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-2 text-xs">
+                <label class="font-bold text-[var(--muted)] flex items-center justify-between">
+                  <span>📜 Riassunto di fine sessione</span>
+                </label>
+                <textarea id="dmTextareaSessionNotes" rows="4" class="input-field w-full leading-relaxed text-xs" placeholder="Incolla appunti della serata..."></textarea>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[11px] text-[var(--muted)]">Trasforma gli appunti in voci del Diario (missioni, bottino, PNG…).</span>
+                  <button id="btnPrepareSessionEntries" type="button" class="btn btn-felt text-xs font-bold">✨ Prepara le voci</button>
+                </div>
+                <div id="sessionExtractedContainer" class="hidden flex-col gap-2 pt-2 border-t border-[var(--line)]">
+                  <div class="font-bold text-[var(--ink)]">Voci estratte pronte per il Diario: <span class="font-normal text-[var(--muted)]">(togli la spunta per scartarle)</span></div>
+                  <div id="sessionExtractedList" class="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1"></div>
+                  <div class="flex justify-end pt-1">
+                    <button id="btnAddExtractedToJournal" type="button" class="btn btn-brass text-xs font-bold">📥 Aggiungi al diario</button>
+                  </div>
+                </div>
+              </div>
+              <div class="pt-2 border-t border-[var(--line)] flex justify-between items-center">
+                <span class="text-xs text-[var(--muted)]">Elimina campagna?</span>
+                <button id="btnDeleteCampaignDm" type="button" class="btn text-xs text-[var(--danger)]">🗑️ Elimina</button>
+              </div>
+              <div id="deleteCampaignConfirmBar" class="hidden items-center justify-between gap-2 p-2 rounded bg-[var(--surface2)] border border-[var(--danger)] text-xs">
+                <span class="font-bold text-[var(--danger)]">Confermi?</span>
+                <div class="flex gap-1">
+                  <button id="btnConfirmDeleteCampaignYes" type="button" class="btn btn-danger text-xs py-0.5 px-2">Sì</button>
+                  <button id="btnConfirmDeleteCampaignNo" type="button" class="btn text-xs py-0.5 px-2">No</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-7 flex flex-col gap-3">
+            <div class="card-surface p-4 flex flex-col gap-3.5">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+                <div>
+                  <h3 class="font-serif-title font-bold text-xl">⚖️ Bilancia lo scontro (DMG 2014)</h3>
+                  <p class="text-xs text-[var(--muted)]">Calcola il budget PE e invia i nemici sulla mappa.</p>
+                </div>
+                <button id="btnSyncPartyFromSheets" type="button" class="btn text-xs">🔄 Sincronizza PG</button>
+              </div>
+              <div class="card-surface2 p-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                  <label class="font-bold text-[var(--ink)]">👥 Numero di PG</label>
+                  <input id="dmInputPartyCount" type="number" min="1" max="12" value="1" class="input-field w-20 text-center font-bold text-lg" />
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <label class="font-bold text-[var(--ink)]">🏅 Livello medio</label>
+                  <input id="dmInputPartyLevel" type="number" min="1" max="20" value="2" class="input-field w-20 text-center font-bold text-lg" />
+                </div>
+              </div>
+              <div>
+                <div class="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Budget PE del Gruppo</div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                  <div class="card-surface2 p-2.5 border-t-4 border-t-[var(--ok)]">
+                    <div class="text-[10px] font-bold uppercase text-[var(--muted)]">Facile</div>
+                    <div id="dmThresholdEasy" class="font-serif-title font-bold text-base text-[var(--ok)]">50 PE</div>
+                  </div>
+                  <div class="card-surface2 p-2.5 border-t-4 border-t-[var(--felt)]">
+                    <div class="text-[10px] font-bold uppercase text-[var(--muted)]">Medio</div>
+                    <div id="dmThresholdMedium" class="font-serif-title font-bold text-base text-[var(--felt)]">100 PE</div>
+                  </div>
+                  <div class="card-surface2 p-2.5 border-t-4 border-t-[var(--brass)]">
+                    <div class="text-[10px] font-bold uppercase text-[var(--muted)]">Difficile</div>
+                    <div id="dmThresholdHard" class="font-serif-title font-bold text-base text-[var(--brass)]">150 PE</div>
+                  </div>
+                  <div class="card-surface2 p-2.5 border-t-4 border-t-[var(--danger)]">
+                    <div class="text-[10px] font-bold uppercase text-[var(--muted)]">Mortale</div>
+                    <div id="dmThresholdDeadly" class="font-serif-title font-bold text-base text-[var(--danger)]">200 PE</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-surface2 p-3 flex flex-col gap-2 text-xs">
+                <div class="font-bold text-[var(--ink)]">👹 Aggiungi nemici preparati</div>
+                <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end">
+                  <div class="col-span-2">
+                    <label class="block text-[10px] font-bold text-[var(--muted)] mb-0.5">Nome</label>
+                    <input id="dmNewEnemyName" type="text" value="Goblin" class="input-field w-full font-bold" />
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-bold text-[var(--muted)] mb-0.5">GS</label>
+                    <select id="dmNewEnemyCr" class="input-field w-full font-bold"></select>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-bold text-[var(--muted)] mb-0.5">CA</label>
+                    <input id="dmNewEnemyAc" type="number" min="1" max="40" value="15" class="input-field w-full text-center font-bold" />
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-bold text-[var(--muted)] mb-0.5">PF</label>
+                    <input id="dmNewEnemyHp" type="number" min="1" max="9999" value="7" class="input-field w-full text-center font-bold" />
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-bold text-[var(--muted)] mb-0.5">Q.tà</label>
+                    <input id="dmNewEnemyQty" type="number" min="1" max="50" value="2" class="input-field w-full text-center font-bold" />
+                  </div>
+                </div>
+                <div class="flex flex-wrap justify-end gap-2 pt-1">
+                  <button id="btnAddPreparedEnemy" type="button" class="btn btn-felt text-xs font-bold">+ Aggiungi nemico</button>
+                </div>
+              </div>
+              <div id="dmPreparedEnemiesList" class="flex flex-col gap-2"></div>
+              <div class="turn-guide-box p-3 flex items-center justify-between gap-3 text-xs">
+                <div>
+                  <div class="font-bold uppercase text-[var(--muted)]">Verdetto Scontro</div>
+                  <div class="flex items-center gap-2">
+                    <span id="dmVerdictDifficultyBadge" class="font-serif-title font-bold text-xl">Medio</span>
+                    <span id="dmVerdictMultiplierText" class="px-2 py-0.5 rounded bg-[var(--surface)] font-bold text-[10px]">×1.5</span>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <span class="font-bold uppercase text-[var(--muted)] block text-[10px]">PE a testa</span>
+                  <span id="dmVerdictXpPerPlayer" class="font-serif-title font-bold text-lg text-[var(--felt)]">100 PE</span>
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span id="dmVerdictDetailText" class="text-[var(--muted)]"></span>
+                <button id="btnSendEnemiesToMap" type="button" class="btn btn-brass text-xs font-bold">🗺️ Invia sulla mappa</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modali e schermate secondarie -->
+  <div id="modalAddToken" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+    <div class="card-surface p-5 w-full max-w-md flex flex-col gap-3 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+        <h3 class="font-serif-title font-bold text-xl">Nuova Pedina</h3>
+        <button id="btnCloseAddTokenModal" class="btn text-xs">✕</button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <div class="col-span-2">
+          <label class="block text-xs font-bold text-[var(--muted)] mb-1">Nome</label>
+          <input id="inputNewTokenName" type="text" value="Goblin" class="input-field w-full" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-[var(--muted)] mb-1">Tipo</label>
+          <select id="selectNewTokenType" class="input-field w-full">
+            <option value="enemy">Nemico</option>
+            <option value="npc">PNG alleato</option>
+            <option value="pc">PG</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-[var(--muted)] mb-1">CA</label>
+          <input id="inputNewTokenAc" type="number" value="15" class="input-field w-full" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-[var(--muted)] mb-1">PF</label>
+          <input id="inputNewTokenHp" type="number" value="7" class="input-field w-full" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-[var(--muted)] mb-1">Max PF</label>
+          <input id="inputNewTokenMaxHp" type="number" value="7" class="input-field w-full" />
+        </div>
+        <label class="col-span-2 flex items-center gap-2 text-xs font-bold text-[var(--muted)] cursor-pointer">
+          <input id="inputNewTokenHidden" type="checkbox" class="w-4 h-4 accent-[var(--felt)]" />
+          Nascosta ai giocatori (per le imboscate)
+        </label>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-[var(--line)]">
+        <button id="btnCancelAddToken" class="btn">Annulla</button>
+        <button id="btnConfirmAddToken" class="btn btn-felt">Aggiungi</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="homeLobbyScreen" class="fixed inset-0 z-50 bg-[var(--bg)] overflow-y-auto p-4 sm:p-6 flex flex-col">
+    <div class="max-w-5xl w-full mx-auto my-auto flex flex-col gap-5">
+      <div class="card-surface p-5 sm:p-6 border-2 border-[var(--brass)] flex flex-col gap-4 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--line)] pb-4">
+          <div class="flex items-center gap-3.5">
+            <div class="w-14 h-14 rounded-2xl bg-[var(--felt)] text-[var(--felt-ink)] flex items-center justify-center text-3xl shadow-md border-2 border-[var(--brass)]">🎲</div>
+            <div>
+              <span class="text-xs font-bold uppercase tracking-widest text-[var(--brass)]">Virtual Tabletop • D&amp;D 5e</span>
+              <h1 class="font-serif-title font-bold text-2xl sm:text-3xl leading-tight">Il Tavolo — Scegli la tua Avventura</h1>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btnLobbyOpenCloud" type="button" class="btn text-xs font-bold py-2 px-3">☁️ <span id="lobbyCloudStatusLabel">Cloud…</span></button>
+            <button id="btnLobbyCopyInviteLink" type="button" class="btn btn-brass text-xs font-bold py-2 px-3">🔗 Invita Giocatori</button>
+            <button id="btnCloseLobbyToTable" type="button" class="btn text-xs py-2 px-3 hidden">✕ Torna al Tavolo</button>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <h2 class="font-serif-title font-bold text-xl">📜 Avventure Disponibili</h2>
+            <span id="lobbyCampaignsCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[var(--surface2)] border border-[var(--line)]">0</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btnLobbyNewAdventure" type="button" class="btn btn-felt text-xs font-bold py-1.5 px-3.5">👑 + Crea Nuova Avventura (Master)</button>
+          </div>
+        </div>
+        <div id="lobbyCreateAdventureBox" class="hidden card-surface2 p-4 border-2 border-[var(--brass)] flex-col gap-3">
+          <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+            <h3 class="font-serif-title font-bold text-lg">👑 Crea Nuova Avventura</h3>
+            <button id="btnCancelLobbyCreateAdventure" type="button" class="btn text-xs">✕</button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="block font-bold text-[var(--muted)] mb-1">Nome Avventura</label>
+              <input id="inputLobbyNewAdvTitle" type="text" placeholder="Nome avventura..." class="input-field w-full font-serif-title font-bold text-base" />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--muted)] mb-1">Password Master</label>
+              <input id="inputLobbyNewAdvPassword" type="password" autocomplete="new-password" placeholder="Password..." class="input-field w-full font-bold text-base" />
+            </div>
+          </div>
+          <p class="text-[11px] text-[var(--muted)]">La password serve per entrare come Master e protegge le tue note segrete. Puoi lasciarla vuota, ma allora chiunque potrà fare il Master.</p>
+          <div id="lobbyCreateError" class="hidden text-xs font-bold text-[var(--danger)]"></div>
+          <div class="flex justify-end pt-1">
+            <button id="btnConfirmLobbyCreateAdventure" type="button" class="btn btn-felt text-xs font-bold py-2 px-4">Crea ed Entra come Master</button>
+          </div>
+        </div>
+        <div id="lobbyLoadingState" class="text-xs text-[var(--muted)] italic">Caricamento delle avventure…</div>
+        <div id="lobbyEmptyState" class="hidden card-surface2 p-6 flex-col items-center text-center gap-3">
+          <div class="text-3xl">🗺️</div>
+          <h3 class="font-serif-title font-bold text-xl">Ancora nessuna avventura</h3>
+          <p class="text-xs text-[var(--muted)] max-w-md">Il Master crea l'avventura e poi manda il link agli amici con “🔗 Invita Giocatori”. Vuoi prima fare un giro di prova?</p>
+          <button id="btnLobbyCreateSample" type="button" class="btn btn-brass text-xs font-bold py-2 px-4">🧪 Crea l'avventura di esempio</button>
+        </div>
+        <div id="lobbyCampaignsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalFirstTimeOnboarding" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-surface p-5 sm:p-6 w-full max-w-2xl flex flex-col gap-4 border-2 border-[var(--brass)] shadow-2xl my-auto">
+      <div class="flex items-center justify-between border-b border-[var(--line)] pb-2.5">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-[var(--brass)]" id="onboardingCampaignSubtitle">Ingresso</span>
+          <h3 class="font-serif-title font-bold text-2xl" id="onboardingMainTitle">Come vuoi partecipare?</h3>
+        </div>
+        <button id="btnCloseOnboardingModal" type="button" class="btn text-xs">✕ Annulla</button>
+      </div>
+      <div id="onboardingStepRole" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="card-surface2 p-4 flex flex-col justify-between gap-3">
+          <div class="flex flex-col gap-1.5">
+            <div class="w-10 h-10 rounded-xl bg-[var(--felt)] text-white flex items-center justify-center text-xl">⚔️</div>
+            <h4 class="font-serif-title font-bold text-xl">Sono un Giocatore</h4>
+            <p class="text-xs text-[var(--muted)] leading-relaxed">Crea il tuo personaggio o scegline uno esistente.</p>
+          </div>
+          <button id="btnChooseRolePlayer" type="button" class="btn btn-felt w-full py-2.5 font-bold text-sm">⚔️ Entra come Giocatore →</button>
+        </div>
+        <div class="card-surface2 p-4 flex flex-col justify-between gap-3">
+          <div class="flex flex-col gap-2">
+            <div class="w-10 h-10 rounded-xl bg-[var(--brass-soft)] border border-[var(--brass)] flex items-center justify-center text-xl">👑</div>
+            <h4 class="font-serif-title font-bold text-xl">Sono il Master (DM)</h4>
+            <p id="onboardingMasterDesc" class="text-xs text-[var(--muted)] leading-relaxed">Gestisci mappa, nebbia e mostri.</p>
+            <div id="onboardingMasterPwdWrap" class="flex flex-col gap-1 pt-1">
+              <label id="onboardingMasterPwdLabel" for="inputOnboardingMasterPwd" class="text-xs font-bold text-[var(--ink)]">Password Master:</label>
+              <input id="inputOnboardingMasterPwd" type="password" autocomplete="current-password" placeholder="Password..." class="input-field w-full font-bold text-sm" />
+              <span id="onboardingMasterPwdError" class="hidden text-xs font-bold text-[var(--danger)]">Password errata!</span>
+            </div>
+          </div>
+          <button id="btnChooseRoleMaster" type="button" class="btn btn-brass w-full py-2.5 font-bold text-sm">👑 Entra come Master</button>
+        </div>
+      </div>
+      <div id="onboardingStepCharacter" class="hidden flex-col gap-4">
+        <div id="onboardingExistingCharsSection" class="flex flex-col gap-2">
+          <div class="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">Scegli personaggio esistente:</div>
+          <div id="onboardingExistingCharsList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+        </div>
+        <div class="border-t border-[var(--line)] pt-3 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-serif-title font-bold text-lg text-[var(--felt)]">✨ Oppure crea nuovo Personaggio</h4>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+            <div class="col-span-2">
+              <label class="block font-bold text-[var(--muted)] mb-1">Nome Eroe *</label>
+              <input id="onbCharName" type="text" placeholder="Nome..." class="input-field w-full font-serif-title font-bold text-base" />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--muted)] mb-1">Razza</label>
+              <input id="onbCharRace" type="text" value="Elfo" class="input-field w-full font-bold" />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--muted)] mb-1">Classe</label>
+              <input id="onbCharClass" type="text" value="Guerriero" class="input-field w-full font-bold" />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--muted)] mb-1">Livello</label>
+              <input id="onbCharLevel" type="number" min="1" max="20" value="1" class="input-field w-full text-center font-bold" />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--muted)] mb-1">Max PF</label>
+              <input id="onbCharHp" type="number" min="1" max="999" value="12" class="input-field w-full text-center font-bold" />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--muted)] mb-1">CA</label>
+              <input id="onbCharAc" type="number" min="1" max="35" value="16" class="input-field w-full text-center font-bold" />
+            </div>
+            <div>
+              <label class="block font-bold text-[var(--muted)] mb-1">Azione Bonus</label>
+              <input id="onbCharBonus" type="text" value="Recuperare Energie" class="input-field w-full font-bold" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-[var(--muted)] mb-1">Caratteristiche (FOR, DES, COS, INT, SAG, CAR)</label>
+            <div class="grid grid-cols-6 gap-2 text-center text-xs">
+              <div class="card-surface2 p-1.5"><span class="font-bold block text-[10px]">FOR</span><input id="onbStatFOR" type="number" value="16" class="input-field w-full text-center font-bold py-0.5 px-1" /></div>
+              <div class="card-surface2 p-1.5"><span class="font-bold block text-[10px]">DES</span><input id="onbStatDES" type="number" value="14" class="input-field w-full text-center font-bold py-0.5 px-1" /></div>
+              <div class="card-surface2 p-1.5"><span class="font-bold block text-[10px]">COS</span><input id="onbStatCOS" type="number" value="14" class="input-field w-full text-center font-bold py-0.5 px-1" /></div>
+              <div class="card-surface2 p-1.5"><span class="font-bold block text-[10px]">INT</span><input id="onbStatINT" type="number" value="10" class="input-field w-full text-center font-bold py-0.5 px-1" /></div>
+              <div class="card-surface2 p-1.5"><span class="font-bold block text-[10px]">SAG</span><input id="onbStatSAG" type="number" value="12" class="input-field w-full text-center font-bold py-0.5 px-1" /></div>
+              <div class="card-surface2 p-1.5"><span class="font-bold block text-[10px]">CAR</span><input id="onbStatCAR" type="number" value="10" class="input-field w-full text-center font-bold py-0.5 px-1" /></div>
+            </div>
+          </div>
+          <div class="text-xs">
+            <label class="block font-bold text-[var(--muted)] mb-1">Attacco Principale</label>
+            <input id="onbCharAttack" type="text" value="Spada lunga | +5 | 1d8+3" class="input-field w-full font-mono text-xs" />
+          </div>
+          <div class="flex items-center justify-between pt-2 border-t border-[var(--line)]">
+            <button id="btnBackToRoleStep" type="button" class="btn text-xs">← Indietro</button>
+            <button id="btnConfirmCreateOnbChar" type="button" class="btn btn-felt font-bold text-sm py-2 px-5">⚔️ Crea ed Entra</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalVerifyDmPassword" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+    <div class="card-surface p-5 w-full max-w-md flex flex-col gap-3.5 border-2 border-[var(--brass)] shadow-2xl">
+      <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+        <h3 class="font-serif-title font-bold text-xl">🔒 Accesso Master</h3>
+        <button id="btnCloseVerifyDmModal" type="button" class="btn text-xs">✕</button>
+      </div>
+      <p class="text-xs text-[var(--muted)] leading-relaxed">Inserisci la Password Master per sbloccare la Vista DM.</p>
+      <input id="inputModalVerifyDmPwd" type="password" autocomplete="current-password" placeholder="Password..." class="input-field w-full text-center font-bold text-base" />
+      <div id="modalVerifyDmError" class="hidden text-xs font-bold text-[var(--danger)] text-center">Password non corretta!</div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-[var(--line)]">
+        <button id="btnCancelVerifyDmModal" type="button" class="btn text-xs">Annulla</button>
+        <button id="btnConfirmVerifyDmModal" type="button" class="btn btn-brass text-xs font-bold px-4">🔓 Sblocca</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tokenQuickPopover" class="hidden fixed z-50 card-surface p-3.5 shadow-2xl flex flex-col gap-2.5 w-64 border-2 border-[var(--brass)]" role="dialog" aria-label="Dettagli pedina">
+    <div class="flex items-center justify-between border-b border-[var(--line)] pb-1.5">
+      <div class="min-w-0">
+        <h4 id="popoverTokenName" class="font-serif-title font-bold text-base leading-tight truncate">Nome</h4>
+        <span id="popoverTokenType" class="text-[10px] text-[var(--muted)]">Tipo</span>
+      </div>
+      <button id="btnCloseTokenPopover" class="btn text-xs py-0.5 px-1.5" aria-label="Chiudi">✕</button>
+    </div>
+    <div id="popoverHpBlock" class="flex flex-col gap-1 text-xs">
+      <div class="flex items-center justify-between font-bold">
+        <span>PF:</span>
+        <span id="popoverHpText">7 / 7</span>
+      </div>
+      <div class="w-full bg-[var(--surface2)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
+        <div id="popoverHpBar" class="h-full bg-[var(--ok)] transition-all" style="width: 100%;"></div>
+      </div>
+    </div>
+    <div id="popoverHpStatus" class="hidden text-xs font-bold"></div>
+    <div id="popoverHpControls" class="flex items-center gap-1.5 text-xs pt-1">
+      <input id="inputPopoverHpDelta" type="number" min="1" max="999" value="5" class="input-field w-16 text-center font-bold" aria-label="Quantità" />
+      <button id="btnPopoverDamage" type="button" class="btn btn-danger text-xs py-1 px-2.5 flex-1 font-bold">Danno</button>
+      <button id="btnPopoverHeal" type="button" class="btn btn-ok text-xs py-1 px-2.5 flex-1 font-bold">Cura</button>
+    </div>
+    <button id="btnPopoverOpenSheet" type="button" class="btn text-xs w-full justify-start hidden">🧝 Apri scheda</button>
+    <div id="popoverDmActions" class="flex flex-col gap-1 pt-1.5 border-t border-[var(--line)] text-xs">
+      <button id="btnPopoverAddInit" type="button" class="btn text-xs w-full justify-start">⚡ Aggiungi all'iniziativa</button>
+      <button id="btnPopoverToggleHidden" type="button" class="btn text-xs w-full justify-start">👁️‍🗨️ Nascondi</button>
+      <button id="btnPopoverDeleteToken" type="button" class="btn text-xs w-full justify-start text-[var(--danger)]">🗑️ Rimuovi</button>
+    </div>
+  </div>
+
+  <div id="activeCharSummaryBar" class="hidden sticky bottom-0 z-40 card-surface rounded-none border-x-0 border-b-0 px-4 py-2.5 shadow-lg flex flex-wrap items-center justify-between gap-3 text-xs">
+    <div id="activeCharSummaryText" class="flex flex-wrap items-center gap-2 truncate"></div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <button id="btnCharHpMinus" type="button" class="btn text-xs py-1 px-2 font-bold">−</button>
+      <span class="font-bold">PF</span>
+      <button id="btnCharHpPlus" type="button" class="btn text-xs py-1 px-2 font-bold">+</button>
+      <button id="btnGoToSheet" type="button" class="btn btn-felt text-xs py-1 px-3 font-bold">Scheda</button>
+    </div>
+  </div>
+
+  <div id="toastNotification" role="status" aria-live="polite" class="fixed bottom-16 right-4 left-4 sm:left-auto z-[70] hidden card-surface px-4 py-2.5 text-sm font-medium shadow-lg border-l-4 border-l-[var(--brass)]"></div>
+
+  <div id="modalCloudStatus" class="hidden fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
+    <div class="card-surface p-5 w-full max-w-lg flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl">
+      <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+        <h3 class="font-serif-title font-bold text-xl">☁️ Sincronizzazione</h3>
+        <button id="btnCloseCloudModal" type="button" class="btn text-xs" aria-label="Chiudi">✕</button>
+      </div>
+      <div id="cloudStatusHeadline" class="font-bold text-sm"></div>
+      <div id="cloudStatusBody" class="text-xs text-[var(--muted)] leading-relaxed flex flex-col gap-2"></div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-[var(--line)]">
+        <button id="btnCloudRetry" type="button" class="btn btn-felt text-xs font-bold">🔄 Riprova</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/rules.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/table.js"></script>
+  <script src="js/sheet.js"></script>
+  <script src="js/journal.js"></script>
+  <script src="js/books.js"></script>
+  <script src="js/dm.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
