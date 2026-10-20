@@ -3,269 +3,70 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Tavolo virtuale per giocare a D&amp;D 5e online con gli amici: mappa, nebbia, pedine, dadi, schede e diario condivisi." />
+  <meta name="theme-color" content="#2E5B44" />
   <title>Il Tavolo — D&amp;D 5e</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    // Applica subito il tema salvato per evitare il lampo chiaro/scuro
+    try { const t = localStorage.getItem('iltavolo_theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
-
-  <style>
-    :root {
-      --bg: #E4EBE4;
-      --surface: #FFFFFF;
-      --surface2: #F1F5F0;
-      --ink: #1C2922;
-      --muted: #56675C;
-      --line: #C6D2C8;
-      --felt: #2E5B44;
-      --felt-ink: #FFFFFF;
-      --brass: #8A6810;
-      --brass-soft: #F3E7C2;
-      --danger: #A3392A;
-      --ok: #2E7A4F;
-      --fog: #16211B;
-      --shadow-sm: 0 2px 6px rgba(28, 41, 34, 0.08);
-      --shadow-md: 0 6px 18px rgba(28, 41, 34, 0.14);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        --bg: #111814;
-        --surface: #1A241E;
-        --surface2: #222F27;
-        --ink: #E8F0EA;
-        --muted: #96A99C;
-        --line: #314338;
-        --felt: #254B37;
-        --felt-ink: #F2F7F4;
-        --brass: #D4A73A;
-        --brass-soft: #3A311A;
-        --danger: #D9534F;
-        --ok: #48A870;
-        --fog: #090E0B;
-        --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.35);
-        --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
-      }
-    }
-
-    :root[data-theme="dark"] {
-      --bg: #111814;
-      --surface: #1A241E;
-      --surface2: #222F27;
-      --ink: #E8F0EA;
-      --muted: #96A99C;
-      --line: #314338;
-      --felt: #254B37;
-      --felt-ink: #F2F7F4;
-      --brass: #D4A73A;
-      --brass-soft: #3A311A;
-      --danger: #D9534F;
-      --ok: #48A870;
-      --fog: #090E0B;
-      --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.35);
-      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0; padding: 0;
-      background-color: var(--bg);
-      color: var(--ink);
-      font-family: 'Alegreya Sans', sans-serif;
-      min-height: 100vh;
-      display: flex; flex-direction: column;
-      overflow-x: hidden;
-    }
-
-    h1, h2, h3, h4, .font-serif-title { font-family: 'Alegreya', serif; }
-
-    .card-surface {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .card-surface2 {
-      background: var(--surface2);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-    }
-
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      gap: 0.35rem; padding: 0.38rem 0.72rem;
-      border-radius: 7px; font-weight: 500; font-size: 0.875rem;
-      border: 1px solid var(--line); background: var(--surface2); color: var(--ink);
-      cursor: pointer; transition: all 0.15s ease; user-select: none; white-space: nowrap;
-    }
-    .btn:hover { border-color: var(--brass); transform: translateY(-1px); }
-    .btn:active { transform: translateY(0); }
-    .btn-felt { background: var(--felt); color: var(--felt-ink); border-color: var(--felt); }
-    .btn-felt:hover { filter: brightness(1.1); border-color: var(--brass); }
-    .btn-brass { background: var(--brass-soft); color: var(--ink); border-color: var(--brass); font-weight: 700; }
-    .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
-    .btn-ok { background: var(--ok); color: #fff; border-color: var(--ok); }
-
-    .input-field {
-      background: var(--surface); color: var(--ink);
-      border: 1px solid var(--line); border-radius: 6px;
-      padding: 0.32rem 0.55rem; font-size: 0.875rem; outline: none;
-    }
-    .input-field:focus { border-color: var(--brass); box-shadow: 0 0 0 2px var(--brass-soft); }
-
-    .nav-tab {
-      padding: 0.5rem 1rem; font-family: 'Alegreya', serif; font-weight: 700; font-size: 1rem;
-      border-bottom: 3px solid transparent; color: var(--muted); cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
-    }
-    .nav-tab:hover { color: var(--ink); }
-    .nav-tab.active {
-      color: var(--felt); border-bottom-color: var(--brass); background: var(--surface2);
-      border-top-left-radius: 6px; border-top-right-radius: 6px;
-    }
-    :root[data-theme="dark"] .nav-tab.active { color: var(--brass); }
-
-    .tavolo-grid {
-      display: grid; grid-template-columns: 1fr 380px; gap: 0.85rem; align-items: stretch; min-height: calc(100vh - 205px);
-    }
-    @media (max-width: 1024px) { .tavolo-grid { grid-template-columns: 1fr; } }
-
-    .map-viewport {
-      position: relative; overflow: auto; background: #141c17; border: 1px solid var(--line); border-radius: 8px;
-      flex: 1; min-height: 460px; display: flex; align-items: center; justify-content: center; user-select: none;
-    }
-    .map-stage {
-      position: relative; width: 800px; height: 600px; transform-origin: center center;
-      transition: transform 0.08s ease-out; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-      background: #232b25; overflow: hidden; flex-shrink: 0;
-    }
-    .map-grid-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
-    .fog-grid {
-      position: absolute; inset: 0; display: grid; grid-template-columns: repeat(16, 1fr); grid-template-rows: repeat(12, 1fr);
-      z-index: 30; pointer-events: none;
-    }
-    .fog-grid.editing-fog { pointer-events: auto; cursor: crosshair; }
-    .fog-cell { transition: background-color 0.12s ease; }
-    .fog-cell.fogged-player { background-color: var(--fog); pointer-events: auto; }
-    .fog-cell.fogged-dm {
-      background-color: rgba(22, 33, 27, 0.56);
-      background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0px, rgba(255, 255, 255, 0.04) 4px, transparent 4px, transparent 8px);
-      border: 1px dashed rgba(243, 231, 194, 0.14);
-    }
-    .token-layer { position: absolute; inset: 0; z-index: 20; pointer-events: none; }
-    .map-token {
-      position: absolute; pointer-events: auto; cursor: grab; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.85); box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-      transition: box-shadow 0.15s ease, transform 0.08s ease; user-select: none; touch-action: none;
-    }
-    .map-token:active { cursor: grabbing; z-index: 50; }
-    .map-token.token-pc { border-radius: 9999px; background: radial-gradient(circle at 30% 30%, #3E7B5C, #1F4230); border: 2.5px solid #F3E7C2; }
-    .map-token.token-enemy { border-radius: 7px; background: linear-gradient(145deg, #C04332, #7D261A); border: 2.5px solid #F7C6BE; }
-    .map-token.token-hidden-dm { opacity: 0.55; border-style: dashed; }
-    .map-token.active-turn-token {
-      box-shadow: 0 0 0 4px var(--brass), 0 0 18px 6px rgba(212, 167, 58, 0.85);
-      animation: pulse-turn 1.6s infinite ease-in-out; z-index: 40;
-    }
-    @keyframes pulse-turn { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
-
-    .token-hp-bar {
-      position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 115%; height: 6px;
-      background: rgba(0, 0, 0, 0.75); border-radius: 4px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.35); pointer-events: none;
-    }
-    .token-hp-fill { height: 100%; background: #38A169; transition: width 0.2s ease; }
-    .token-label-pill {
-      position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); background: rgba(17, 24, 20, 0.88);
-      color: #F3E7C2; font-size: 10px; padding: 1px 5px; border-radius: 4px; white-space: nowrap; pointer-events: none; border: 1px solid rgba(243, 231, 194, 0.25);
-    }
-    .drag-distance-badge {
-      position: absolute; z-index: 60; background: var(--brass); color: #fff; font-weight: 700; font-size: 0.8rem;
-      padding: 0.2rem 0.55rem; border-radius: 999px; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.45); white-space: nowrap; transform: translate(-50%, -140%);
-    }
-    .token-condition-badge {
-      position: absolute; top: -6px; right: -8px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 700;
-      line-height: 1; padding: 2px 5px; border-radius: 999px; border: 1.5px solid #F3E7C2; box-shadow: 0 2px 6px rgba(0,0,0,0.6); pointer-events: none; z-index: 5;
-    }
-
-    .death-save-dot {
-      width: 18px; height: 18px; border-radius: 999px; border: 2px solid var(--muted); background: var(--surface);
-      cursor: pointer; transition: all 0.15s ease; display: inline-block;
-    }
-    .death-save-dot.active-success { background: var(--ok); border-color: var(--ok); box-shadow: 0 0 6px rgba(46, 122, 79, 0.5); }
-    .death-save-dot.active-failure { background: var(--danger); border-color: var(--danger); box-shadow: 0 0 6px rgba(163, 57, 42, 0.5); }
-
-    .spell-slot-pip {
-      width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--felt); background: var(--surface);
-      cursor: pointer; transition: all 0.12s ease; display: inline-flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 700; color: transparent;
-    }
-    .spell-slot-pip.used { background: var(--felt); color: var(--felt-ink); }
-
-    .condition-btn {
-      padding: 0.28rem 0.6rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600;
-      border: 1px solid var(--line); background: var(--surface2); color: var(--ink); cursor: pointer; transition: all 0.14s ease;
-    }
-    .condition-btn.active { background: var(--danger); color: #fff; border-color: var(--danger); box-shadow: 0 2px 6px rgba(163, 57, 42, 0.35); }
-
-    .turn-guide-box { background: var(--brass-soft); border: 2px solid var(--brass); border-radius: 10px; color: var(--ink); }
-
-    ::-webkit-scrollbar { width: 7px; height: 7px; }
-    ::-webkit-scrollbar-track { background: var(--surface2); }
-    ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-  <header class="sticky top-0 z-50 card-surface rounded-none border-x-0 border-t-0 px-3 py-2 shadow-sm">
+  <header class="lg:sticky top-0 z-40 card-surface rounded-none border-x-0 border-t-0 px-3 py-2 shadow-sm">
     <div class="max-w-[1600px] mx-auto flex flex-col gap-2">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2 min-w-0">
           <button id="btnOpenLobbyHome" type="button" class="btn btn-felt text-xs font-bold px-2.5 py-1.5" title="Torna alla schermata Home delle avventure">
-            🏠 Home
+            🏠 <span class="hidden sm:inline">Home</span>
           </button>
-          <div class="flex items-center gap-2 pr-2 border-r border-[var(--line)]">
-            <span class="w-8 h-8 rounded-lg bg-[var(--felt)] text-[var(--felt-ink)] flex items-center justify-center font-serif-title font-bold text-lg shadow-sm">🎲</span>
-            <div>
+          <div class="flex items-center gap-2 pr-2 sm:border-r border-[var(--line)] min-w-0">
+            <span class="hidden sm:flex w-8 h-8 rounded-lg bg-[var(--felt)] text-[var(--felt-ink)] items-center justify-center font-serif-title font-bold text-lg shadow-sm">🎲</span>
+            <div class="min-w-0">
               <div class="text-xs uppercase tracking-wider font-bold text-[var(--muted)] leading-none">Il Tavolo — D&amp;D 5e</div>
               <input
                 id="campaignTitleInput"
                 type="text"
-                class="font-serif-title font-bold text-lg bg-transparent border-b border-transparent hover:border-[var(--line)] focus:border-[var(--brass)] focus:outline-none px-0.5 leading-tight"
+                class="font-serif-title font-bold text-lg bg-transparent border-b border-transparent hover:border-[var(--line)] focus:border-[var(--brass)] focus:outline-none px-0.5 leading-tight w-full max-w-[16rem]"
                 title="Clicca per rinominare la campagna corrente"
-                value="Le Cripte di Smeraldo"
+                value=""
               />
             </div>
           </div>
 
-          <select id="campaignSelect" class="input-field font-medium min-w-[170px]" title="Cambia campagna"></select>
+          <select id="campaignSelect" class="input-field font-medium min-w-[170px] hidden md:block" title="Cambia campagna"></select>
 
-          <button id="btnNewCampaign" class="btn" title="Crea una nuova campagna">+ Nuova</button>
-          <button id="btnDuplicateCampaign" class="btn" title="Duplica la campagna corrente">Duplica</button>
-          <button id="btnExportJson" class="btn" title="Esporta campagna in formato .json">Salva file (.json)</button>
-          <label class="btn cursor-pointer" title="Importa campagna da file .json">
-            Carica (.json)
-            <input id="inputImportJson" type="file" accept=".json,application/json" class="hidden" />
-          </label>
+          <div class="hidden md:flex flex-wrap items-center gap-2">
+            <button id="btnNewCampaign" class="btn" title="Crea una nuova campagna">+ Nuova</button>
+            <button id="btnDuplicateCampaign" class="btn dm-only" title="Duplica la campagna corrente">Duplica</button>
+            <button id="btnExportJson" class="btn export-json-btn" title="Esporta campagna in formato .json">Salva file (.json)</button>
+            <label class="btn cursor-pointer" title="Importa campagna da file .json">
+              Carica (.json)
+              <input id="inputImportJson" type="file" accept=".json,application/json" class="hidden import-json-input" />
+            </label>
+          </div>
 
           <span id="saveStatusBadge" class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-[var(--surface2)] text-[var(--ok)] border border-[var(--line)]">
             ✓ Salvato
           </span>
         </div>
 
-        <div class="flex items-center gap-2">
-          <button id="btnOpenSupabaseModal" type="button" class="btn text-xs px-2.5 py-1.5" title="Configura sincronizzazione Cloud">
-            ☁️ <span id="headerCloudStatusLabel">Cloud Attivo</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="btnOpenSupabaseModal" type="button" class="btn text-xs px-2.5 py-1.5" title="Stato della sincronizzazione Cloud">
+            ☁️ <span id="headerCloudStatusLabel" class="hidden sm:inline">Cloud</span>
           </button>
           <button id="btnSwitchRoleOrChar" type="button" class="btn text-xs px-2.5 py-1.5" title="Cambia il tuo personaggio o ruolo">
-            👤 Ruolo / PG
+            👤 <span class="hidden sm:inline">Ruolo / PG</span>
           </button>
           <button id="btnToggleViewMode" class="btn btn-brass px-3 py-1.5 text-sm shadow-sm" title="Cambia tra visuale DM e Giocatore">
-            👁️ Vista: <span id="viewModeLabel" class="underline">DM</span>
+            👁️ <span class="hidden sm:inline">Vista:</span> <span id="viewModeLabel" class="underline">DM</span>
           </button>
           <button id="btnToggleTheme" class="btn px-2.5 py-1.5" title="Cambia tema Chiaro / Scuro">🌓</button>
         </div>
@@ -297,30 +98,31 @@
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
             <div class="flex items-center gap-2">
               <h2 class="font-serif-title font-bold text-xl">🗺️ Mappa Tattica</h2>
-              <div class="flex items-center gap-1 text-xs text-[var(--muted)]">
+              <div class="hidden sm:flex items-center gap-1 text-xs text-[var(--muted)]">
                 <span>Zoom: <strong id="zoomLevelText">100%</strong></span>
                 <span>• Griglia: <strong id="gridStatusText">accesa</strong></span>
                 <span>• Nebbia: <strong id="fogStatusText">accesa</strong></span>
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-1.5 text-xs">
-              <button id="btnZoomIn" class="btn text-xs px-2">+</button>
-              <button id="btnZoomOut" class="btn text-xs px-2">−</button>
-              <button id="btnToggleGrid" class="btn text-xs">Griglia</button>
-              <div class="flex items-center gap-1 px-1 bg-[var(--surface2)] border border-[var(--line)] rounded">
-                <span class="text-[10px] text-[var(--muted)]">Righe/Col:</span>
+              <button id="btnZoomIn" class="btn text-xs px-2" title="Ingrandisci">+</button>
+              <button id="btnZoomOut" class="btn text-xs px-2" title="Riduci">−</button>
+              <button id="btnZoomFit" class="btn text-xs px-2" title="Adatta la mappa allo schermo">⤢</button>
+              <button id="btnToggleGrid" class="btn text-xs dm-only">Griglia</button>
+              <div class="flex items-center gap-1 px-1 bg-[var(--surface2)] border border-[var(--line)] rounded dm-only">
+                <span class="text-[10px] text-[var(--muted)]">Colonne:</span>
                 <input id="inputGridSize" type="range" min="4" max="120" value="16" class="w-16 accent-[var(--felt)]" />
                 <input id="inputGridSizeNumber" type="number" min="4" max="120" value="16" class="input-field w-12 text-center text-xs py-0 px-1 font-bold" />
               </div>
-              <button id="btnToggleFog" class="btn text-xs">Nebbia</button>
-              <button id="btnAddTokenModal" class="btn btn-felt text-xs">+ Pedina</button>
+              <button id="btnToggleFog" class="btn text-xs dm-only">Nebbia</button>
+              <button id="btnAddTokenModal" class="btn btn-felt text-xs dm-only">+ Pedina</button>
             </div>
           </div>
 
-          <div id="fogToolbar" class="flex flex-wrap items-center justify-between gap-2 bg-[var(--surface2)] px-3 py-1.5 rounded-lg border border-[var(--line)] text-xs">
+          <div id="fogToolbar" class="dm-only flex flex-wrap items-center justify-between gap-2 bg-[var(--surface2)] px-3 py-1.5 rounded-lg border border-[var(--line)] text-xs">
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-bold text-[var(--brass)]">⚔️ Strumenti DM:</span>
-              <button id="btnToggleFogBrush" class="btn text-xs">🖌️ <span id="fogBrushText">Rivela zona</span></button>
+              <button id="btnToggleFogBrush" class="btn text-xs" title="Trascina sulla mappa: se parti da una zona coperta la scopri, altrimenti la copri">🖌️ <span id="fogBrushText">Pennello nebbia</span></button>
               <button id="btnFogCoverAll" class="btn text-xs">Copri tutto</button>
               <button id="btnFogRevealAll" class="btn text-xs">Scopri tutto</button>
             </div>
@@ -334,19 +136,22 @@
           </div>
 
           <div id="mapViewport" class="map-viewport">
-            <div id="mapStage" class="map-stage">
-              <canvas id="defaultDungeonCanvas" width="800" height="600" class="absolute inset-0 w-full h-full object-cover"></canvas>
-              <img id="customMapImage" alt="Mappa" class="absolute inset-0 w-full h-full object-cover hidden" />
-              <canvas id="gridOverlayCanvas" width="800" height="600" class="map-grid-overlay"></canvas>
-              <div id="fogGridLayer" class="fog-grid"></div>
-              <svg class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 25;">
-                <circle id="dragMeasureOrigin" cx="0" cy="0" r="5" class="fill-[var(--brass)] stroke-white stroke-2 hidden" />
-                <line id="dragMeasureLine" x1="0" y1="0" x2="0" y2="0" class="stroke-[var(--brass)] stroke-[3] stroke-dasharray-[6,6] hidden" />
-              </svg>
-              <div id="dragDistanceBadge" class="drag-distance-badge hidden">0 m</div>
-              <div id="tokenLayer" class="token-layer"></div>
+            <div id="mapSizer" class="map-sizer">
+              <div id="mapStage" class="map-stage">
+                <canvas id="defaultDungeonCanvas" width="800" height="600" class="absolute inset-0 w-full h-full"></canvas>
+                <img id="customMapImage" alt="Mappa" class="absolute inset-0 w-full h-full hidden" draggable="false" />
+                <canvas id="gridOverlayCanvas" width="800" height="600" class="map-grid-overlay"></canvas>
+                <canvas id="fogCanvas" width="800" height="600" class="fog-canvas"></canvas>
+                <svg id="dragMeasureSvg" class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 45;">
+                  <circle id="dragMeasureOrigin" cx="0" cy="0" r="5" class="hidden" fill="#D4A73A" stroke="#fff" stroke-width="2" />
+                  <line id="dragMeasureLine" x1="0" y1="0" x2="0" y2="0" class="hidden" stroke="#D4A73A" stroke-width="3" stroke-dasharray="6 6" />
+                </svg>
+                <div id="dragDistanceBadge" class="drag-distance-badge hidden">0 m</div>
+                <div id="tokenLayer" class="token-layer"></div>
+              </div>
             </div>
           </div>
+          <p class="text-[11px] text-[var(--muted)] leading-snug">Trascina le pedine per muoverle (1 casella = 1,5 m). Tocca una pedina per PF, danni e cure.</p>
         </div>
 
         <!-- Colonna Destra: Iniziativa, Gemini, Dadi -->
@@ -366,13 +171,13 @@
                   <span id="initRoundNumber" class="font-serif-title font-bold text-base px-2 py-0.5 rounded bg-[var(--surface2)] border border-[var(--line)]">1</span>
                 </div>
                 <div class="flex flex-wrap items-center gap-1">
-                  <button id="btnRollMyInitiative" class="btn btn-felt text-xs py-1 px-2">🎲 Tira</button>
+                  <button id="btnRollMyInitiative" class="btn btn-felt text-xs py-1 px-2" title="Tira l'iniziativa">🎲 Tira</button>
                   <button id="btnNextTurn" class="btn btn-brass text-xs py-1 px-2">Turno →</button>
-                  <button id="btnAddMapEnemiesInit" class="btn text-xs py-1 px-2">👹 Nemici</button>
-                  <button id="btnEndCombat" class="btn text-xs py-1 px-2 text-[var(--danger)]">Fine</button>
+                  <button id="btnAddMapEnemiesInit" class="btn text-xs py-1 px-2 dm-only" title="Aggiungi all'iniziativa tutti i nemici sulla mappa">👹 Nemici</button>
+                  <button id="btnEndCombat" class="btn text-xs py-1 px-2 text-[var(--danger)] dm-only" title="Termina il combattimento e svuota l'iniziativa">Fine</button>
                 </div>
               </div>
-              <div id="initiativeList" class="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1"></div>
+              <div id="initiativeList" class="flex flex-col gap-1.5 max-h-56 overflow-y-auto pr-1"></div>
             </div>
           </div>
 
@@ -381,14 +186,14 @@
               <h3 class="font-serif-title font-bold text-base flex items-center gap-1.5">
                 🤖 Chiedi a Gemini <span class="text-[10px] font-normal px-1.5 py-0.5 rounded bg-[var(--brass-soft)] text-[var(--ink)] border border-[var(--brass)]">Regole &amp; PDF</span>
               </h3>
-              <span id="geminiApiKeyStatusBadge" class="text-[10px] text-[var(--muted)]">Chiave locale</span>
+              <span id="geminiApiKeyStatusBadge" class="text-[10px] text-[var(--muted)]">…</span>
             </div>
-            <div id="geminiChatMessagesBox" class="h-36 overflow-y-auto text-xs flex flex-col gap-1.5 bg-[var(--surface2)] p-2.5 rounded border border-[var(--line)]">
+            <div id="geminiChatMessagesBox" class="h-44 overflow-y-auto text-xs flex flex-col gap-1.5 bg-[var(--surface2)] p-2.5 rounded border border-[var(--line)]">
               <div><strong class="text-[var(--ink)]">Assistente:</strong> Ciao! Chiedimi qualsiasi regola, incantesimo o informazione presente nei manuali PDF indicizzati o nel glossario D&amp;D 5e.</div>
             </div>
             <form id="geminiChatForm" class="flex flex-col gap-1.5">
               <div class="flex gap-1.5">
-                <input id="inputGeminiQuery" type="text" placeholder="Es. Come funziona la condizione stun?..." class="input-field flex-1 text-xs" />
+                <input id="inputGeminiQuery" type="text" placeholder="Es. Come funziona la condizione Stordito?" class="input-field flex-1 text-xs" />
                 <button type="submit" class="btn btn-felt text-xs py-1 px-2.5">Chiedi</button>
               </div>
             </form>
@@ -407,7 +212,7 @@
               <button class="btn btn-felt font-serif-title font-bold text-sm dice-btn" data-sides="12">d12</button>
               <button class="btn btn-brass font-serif-title font-bold text-sm dice-btn" data-sides="20">d20</button>
               <button class="btn btn-felt font-serif-title font-bold text-sm dice-btn" data-sides="100">d100</button>
-              <button id="btnClearRolls" class="btn text-xs text-[var(--danger)]">Pulisci</button>
+              <button id="btnClearRolls" class="btn text-xs text-[var(--danger)] dm-only" title="Cancella lo storico dei tiri per tutti">Pulisci</button>
             </div>
             <div id="diceModPanel" class="hidden flex flex-col gap-2 pt-2 border-t border-[var(--line)] text-xs">
               <div class="grid grid-cols-3 gap-2">
@@ -434,7 +239,7 @@
                   <button type="button" class="adv-mode-btn py-1 px-2 rounded font-medium text-[var(--muted)] text-xs" data-adv="adv">Vantaggio</button>
                   <button type="button" class="adv-mode-btn py-1 px-2 rounded font-medium text-[var(--muted)] text-xs" data-adv="dis">Svantaggio</button>
                 </div>
-                <div id="dmSecretRollRow" class="flex items-center gap-1.5">
+                <div id="dmSecretRollRow" class="flex items-center gap-1.5 dm-only" title="Il tiro resta visibile solo a te">
                   <input id="inputSecretRoll" type="checkbox" class="w-4 h-4 accent-[var(--felt)]" />
                   <label for="inputSecretRoll" class="font-bold text-[var(--muted)] cursor-pointer">Segreto DM</label>
                 </div>
@@ -443,9 +248,10 @@
                 <button id="btnQuickResetMod" class="btn text-[11px] py-0.5">Azzera opzioni</button>
               </div>
             </div>
+            <div id="lastRollDisplay" class="hidden last-roll"></div>
             <div class="flex flex-col gap-1.5 pt-1">
               <div class="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">Storico Tiri</div>
-              <div id="rollHistoryList" class="flex flex-col gap-1.5 max-h-28 overflow-y-auto pr-1"></div>
+              <div id="rollHistoryList" class="flex flex-col gap-1.5 max-h-64 overflow-y-auto pr-1"></div>
             </div>
           </div>
         </div>
@@ -459,7 +265,7 @@
           <span class="text-xl">🧝‍♀️</span>
           <select id="sheetCharSelect" class="input-field font-serif-title font-bold text-base min-w-[200px]"></select>
           <button id="btnNewPcSheet" type="button" class="btn btn-felt text-xs font-bold">+ Nuovo PG</button>
-          <button id="btnNewNpcSheet" type="button" class="btn btn-brass text-xs font-bold hidden">+ Nuova scheda PNG</button>
+          <button id="btnNewNpcSheet" type="button" class="btn btn-brass text-xs font-bold dm-only">+ Nuova scheda PNG</button>
           <button id="btnDeleteSheet" type="button" class="btn text-xs text-[var(--danger)]">Elimina scheda</button>
         </div>
         <div id="deleteSheetConfirmBar" class="hidden items-center gap-2 bg-[var(--surface2)] px-2 py-1 rounded border border-[var(--danger)] text-xs">
@@ -476,7 +282,17 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+      <div id="sheetEmptyState" class="hidden card-surface p-6 flex-col items-center text-center gap-3">
+        <div class="text-3xl">🧝‍♀️</div>
+        <h3 class="font-serif-title font-bold text-xl">Nessuna scheda da mostrare</h3>
+        <p class="text-xs text-[var(--muted)] max-w-sm">Crea il tuo personaggio con “+ Nuovo PG” oppure sceglilo da “👤 Ruolo / PG”.</p>
+      </div>
+
+      <div id="sheetReadOnlyBanner" class="hidden card-surface2 px-3 py-2 text-xs font-bold text-[var(--muted)] border-[var(--brass)]">
+        👀 Stai guardando la scheda di un altro giocatore: solo lettura.
+      </div>
+
+      <div id="sheetBody" class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
         <div class="lg:col-span-8 flex flex-col gap-3">
           <div class="card-surface p-4 flex flex-col gap-3.5">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
@@ -546,7 +362,7 @@
               <div class="flex flex-col gap-1 col-span-2">
                 <div class="flex items-center justify-between">
                   <span class="font-bold text-[var(--ink)]">Dadi Vita (<span id="sheetHitDiceRemainingBadge">2/2</span>)</span>
-                  <span class="text-[10px] text-[var(--muted)]">Dado: <input id="sheetInputHitDie" type="text" class="input-field w-12 text-center py-0 px-1 font-bold text-xs" /></span>
+                  <span class="text-[10px] text-[var(--muted)]">Dado: <input id="sheetInputHitDie" type="text" placeholder="d8" class="input-field w-12 text-center py-0 px-1 font-bold text-xs" /></span>
                 </div>
                 <div class="flex items-center gap-1.5">
                   <button id="btnShortRest" type="button" class="btn text-xs py-1 px-2.5 flex-1">⛺ Riposo breve</button>
@@ -644,6 +460,7 @@
           <div class="card-surface p-4 flex flex-col gap-3">
             <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
               <h3 class="font-serif-title font-bold text-lg">✨ Slot Incantesimo (Livelli 1–9)</h3>
+              <span class="text-[11px] text-[var(--muted)]">Imposta il massimo, poi tocca i quadratini per spenderli</span>
             </div>
             <div id="sheetSpellSlotsGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
           </div>
@@ -651,7 +468,7 @@
           <div class="card-surface p-4 flex flex-col gap-3">
             <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
               <h3 class="font-serif-title font-bold text-lg">⚠️ Condizioni Attive</h3>
-              <button id="btnbtnClearAllConditions" type="button" class="btn text-xs">Rimuovi tutte</button>
+              <button id="btnClearAllConditions" type="button" class="btn text-xs">Rimuovi tutte</button>
             </div>
             <div class="flex flex-wrap gap-1.5" id="sheetConditionsButtons"></div>
             <div id="sheetActiveConditionsInfo" class="hidden flex-col gap-1.5 p-3 rounded-lg bg-[var(--surface2)] border border-[var(--danger)] text-xs"></div>
@@ -726,7 +543,7 @@
         </div>
         <div class="flex items-center gap-2">
           <button id="btnToggleJournalForm" type="button" class="btn btn-brass text-xs font-bold">+ Aggiungi voce</button>
-          <button type="button" class="btn text-xs" onclick="switchTab('tavolo')">← Tavolo</button>
+          <button type="button" class="btn text-xs" data-goto-tab="tavolo">← Tavolo</button>
         </div>
       </div>
 
@@ -782,7 +599,7 @@
               📁 Aggiungi e Indicizza PDF
               <input id="inputUploadPdf" type="file" accept="application/pdf" multiple class="hidden" />
             </label>
-            <button class="btn text-xs" onclick="switchTab('tavolo')">← Tavolo</button>
+            <button class="btn text-xs" data-goto-tab="tavolo">← Tavolo</button>
           </div>
         </div>
 
@@ -794,16 +611,31 @@
         </div>
 
         <div class="flex flex-col gap-2">
-          <div class="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">Documenti indicizzati nel database</div>
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <div class="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">Documenti indicizzati su questo dispositivo</div>
+            <span class="text-[11px] text-[var(--muted)]">I PDF non vengono caricati online: restano nel tuo browser.</span>
+          </div>
           <div id="indexedPdfsList" class="grid grid-cols-1 md:grid-cols-2 gap-2.5"></div>
         </div>
+
+        <form id="rulesSearchForm" class="flex flex-col gap-2 pt-4 border-t border-[var(--line)]">
+          <label for="inputRulesSearch" class="font-serif-title font-bold text-xl">🔎 Cerca nei manuali e nel glossario</label>
+          <div class="flex gap-2">
+            <input id="inputRulesSearch" type="search" placeholder="Es. lottare, attacco di opportunità, riposo breve…" class="input-field flex-1" />
+            <button type="submit" class="btn btn-felt text-xs">Cerca</button>
+          </div>
+          <div id="rulesSearchResults" class="flex flex-col gap-2"></div>
+        </form>
 
         <div id="pdfReaderModalBox" class="hidden flex-col gap-2 pt-4 border-t border-[var(--line)]">
           <div class="flex items-center justify-between">
             <h3 id="pdfReaderTitle" class="font-serif-title font-bold text-lg">Visualizzatore PDF</h3>
-            <button id="btnClosePdfReader" class="btn text-xs">✕ Chiudi</button>
+            <div class="flex items-center gap-2">
+              <a id="pdfReaderOpenNewTab" class="btn text-xs" target="_blank" rel="noopener">↗ Apri a schermo intero</a>
+              <button id="btnClosePdfReader" class="btn text-xs">✕ Chiudi</button>
+            </div>
           </div>
-          <div class="w-full h-[550px] bg-black/10 rounded-lg overflow-hidden border border-[var(--line)]">
+          <div class="w-full h-[70vh] min-h-[400px] bg-black/10 rounded-lg overflow-hidden border border-[var(--line)]">
             <iframe id="pdfReaderIframe" class="w-full h-full border-0"></iframe>
           </div>
         </div>
@@ -811,8 +643,9 @@
         <div class="flex flex-col gap-3 pt-4 border-t border-[var(--line)]">
           <div class="flex items-center justify-between">
             <h3 class="font-serif-title font-bold text-xl">📖 Glossario Rapido delle Condizioni</h3>
+            <span class="text-[11px] text-[var(--muted)]">Tocca una condizione per leggerla</span>
           </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2" id="rulesGlossaryGrid"></div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2" id="rulesGlossaryGrid"></div>
         </div>
       </div>
     </section>
@@ -823,13 +656,13 @@
         <div class="w-12 h-12 rounded-full bg-[var(--brass-soft)] border border-[var(--brass)] flex items-center justify-center text-2xl">🔒</div>
         <div>
           <h2 class="font-serif-title font-bold text-2xl">Vista DM Protetta</h2>
-          <p class="text-xs text-[var(--muted)] mt-1">Questa sezione è protetta da password per evitare spoiler.</p>
+          <p id="dmLockScreenDesc" class="text-xs text-[var(--muted)] mt-1">Questa sezione è protetta da password per evitare spoiler.</p>
         </div>
-        <div class="w-full flex flex-col gap-2">
-          <input id="inputUnlockDmPassword" type="password" class="input-field w-full text-center font-bold" placeholder="Password del DM..." />
+        <form id="dmUnlockForm" class="w-full flex flex-col gap-2">
+          <input id="inputUnlockDmPassword" type="password" autocomplete="current-password" class="input-field w-full text-center font-bold" placeholder="Password del DM..." />
           <div id="dmUnlockErrorMsg" class="hidden text-xs font-bold text-[var(--danger)]">Password errata.</div>
-          <button id="btnUnlockDmView" type="button" class="btn btn-felt w-full py-2 font-bold">🔓 Sblocca</button>
-        </div>
+          <button id="btnUnlockDmView" type="submit" class="btn btn-felt w-full py-2 font-bold">🔓 Sblocca</button>
+        </form>
       </div>
 
       <div id="dmUnlockedContent" class="flex flex-col gap-3">
@@ -842,11 +675,11 @@
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2 text-xs">
-            <input id="inputSetDmPassword" type="password" placeholder="Nuova password DM..." class="input-field w-36 text-xs" />
+            <input id="inputSetDmPassword" type="password" autocomplete="new-password" placeholder="Nuova password DM..." class="input-field w-36 text-xs" />
             <button id="btnSaveDmPassword" type="button" class="btn btn-brass text-xs">🔑 Imposta password</button>
             <button id="btnLockDmNow" type="button" class="btn text-xs hidden">🔒 Blocca ora</button>
             <button id="btnRemoveDmPassword" type="button" class="btn text-xs text-[var(--danger)] hidden">Rimuovi password</button>
-            <button type="button" class="btn text-xs" onclick="switchTab('tavolo')">← Tavolo</button>
+            <button type="button" class="btn text-xs" data-goto-tab="tavolo">← Tavolo</button>
           </div>
         </div>
 
@@ -854,14 +687,25 @@
           <div class="flex items-center gap-2">
             <span class="text-lg">🤖</span>
             <div>
-              <strong class="font-serif-title font-bold text-sm">Chiave API Google Gemini</strong>
-              <span class="block text-[11px] text-[var(--muted)]">Salvata in localStorage per assistente IA e riassunti.</span>
+              <strong class="font-serif-title font-bold text-sm">Assistente IA (Google Gemini)</strong>
+              <span id="dmAiStatusText" class="block text-[11px] text-[var(--muted)]">Controllo in corso…</span>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <input id="inputDmGeminiApiKey" type="password" placeholder="AIzaSy..." class="input-field w-52 text-xs" />
-            <button id="btnSaveDmGeminiKey" type="button" class="btn btn-felt text-xs">Salva API Key</button>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="btn text-xs export-json-btn">💾 Salva file (.json)</button>
+            <label class="btn cursor-pointer text-xs">
+              📂 Carica (.json)
+              <input type="file" accept=".json,application/json" class="hidden import-json-input" />
+            </label>
           </div>
+        </div>
+
+        <div id="dmLocalOnlyCard" class="hidden card-surface2 p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs border-2 border-[var(--brass)]">
+          <div>
+            <strong class="font-serif-title font-bold text-sm">📱 Questa avventura è salvata solo su questo dispositivo</strong>
+            <span class="block text-[11px] text-[var(--muted)]">Caricala nel cloud per giocarla con gli amici dai loro dispositivi.</span>
+          </div>
+          <button id="btnUploadCampaignToCloud" type="button" class="btn btn-felt text-xs font-bold">☁️ Carica nel cloud</button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
@@ -876,7 +720,7 @@
                 <input id="dmInputCampaignName" type="text" class="input-field w-full font-serif-title font-bold text-base" />
               </div>
               <div class="text-xs flex flex-col gap-1">
-                <label class="block font-bold text-[var(--muted)]">🕵️ Note segrete del DM</label>
+                <label class="flex items-center justify-between font-bold text-[var(--muted)]"><span>🕵️ Note segrete del DM</span><span id="dmVaultSaveStatus" class="font-normal text-[10px]"></span></label>
                 <textarea id="dmTextareaSecretNotes" rows="7" class="input-field w-full leading-relaxed text-xs" placeholder="Note segrete..."></textarea>
               </div>
               <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-2 text-xs">
@@ -884,12 +728,13 @@
                   <span>📜 Riassunto di fine sessione</span>
                 </label>
                 <textarea id="dmTextareaSessionNotes" rows="4" class="input-field w-full leading-relaxed text-xs" placeholder="Incolla appunti della serata..."></textarea>
-                <div class="flex justify-end">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[11px] text-[var(--muted)]">Trasforma gli appunti in voci del Diario (missioni, bottino, PNG…).</span>
                   <button id="btnPrepareSessionEntries" type="button" class="btn btn-felt text-xs font-bold">✨ Prepara le voci</button>
                 </div>
                 <div id="sessionExtractedContainer" class="hidden flex-col gap-2 pt-2 border-t border-[var(--line)]">
-                  <div class="font-bold text-[var(--ink)]">Voci estratte pronte per il Diario:</div>
-                  <div id="sessionExtractedList" class="flex flex-col gap-1.5 max-h-40 overflow-y-auto pr-1"></div>
+                  <div class="font-bold text-[var(--ink)]">Voci estratte pronte per il Diario: <span class="font-normal text-[var(--muted)]">(togli la spunta per scartarle)</span></div>
+                  <div id="sessionExtractedList" class="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1"></div>
                   <div class="flex justify-end pt-1">
                     <button id="btnAddExtractedToJournal" type="button" class="btn btn-brass text-xs font-bold">📥 Aggiungi al diario</button>
                   </div>
@@ -973,7 +818,7 @@
                     <input id="dmNewEnemyQty" type="number" min="1" max="50" value="2" class="input-field w-full text-center font-bold" />
                   </div>
                 </div>
-                <div class="flex justify-end pt-1">
+                <div class="flex flex-wrap justify-end gap-2 pt-1">
                   <button id="btnAddPreparedEnemy" type="button" class="btn btn-felt text-xs font-bold">+ Aggiungi nemico</button>
                 </div>
               </div>
@@ -990,6 +835,10 @@
                   <span class="font-bold uppercase text-[var(--muted)] block text-[10px]">PE a testa</span>
                   <span id="dmVerdictXpPerPlayer" class="font-serif-title font-bold text-lg text-[var(--felt)]">100 PE</span>
                 </div>
+              </div>
+              <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span id="dmVerdictDetailText" class="text-[var(--muted)]"></span>
+                <button id="btnSendEnemiesToMap" type="button" class="btn btn-brass text-xs font-bold">🗺️ Invia sulla mappa</button>
               </div>
             </div>
           </div>
@@ -1014,6 +863,7 @@
           <label class="block text-xs font-bold text-[var(--muted)] mb-1">Tipo</label>
           <select id="selectNewTokenType" class="input-field w-full">
             <option value="enemy">Nemico</option>
+            <option value="npc">PNG alleato</option>
             <option value="pc">PG</option>
           </select>
         </div>
@@ -1029,6 +879,10 @@
           <label class="block text-xs font-bold text-[var(--muted)] mb-1">Max PF</label>
           <input id="inputNewTokenMaxHp" type="number" value="7" class="input-field w-full" />
         </div>
+        <label class="col-span-2 flex items-center gap-2 text-xs font-bold text-[var(--muted)] cursor-pointer">
+          <input id="inputNewTokenHidden" type="checkbox" class="w-4 h-4 accent-[var(--felt)]" />
+          Nascosta ai giocatori (per le imboscate)
+        </label>
       </div>
       <div class="flex justify-end gap-2 pt-2 border-t border-[var(--line)]">
         <button id="btnCancelAddToken" class="btn">Annulla</button>
@@ -1049,7 +903,7 @@
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <button id="btnLobbyOpenCloud" type="button" class="btn text-xs font-bold py-2 px-3">☁️ Cloud Connesso ✓</button>
+            <button id="btnLobbyOpenCloud" type="button" class="btn text-xs font-bold py-2 px-3">☁️ <span id="lobbyCloudStatusLabel">Cloud…</span></button>
             <button id="btnLobbyCopyInviteLink" type="button" class="btn btn-brass text-xs font-bold py-2 px-3">🔗 Invita Giocatori</button>
             <button id="btnCloseLobbyToTable" type="button" class="btn text-xs py-2 px-3 hidden">✕ Torna al Tavolo</button>
           </div>
@@ -1057,7 +911,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">
             <h2 class="font-serif-title font-bold text-xl">📜 Avventure Disponibili</h2>
-            <span id="lobbyCampaignsCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[var(--surface2)] border border-[var(--line)]">1</span>
+            <span id="lobbyCampaignsCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[var(--surface2)] border border-[var(--line)]">0</span>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <button id="btnLobbyNewAdventure" type="button" class="btn btn-felt text-xs font-bold py-1.5 px-3.5">👑 + Crea Nuova Avventura (Master)</button>
@@ -1075,12 +929,21 @@
             </div>
             <div>
               <label class="block font-bold text-[var(--muted)] mb-1">Password Master</label>
-              <input id="inputLobbyNewAdvPassword" type="password" placeholder="Password..." class="input-field w-full font-bold text-base" />
+              <input id="inputLobbyNewAdvPassword" type="password" autocomplete="new-password" placeholder="Password..." class="input-field w-full font-bold text-base" />
             </div>
           </div>
+          <p class="text-[11px] text-[var(--muted)]">La password serve per entrare come Master e protegge le tue note segrete. Puoi lasciarla vuota, ma allora chiunque potrà fare il Master.</p>
+          <div id="lobbyCreateError" class="hidden text-xs font-bold text-[var(--danger)]"></div>
           <div class="flex justify-end pt-1">
             <button id="btnConfirmLobbyCreateAdventure" type="button" class="btn btn-felt text-xs font-bold py-2 px-4">Crea ed Entra come Master</button>
           </div>
+        </div>
+        <div id="lobbyLoadingState" class="text-xs text-[var(--muted)] italic">Caricamento delle avventure…</div>
+        <div id="lobbyEmptyState" class="hidden card-surface2 p-6 flex-col items-center text-center gap-3">
+          <div class="text-3xl">🗺️</div>
+          <h3 class="font-serif-title font-bold text-xl">Ancora nessuna avventura</h3>
+          <p class="text-xs text-[var(--muted)] max-w-md">Il Master crea l'avventura e poi manda il link agli amici con “🔗 Invita Giocatori”. Vuoi prima fare un giro di prova?</p>
+          <button id="btnLobbyCreateSample" type="button" class="btn btn-brass text-xs font-bold py-2 px-4">🧪 Crea l'avventura di esempio</button>
         </div>
         <div id="lobbyCampaignsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3.5"></div>
       </div>
@@ -1110,9 +973,9 @@
             <div class="w-10 h-10 rounded-xl bg-[var(--brass-soft)] border border-[var(--brass)] flex items-center justify-center text-xl">👑</div>
             <h4 class="font-serif-title font-bold text-xl">Sono il Master (DM)</h4>
             <p id="onboardingMasterDesc" class="text-xs text-[var(--muted)] leading-relaxed">Gestisci mappa, nebbia e mostri.</p>
-            <div class="flex flex-col gap-1 pt-1">
-              <label id="onboardingMasterPwdLabel" class="text-xs font-bold text-[var(--ink)]">Password Master:</label>
-              <input id="inputOnboardingMasterPwd" type="password" placeholder="Password..." class="input-field w-full font-bold text-sm" />
+            <div id="onboardingMasterPwdWrap" class="flex flex-col gap-1 pt-1">
+              <label id="onboardingMasterPwdLabel" for="inputOnboardingMasterPwd" class="text-xs font-bold text-[var(--ink)]">Password Master:</label>
+              <input id="inputOnboardingMasterPwd" type="password" autocomplete="current-password" placeholder="Password..." class="input-field w-full font-bold text-sm" />
               <span id="onboardingMasterPwdError" class="hidden text-xs font-bold text-[var(--danger)]">Password errata!</span>
             </div>
           </div>
@@ -1189,7 +1052,7 @@
         <button id="btnCloseVerifyDmModal" type="button" class="btn text-xs">✕</button>
       </div>
       <p class="text-xs text-[var(--muted)] leading-relaxed">Inserisci la Password Master per sbloccare la Vista DM.</p>
-      <input id="inputModalVerifyDmPwd" type="password" placeholder="Password..." class="input-field w-full text-center font-bold text-base" />
+      <input id="inputModalVerifyDmPwd" type="password" autocomplete="current-password" placeholder="Password..." class="input-field w-full text-center font-bold text-base" />
       <div id="modalVerifyDmError" class="hidden text-xs font-bold text-[var(--danger)] text-center">Password non corretta!</div>
       <div class="flex justify-end gap-2 pt-2 border-t border-[var(--line)]">
         <button id="btnCancelVerifyDmModal" type="button" class="btn text-xs">Annulla</button>
@@ -1198,15 +1061,15 @@
     </div>
   </div>
 
-  <div id="tokenQuickPopover" class="hidden fixed z-50 card-surface p-3.5 shadow-2xl flex flex-col gap-2.5 w-64 border-2 border-[var(--brass)]">
+  <div id="tokenQuickPopover" class="hidden fixed z-50 card-surface p-3.5 shadow-2xl flex flex-col gap-2.5 w-64 border-2 border-[var(--brass)]" role="dialog" aria-label="Dettagli pedina">
     <div class="flex items-center justify-between border-b border-[var(--line)] pb-1.5">
-      <div>
-        <h4 id="popoverTokenName" class="font-serif-title font-bold text-base leading-tight">Nome</h4>
+      <div class="min-w-0">
+        <h4 id="popoverTokenName" class="font-serif-title font-bold text-base leading-tight truncate">Nome</h4>
         <span id="popoverTokenType" class="text-[10px] text-[var(--muted)]">Tipo</span>
       </div>
-      <button id="btnCloseTokenPopover" class="btn text-xs py-0.5 px-1.5">✕</button>
+      <button id="btnCloseTokenPopover" class="btn text-xs py-0.5 px-1.5" aria-label="Chiudi">✕</button>
     </div>
-    <div class="flex flex-col gap-1 text-xs">
+    <div id="popoverHpBlock" class="flex flex-col gap-1 text-xs">
       <div class="flex items-center justify-between font-bold">
         <span>PF:</span>
         <span id="popoverHpText">7 / 7</span>
@@ -1215,1037 +1078,57 @@
         <div id="popoverHpBar" class="h-full bg-[var(--ok)] transition-all" style="width: 100%;"></div>
       </div>
     </div>
-    <div class="flex items-center gap-1.5 text-xs pt-1">
-      <input id="inputPopoverHpDelta" type="number" min="1" max="200" value="5" class="input-field w-16 text-center font-bold" />
+    <div id="popoverHpStatus" class="hidden text-xs font-bold"></div>
+    <div id="popoverHpControls" class="flex items-center gap-1.5 text-xs pt-1">
+      <input id="inputPopoverHpDelta" type="number" min="1" max="999" value="5" class="input-field w-16 text-center font-bold" aria-label="Quantità" />
       <button id="btnPopoverDamage" type="button" class="btn btn-danger text-xs py-1 px-2.5 flex-1 font-bold">Danno</button>
       <button id="btnPopoverHeal" type="button" class="btn btn-ok text-xs py-1 px-2.5 flex-1 font-bold">Cura</button>
     </div>
+    <button id="btnPopoverOpenSheet" type="button" class="btn text-xs w-full justify-start hidden">🧝 Apri scheda</button>
     <div id="popoverDmActions" class="flex flex-col gap-1 pt-1.5 border-t border-[var(--line)] text-xs">
+      <button id="btnPopoverAddInit" type="button" class="btn text-xs w-full justify-start">⚡ Aggiungi all'iniziativa</button>
       <button id="btnPopoverToggleHidden" type="button" class="btn text-xs w-full justify-start">👁️‍🗨️ Nascondi</button>
       <button id="btnPopoverDeleteToken" type="button" class="btn text-xs w-full justify-start text-[var(--danger)]">🗑️ Rimuovi</button>
     </div>
   </div>
 
-  <div id="activeCharSummaryBar" class="sticky bottom-0 z-40 card-surface rounded-none border-x-0 border-b-0 px-4 py-2.5 shadow-lg flex flex-wrap items-center justify-between gap-3 text-xs">
+  <div id="activeCharSummaryBar" class="hidden sticky bottom-0 z-40 card-surface rounded-none border-x-0 border-b-0 px-4 py-2.5 shadow-lg flex flex-wrap items-center justify-between gap-3 text-xs">
     <div id="activeCharSummaryText" class="flex flex-wrap items-center gap-2 truncate"></div>
     <div class="flex items-center gap-2 flex-shrink-0">
       <button id="btnCharHpMinus" type="button" class="btn text-xs py-1 px-2 font-bold">−</button>
       <span class="font-bold">PF</span>
       <button id="btnCharHpPlus" type="button" class="btn text-xs py-1 px-2 font-bold">+</button>
-      <button id="btnGoToSheet" type="button" class="btn btn-felt text-xs py-1 px-3 font-bold">Scheda ↓</button>
+      <button id="btnGoToSheet" type="button" class="btn btn-felt text-xs py-1 px-3 font-bold">Scheda</button>
     </div>
   </div>
 
-  <div id="toastNotification" class="fixed bottom-14 right-5 z-50 hidden card-surface px-4 py-2.5 text-sm font-medium shadow-lg border-l-4 border-l-[var(--brass)]"></div>
-
-  <script>
-    const DB_NAME = 'IlTavoloDnD5e_DB';
-    const DB_VERSION = 2;
-    const STORE_CAMPAIGNS = 'campaigns';
-    const STORE_BOOKS = 'books';
-
-    const PRESET_SUPABASE_URL = 'https://vkjhrpkrpxrgxpfxrmsr.supabase.co';
-    const PRESET_SUPABASE_KEY = 'sb_publishable_UPKBNNNxi5TRiKN_lQZpCg_F2BllzX8';
-
-    function getOrCreateDeviceUserId() {
-      let uid = localStorage.getItem('iltavolo_device_user_id');
-      if (!uid) {
-        uid = 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-        try { localStorage.setItem('iltavolo_device_user_id', uid); } catch(e){}
-      }
-      return uid;
-    }
-
-    const appState = {
-      db: null,
-      deviceUserId: getOrCreateDeviceUserId(),
-      campaigns: [],
-      activeCampaignId: null,
-      viewMode: 'DM',
-      activeTab: 'tavolo',
-      zoom: 1.0,
-      fogEditMode: false,
-      isPaintingFog: false,
-      fogPaintTargetValue: false,
-      advMode: 'normal',
-      selectedTokenId: null,
-      draggingToken: null,
-      journalFilter: 'Tutto',
-      dmSessionUnlocked: false,
-      indexedBooks: [],
-      supabase: null,
-      supabaseConnected: false,
-      isApplyingRemoteUpdate: false,
-      onboardingTargetCampaignId: null
-    };
-
-    const DMG_XP_THRESHOLDS_BY_LEVEL = {
-      1:  [25, 50, 75, 100], 2: [50, 100, 150, 200], 3: [75, 150, 225, 400], 4: [125, 250, 375, 500],
-      5:  [250, 500, 750, 1100], 6: [300, 600, 900, 1400], 7: [350, 750, 1100, 1700], 8: [450, 900, 1400, 2100],
-      9:  [550, 1100, 1600, 2400], 10: [600, 1200, 1900, 2800], 11: [800, 1600, 2400, 3600], 12: [1000, 2000, 3000, 4500],
-      13: [1100, 2200, 3400, 5100], 14: [1250, 2500, 3800, 5700], 15: [1400, 2800, 4300, 6400], 16: [1600, 3200, 4800, 7200],
-      17: [2000, 3900, 5900, 8800], 18: [2100, 4200, 6300, 9500], 19: [2400, 4900, 7300, 10900], 20: [2800, 5700, 8500, 12700]
-    };
-
-    const DMG_CR_TABLE = [
-      { cr: '0', xp: 10 }, { cr: '1/8', xp: 25 }, { cr: '1/4', xp: 50 }, { cr: '1/2', xp: 100 },
-      { cr: '1', xp: 200 }, { cr: '2', xp: 450 }, { cr: '3', xp: 700 }, { cr: '4', xp: 1100 },
-      { cr: '5', xp: 1800 }, { cr: '6', xp: 2300 }, { cr: '7', xp: 2900 }, { cr: '8', xp: 3900 },
-      { cr: '9', xp: 5000 }, { cr: '10', xp: 5900 }, { cr: '11', xp: 7200 }, { cr: '12', xp: 8400 },
-      { cr: '13', xp: 10000 }, { cr: '14', xp: 11500 }, { cr: '15', xp: 13000 }, { cr: '16', xp: 15000 },
-      { cr: '17', xp: 18000 }, { cr: '18', xp: 20000 }, { cr: '19', xp: 22000 }, { cr: '20', xp: 25000 }
-    ];
-
-    function getXpByCr(crString) {
-      const found = DMG_CR_TABLE.find(item => item.cr === String(crString));
-      return found ? found.xp : 50;
-    }
-
-    const DND5E_CONDITIONS = [
-      { name: 'Accecato', desc: 'Fallisce prove di vista. Vantaggio agli attacchi contro di essa.' },
-      { name: 'Affascinato', desc: 'Non può attaccare chi l\'ha affascinata.' },
-      { name: 'Afferrato', desc: 'Velocità 0.' },
-      { name: 'Assordato', desc: 'Fallisce prove di udito.' },
-      { name: 'Avvelenato', desc: 'Svantaggio a tiri per colpire e prove.' },
-      { name: 'Incapacitato', desc: 'Nessuna azione o reazione.' },
-      { name: 'Invisibile', desc: 'Impossibile da vedere senza sensi speciali.' },
-      { name: 'Paralizzato', desc: 'Incapacitato, fallisce TS FOR/DES. Critico automatico entro 1.5m.' },
-      { name: 'Pietrificato', desc: 'Inconsapevole, resistenza a tutti i danni.' },
-      { name: 'Privo di sensi', desc: 'Incapacitato, prono, inconscio.' },
-      { name: 'Prono', desc: 'Può solo strisciare o rialzarsi.' },
-      { name: 'Spaventato', desc: 'Svantaggio prove e attacchi se vede la fonte.' },
-      { name: 'Stordito', desc: 'Incapacitato, fallisce TS FOR/DES.' },
-      { name: 'Trattenuto', desc: 'Velocità 0, svantaggio attacchi.' },
-      { name: 'Indebolimento', desc: '6 livelli cumulativi fino alla morte.' }
-    ];
-
-    const DND5E_SKILLS = [
-      { key: 'Acrobazia', label: 'Acrobazia', ability: 'DES' },
-      { key: 'Atletica', label: 'Atletica', ability: 'FOR' },
-      { key: 'Furtività', label: 'Furtività', ability: 'DES' },
-      { key: 'Indagare', label: 'Indagare', ability: 'INT' },
-      { key: 'Inganno', label: 'Inganno', ability: 'CAR' },
-      { key: 'Intimidire', label: 'Intimidire', ability: 'CAR' },
-      { key: 'Intuizione', label: 'Intuizione', ability: 'SAG' },
-      { key: 'Percezione', label: 'Percezione', ability: 'SAG' },
-      { key: 'Persuasione', label: 'Persuasione', ability: 'CAR' },
-      { key: 'Storia', label: 'Storia', ability: 'INT' }
-    ];
-
-    const ABILITY_LABELS = { FOR: 'Forza', DES: 'Destrezza', COS: 'Costituzione', INT: 'Intelligenza', SAG: 'Saggezza', CAR: 'Carisma' };
-
-    function createEmptySpellSlots() {
-      const slots = {};
-      for (let lvl = 1; lvl <= 9; lvl++) slots[lvl] = { max: 0, used: 0 };
-      return slots;
-    }
-
-    function ensureCharacterDefaults(char) {
-      if (!char) return null;
-      char.id = char.id || ('char_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6));
-      char.isNpc = Boolean(char.isNpc);
-      char.name = char.name || 'Senza nome';
-      char.race = char.race || 'Umano';
-      char.className = char.className || 'Avventuriero';
-      char.level = Math.max(1, Math.min(20, parseInt(char.level, 10) || 1));
-      char.background = char.background || 'Criminale';
-      char.bonusAction = char.bonusAction || 'Azione scaltra';
-      char.maxHp = Math.max(1, parseInt(char.maxHp, 10) || 10);
-      char.hp = Math.max(0, Math.min(char.maxHp, char.hp !== undefined ? parseInt(char.hp, 10) : char.maxHp));
-      char.ac = parseInt(char.ac, 10) || 14;
-      char.speed = char.speed !== undefined ? Number(char.speed) : 9;
-      char.hitDie = char.hitDie || `${char.level}d8`;
-      char.hitDiceRemaining = char.hitDiceRemaining !== undefined ? Math.max(0, parseInt(char.hitDiceRemaining, 10)) : char.level;
-      if (!char.deathSaves) char.deathSaves = { successes: 0, failures: 0 };
-      if (!char.abilities) char.abilities = { FOR: 10, DES: 14, COS: 12, INT: 10, SAG: 12, CAR: 10 };
-      if (!char.savingThrowsProf) char.savingThrowsProf = {};
-      if (!char.skillsProf) char.skillsProf = {};
-      if (char.attacksText === undefined) char.attacksText = 'Spada corta | +6 | 1d6+4';
-      if (!char.spellSlots) char.spellSlots = createEmptySpellSlots();
-      if (!Array.isArray(char.conditions)) char.conditions = [];
-      if (char.equipmentText === undefined) char.equipmentText = 'Zaino, torce, 15 mo.';
-      if (char.spellsText === undefined) char.spellsText = 'Nessun incantesimo.';
-      if (char.featuresText === undefined) char.featuresText = '';
-      if (char.notes === undefined) char.notes = '';
-      if (char.ownerId === undefined) char.ownerId = null;
-      return char;
-    }
-
-    function createInitialFogGrid16x12() {
-      const cells = [];
-      for (let r = 0; r < 12; r++) {
-        for (let c = 0; c < 16; c++) {
-          cells.push(!(c >= 1 && c <= 6 && r >= 2 && r <= 9));
-        }
-      }
-      return cells;
-    }
-
-    function createDefaultCampaign(customTitle) {
-      const id = 'camp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-      return {
-        id,
-        title: customTitle || 'Le Cripte di Smeraldo',
-        updatedAt: Date.now(),
-        activeCharId: 'char_elena',
-        sheetViewMode: 'simple',
-        scene: { mapDataUrl: null, fogEnabled: true, fogCells: createInitialFogGrid16x12(), gridEnabled: true, gridSize: 16 },
-        chars: [
-          ensureCharacterDefaults({
-            id: 'char_elena', isNpc: false, name: 'Elena', race: 'Elfo', className: 'Ladra', level: 2,
-            hp: 12, maxHp: 17, ac: 15, abilities: { FOR: 10, DES: 18, COS: 14, INT: 14, SAG: 12, CAR: 10 }
-          })
-        ],
-        tokens: [
-          { id: 'tok_elena', name: 'Elena', type: 'pc', charId: 'char_elena', gridX: 3, gridY: 5, hp: 12, maxHp: 17, ac: 15, hidden: false },
-          { id: 'tok_goblin_1', name: 'Goblin', type: 'enemy', gridX: 11, gridY: 4, hp: 7, maxHp: 7, ac: 15, hidden: false }
-        ],
-        rolls: [],
-        journal: [
-          { id: 'j_1', category: 'Missioni', title: 'Recuperare il Sigillo', date: new Date().toLocaleDateString('it-IT'), content: 'Trovare il sigillo nelle cripte.', completed: false, dmAnswer: '' }
-        ],
-        enemies: [{ id: 'en_goblin', name: 'Goblin', cr: '1/4', ac: 15, hp: 7, qty: 2, included: true }],
-        dmState: { secretNotes: 'Segreti del DM...', password: '', dmOwnerId: null, partyCount: null, partyAvgLevel: null },
-        init: [],
-        initMeta: { round: 1, activeIndex: 0, panelOpen: true, inCombat: false }
-      };
-    }
-
-    let supabasePollTimer = null;
-
-    function checkUrlInviteParams() {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const invitedCampId = params.get('camp');
-        if (invitedCampId) {
-          localStorage.setItem('iltavolo_activeCampaignId', invitedCampId);
-        }
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } catch (e) {}
-    }
-
-    async function initSupabaseConnection() {
-      const url = PRESET_SUPABASE_URL;
-      const key = PRESET_SUPABASE_KEY;
-
-      if (!url || !key || !window.supabase) {
-        appState.supabase = null;
-        appState.supabaseConnected = false;
-        return;
-      }
-
-      try {
-        appState.supabase = window.supabase.createClient(url, key, {
-          auth: { persistSession: false, autoRefreshToken: false }
-        });
-
-        const { data, error } = await appState.supabase.from('campaigns').select('id, name, data');
-        if (error) throw error;
-
-        appState.supabaseConnected = true;
-        if (Array.isArray(data) && data.length > 0) {
-          const remoteCampaigns = data.map(row => {
-            const c = row.data || {};
-            c.id = row.id;
-            c.title = row.name || c.title || 'Campagna';
-            c.updatedAt = Number(c.updatedAt) || Date.now();
-            normalizeCampaignObject(c);
-            return c;
-          });
-          remoteCampaigns.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-          appState.campaigns = remoteCampaigns;
-          const savedActive = localStorage.getItem('iltavolo_activeCampaignId');
-          const found = appState.campaigns.find(c => c.id === savedActive);
-          appState.activeCampaignId = found ? found.id : appState.campaigns[0].id;
-        } else {
-          for (const camp of appState.campaigns) {
-            await pushCampaignToSupabase(camp);
-          }
-        }
-
-        startSupabaseHttpSync();
-        renderAll();
-        renderLobbyCampaigns();
-      } catch (err) {
-        appState.supabaseConnected = false;
-      }
-    }
-
-    function startSupabaseHttpSync() {
-      if (supabasePollTimer) clearInterval(supabasePollTimer);
-      if (!appState.supabase || !appState.supabaseConnected) return;
-
-      supabasePollTimer = setInterval(async () => {
-        if (!appState.supabase || !appState.supabaseConnected) return;
-        if (appState.draggingToken || appState.isPaintingFog) return;
-
-        try {
-          const { data, error } = await appState.supabase.from('campaigns').select('id, name, data');
-          if (error || !Array.isArray(data)) return;
-
-          let hasChanges = false;
-          data.forEach(row => {
-            if (!row || !row.data) return;
-            const incoming = row.data;
-            incoming.id = row.id;
-            incoming.title = row.name || incoming.title || 'Campagna';
-            incoming.updatedAt = Number(incoming.updatedAt) || 0;
-            normalizeCampaignObject(incoming);
-
-            const idx = appState.campaigns.findIndex(c => c.id === incoming.id);
-            if (idx >= 0) {
-              const localUpdated = Number(appState.campaigns[idx].updatedAt) || 0;
-              if (incoming.updatedAt > localUpdated) {
-                appState.campaigns[idx] = incoming;
-                hasChanges = true;
-              }
-            } else {
-              appState.campaigns.unshift(incoming);
-              hasChanges = true;
-            }
-          });
-
-          if (hasChanges) {
-            const activeEl = document.activeElement;
-            const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
-            appState.isApplyingRemoteUpdate = true;
-            if (!isTyping) {
-              renderAll();
-            } else {
-              renderTokens();
-              renderFogOfWar();
-              renderInitiativeTracker();
-              renderRollHistory();
-            }
-            renderLobbyCampaigns();
-            appState.isApplyingRemoteUpdate = false;
-          }
-        } catch (e) {}
-      }, 3500);
-    }
-
-    async function pushCampaignToSupabase(camp) {
-      if (!appState.supabase || !appState.supabaseConnected || !camp) return;
-      try {
-        const tsNum = Number(camp.updatedAt) || Date.now();
-        camp.updatedAt = tsNum;
-        await appState.supabase.from('campaigns').upsert({
-          id: camp.id,
-          name: camp.title || 'Campagna',
-          data: camp,
-          updated_at: new Date(tsNum).toISOString()
-        });
-      } catch (e) {}
-    }
-
-    async function deleteCampaignFromSupabase(campId) {
-      if (!appState.supabase || !appState.supabaseConnected || !campId) return;
-      try {
-        await appState.supabase.from('campaigns').delete().eq('id', campId);
-      } catch (e) {}
-    }
-
-    function normalizeCampaignObject(camp) {
-      if (!camp) return;
-      if (!Array.isArray(camp.chars) || camp.chars.length === 0) {
-        camp.chars = [ensureCharacterDefaults({ id: 'char_elena', name: 'Elena', race: 'Elfo', className: 'Ladra', level: 2 })];
-      } else {
-        camp.chars.forEach(ch => ensureCharacterDefaults(ch));
-      }
-      if (!camp.activeCharId || !camp.chars.some(c => c.id === camp.activeCharId)) {
-        camp.activeCharId = camp.chars[0].id;
-      }
-      if (!camp.sheetViewMode) camp.sheetViewMode = 'simple';
-      if (!Array.isArray(camp.journal)) camp.journal = [];
-      if (!Array.isArray(camp.enemies)) camp.enemies = [];
-      if (!camp.dmState) camp.dmState = { secretNotes: '', password: '', dmOwnerId: null, partyCount: null, partyAvgLevel: null };
-    }
-
-    function openDatabase() {
-      return new Promise((resolve, reject) => {
-        try {
-          const request = indexedDB.open(DB_NAME, DB_VERSION);
-          request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains(STORE_CAMPAIGNS)) db.createObjectStore(STORE_CAMPAIGNS, { keyPath: 'id' });
-            if (!db.objectStoreNames.contains(STORE_BOOKS)) db.createObjectStore(STORE_BOOKS, { keyPath: 'id' });
-          };
-          request.onsuccess = (event) => resolve(event.target.result);
-          request.onerror = (event) => reject(event.target.error);
-        } catch (err) { reject(err); }
-      });
-    }
-
-    async function loadAppDatabaseData() {
-      try {
-        appState.db = await openDatabase();
-        const tx = appState.db.transaction([STORE_CAMPAIGNS, STORE_BOOKS], 'readonly');
-        const campaigns = await new Promise((resolve) => {
-          const req = tx.objectStore(STORE_CAMPAIGNS).getAll();
-          req.onsuccess = () => resolve(req.result || []);
-          req.onerror = () => resolve([]);
-        });
-        const books = await new Promise((resolve) => {
-          const req = tx.objectStore(STORE_BOOKS).getAll();
-          req.onsuccess = () => resolve(req.result || []);
-          req.onerror = () => resolve([]);
-        });
-        appState.indexedBooks = books;
-
-        if (campaigns.length === 0) {
-          const defaultCamp = createDefaultCampaign('Le Cripte di Smeraldo');
-          appState.campaigns = [defaultCamp];
-          appState.activeCampaignId = defaultCamp.id;
-          await saveCampaignsToDB();
-        } else {
-          campaigns.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-          appState.campaigns = campaigns;
-          const savedActiveId = localStorage.getItem('iltavolo_activeCampaignId');
-          const found = campaigns.find(c => c.id === savedActiveId);
-          appState.activeCampaignId = found ? found.id : campaigns[0].id;
-        }
-        appState.campaigns.forEach(camp => normalizeCampaignObject(camp));
-      } catch (err) {
-        const fallbackCamp = createDefaultCampaign('Le Cripte di Smeraldo');
-        appState.campaigns = [fallbackCamp];
-        appState.activeCampaignId = fallbackCamp.id;
-      }
-    }
-
-    async function saveCampaignsToDB() {
-      if (appState.isApplyingRemoteUpdate) return;
-      const badge = document.getElementById('saveStatusBadge');
-      if (badge) { badge.textContent = '⏳ Salvataggio...'; badge.style.color = 'var(--brass)'; }
-
-      const active = getActiveCampaign();
-      if (active) {
-        active.updatedAt = Date.now();
-        try { localStorage.setItem('iltavolo_activeCampaignId', active.id); } catch(e){}
-      }
-
-      if (appState.db) {
-        try {
-          const tx = appState.db.transaction(STORE_CAMPAIGNS, 'readwrite');
-          const store = tx.objectStore(STORE_CAMPAIGNS);
-          await new Promise((resolve) => {
-            store.clear();
-            appState.campaigns.forEach(camp => store.put(camp));
-            tx.oncomplete = () => resolve();
-          });
-        } catch (err) {}
-      }
-
-      if (active && appState.supabaseConnected) {
-        await pushCampaignToSupabase(active);
-      }
-
-      if (badge) {
-        setTimeout(() => { badge.textContent = appState.supabaseConnected ? '☁️ Salvato Cloud' : '✓ Salvato'; badge.style.color = 'var(--ok)'; }, 160);
-      }
-    }
-
-    async function saveBookToDB(bookObj) {
-      if (!appState.db) return;
-      try {
-        const tx = appState.db.transaction(STORE_BOOKS, 'readwrite');
-        tx.objectStore(STORE_BOOKS).put(bookObj);
-        await new Promise((resolve) => { tx.oncomplete = () => resolve(); });
-      } catch(e){}
-    }
-
-    async function removeBookFromDB(bookId) {
-      if (!appState.db) return;
-      try {
-        const tx = appState.db.transaction(STORE_BOOKS, 'readwrite');
-        tx.objectStore(STORE_BOOKS).delete(bookId);
-        await new Promise((resolve) => { tx.oncomplete = () => resolve(); });
-      } catch(e){}
-    }
-
-    function getActiveCampaign() {
-      return appState.campaigns.find(c => c.id === appState.activeCampaignId) || appState.campaigns[0];
-    }
-
-    function getActiveCharacter() {
-      const camp = getActiveCampaign();
-      if (!camp || !camp.chars || camp.chars.length === 0) return null;
-      const savedMyCharId = localStorage.getItem(`iltavolo_mychar_${camp.id}`);
-      if (savedMyCharId) {
-        const myChar = camp.chars.find(c => c.id === savedMyCharId);
-        if (myChar) return ensureCharacterDefaults(myChar);
-      }
-      const ownedChar = camp.chars.find(c => c.ownerId === appState.deviceUserId && !c.isNpc);
-      if (ownedChar) return ensureCharacterDefaults(ownedChar);
-      const found = camp.chars.find(c => c.id === camp.activeCharId);
-      return ensureCharacterDefaults(found || camp.chars[0]);
-    }
-
-    function setMyActiveCharacterForCampaign(campId, charId) {
-      try { localStorage.setItem(`iltavolo_mychar_${campId}`, charId); } catch(e){}
-      const camp = appState.campaigns.find(c => c.id === campId);
-      if (camp) camp.activeCharId = charId;
-    }
-
-    function getUserSavedRoleForCampaign(camp) {
-      if (!camp) return null;
-      const savedRole = localStorage.getItem(`iltavolo_role_${camp.id}`);
-      if (savedRole === 'DM' || camp.dmState?.dmOwnerId === appState.deviceUserId) {
-        return { role: 'DM' };
-      }
-      const savedCharId = localStorage.getItem(`iltavolo_mychar_${camp.id}`);
-      const ownedChar = camp.chars.find(c => (savedCharId && c.id === savedCharId) || (c.ownerId === appState.deviceUserId && !c.isNpc));
-      if (ownedChar) return { role: 'PLAYER', char: ownedChar };
-      return null;
-    }
-
-    function openLobbyHome() {
-      const lobby = document.getElementById('homeLobbyScreen');
-      const closeBtn = document.getElementById('btnCloseLobbyToTable');
-      if (closeBtn) closeBtn.classList.remove('hidden');
-      if (lobby) {
-        renderLobbyCampaigns();
-        lobby.classList.remove('hidden');
-      }
-    }
-
-    function closeLobbyHome() {
-      document.getElementById('homeLobbyScreen')?.classList.add('hidden');
-    }
-
-    function renderLobbyCampaigns() {
-      const grid = document.getElementById('lobbyCampaignsGrid');
-      const countBadge = document.getElementById('lobbyCampaignsCountBadge');
-      if (!grid) return;
-      if (countBadge) countBadge.textContent = String(appState.campaigns.length);
-      grid.innerHTML = '';
-
-      appState.campaigns.forEach(camp => {
-        const pcs = (camp.chars || []).filter(c => !c.isNpc);
-        const recognized = getUserSavedRoleForCampaign(camp);
-        const hasPwd = Boolean(camp.dmState?.password && camp.dmState.password.trim() !== '');
-
-        let statusPillHtml = '';
-        let primaryBtnText = '✨ Scegli Ruolo / Crea PG →';
-
-        if (recognized && recognized.role === 'DM') {
-          statusPillHtml = `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[var(--brass-soft)] border border-[var(--brass)] text-[var(--ink)]">👑 Sei il Master</span>`;
-          primaryBtnText = '👑 Entra come Master →';
-        } else if (recognized && recognized.role === 'PLAYER' && recognized.char) {
-          statusPillHtml = `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[var(--surface)] border border-[var(--felt)] text-[var(--felt)]">⚔️ Il tuo PG: ${escapeHtml(recognized.char.name)}</span>`;
-          primaryBtnText = `⚔️ Entra con ${escapeHtml(recognized.char.name)} →`;
-        } else {
-          statusPillHtml = `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[var(--surface)] border border-[var(--line)] text-[var(--muted)]">✨ Prima volta</span>`;
-        }
-
-        const card = document.createElement('div');
-        card.className = 'card-surface2 p-4 flex flex-col justify-between gap-3 border-2 border-[var(--line)] hover:border-[var(--brass)] transition-all';
-        card.innerHTML = `
-          <div class="flex flex-col gap-2">
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <h3 class="font-serif-title font-bold text-xl leading-tight">${escapeHtml(camp.title)}</h3>
-                <span class="text-[11px] text-[var(--muted)]">👥 ${pcs.length} PG • ${hasPwd ? '🔒 Master Protetto' : '🔓 Aperta'}</span>
-              </div>
-            </div>
-            <div class="pt-1 flex flex-wrap items-center gap-1.5">${statusPillHtml}</div>
-          </div>
-          <div class="flex items-center justify-between gap-2 pt-2 border-t border-[var(--line)]">
-            <button type="button" class="btn text-xs py-1.5 px-2.5 lobby-change-role-btn">⚙️ Cambia Ruolo</button>
-            <button type="button" class="btn btn-felt text-xs font-bold py-2 px-4 lobby-enter-btn">${primaryBtnText}</button>
-          </div>
-        `;
-        card.querySelector('.lobby-enter-btn').addEventListener('click', () => handleSelectAdventureFromLobby(camp.id, false));
-        card.querySelector('.lobby-change-role-btn').addEventListener('click', () => handleSelectAdventureFromLobby(camp.id, true));
-        grid.appendChild(card);
-      });
-    }
-
-    function handleSelectAdventureFromLobby(campId, forceWizard) {
-      const camp = appState.campaigns.find(c => c.id === campId);
-      if (!camp) return;
-      appState.activeCampaignId = camp.id;
-      const recognized = getUserSavedRoleForCampaign(camp);
-
-      if (!forceWizard && recognized) {
-        if (recognized.role === 'DM') {
-          const hasPwd = Boolean(camp.dmState?.password && camp.dmState.password.trim() !== '');
-          if (hasPwd && camp.dmState.dmOwnerId !== appState.deviceUserId && !appState.dmSessionUnlocked) {
-            openOnboardingModal(camp.id);
-            return;
-          }
-          appState.viewMode = 'DM';
-          appState.dmSessionUnlocked = true;
-          closeLobbyHome();
-          renderAll();
-          saveCampaignsToDB();
-          showToast(`👑 Bentornato Master!`);
-          return;
-        }
-        if (recognized.role === 'PLAYER' && recognized.char) {
-          setMyActiveCharacterForCampaign(camp.id, recognized.char.id);
-          appState.viewMode = 'PLAYER';
-          appState.dmSessionUnlocked = false;
-          closeLobbyHome();
-          renderAll();
-          saveCampaignsToDB();
-          showToast(`⚔️ Bentornato ${recognized.char.name}!`);
-          return;
-        }
-      }
-      openOnboardingModal(camp.id);
-    }
-
-    function openOnboardingModal(campId) {
-      const camp = appState.campaigns.find(c => c.id === campId);
-      if (!camp) return;
-      appState.onboardingTargetCampaignId = camp.id;
-      document.getElementById('onboardingCampaignSubtitle').textContent = `Avventura: ${camp.title}`;
-      document.getElementById('onboardingStepRole').classList.remove('hidden');
-      document.getElementById('onboardingStepCharacter').classList.add('hidden');
-      document.getElementById('modalFirstTimeOnboarding').classList.remove('hidden');
-    }
-
-    function openOnboardingCharacterStep() {
-      const camp = appState.campaigns.find(c => c.id === appState.onboardingTargetCampaignId);
-      if (!camp) return;
-      document.getElementById('onboardingStepRole').classList.add('hidden');
-      const stepChar = document.getElementById('onboardingStepCharacter');
-      stepChar.classList.remove('hidden');
-      stepChar.classList.add('flex');
-
-      const listEl = document.getElementById('onboardingExistingCharsList');
-      const sectionEl = document.getElementById('onboardingExistingCharsSection');
-      const pcs = (camp.chars || []).filter(c => !c.isNpc);
-      listEl.innerHTML = '';
-      if (pcs.length === 0) {
-        sectionEl.classList.add('hidden');
-      } else {
-        sectionEl.classList.remove('hidden');
-        pcs.forEach(pc => {
-          const card = document.createElement('div');
-          card.className = 'card-surface p-2.5 flex items-center justify-between gap-2 text-xs';
-          card.innerHTML = `
-            <div class="truncate">
-              <strong class="font-serif-title text-base block truncate">${escapeHtml(pc.name)}</strong>
-              <span class="text-[11px] text-[var(--muted)]">${escapeHtml(pc.race)} ${escapeHtml(pc.className)} liv. ${pc.level}</span>
-            </div>
-            <button type="button" class="btn btn-felt text-xs py-1 px-2.5">Gioca</button>
-          `;
-          card.querySelector('button').addEventListener('click', () => {
-            pc.ownerId = appState.deviceUserId;
-            localStorage.setItem(`iltavolo_role_${camp.id}`, 'PLAYER');
-            setMyActiveCharacterForCampaign(camp.id, pc.id);
-            appState.activeCampaignId = camp.id;
-            appState.viewMode = 'PLAYER';
-            appState.dmSessionUnlocked = false;
-            document.getElementById('modalFirstTimeOnboarding').classList.add('hidden');
-            closeLobbyHome();
-            renderAll();
-            saveCampaignsToDB();
-            showToast(`⚔️ Entrato come ${pc.name}!`);
-          });
-          listEl.appendChild(card);
-        });
-      }
-    }
-
-    function getAbilityMod(score) {
-      const val = Number(score);
-      return Math.floor(((isNaN(val) ? 10 : val) - 10) / 2);
-    }
-    function formatSignedMod(mod) { return mod >= 0 ? `+${mod}` : `${mod}`; }
-    function getProficiencyBonus(level) { return Math.ceil(Math.max(1, Math.min(20, parseInt(level, 10) || 1)) / 4) + 1; }
-
-    function syncCharacterToMapToken(char) {
-      const camp = getActiveCampaign();
-      if (!camp || !char) return;
-      const tok = camp.tokens.find(t => t.charId === char.id);
-      if (tok) {
-        tok.name = char.name; tok.hp = char.hp; tok.maxHp = char.maxHp; tok.ac = char.ac;
-      }
-    }
-
-    function drawDefaultDungeonMap() {
-      const canvas = document.getElementById('defaultDungeonCanvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      const W = canvas.width, H = canvas.height;
-      ctx.fillStyle = '#18201B'; ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = '#202A24';
-      for (let i = 0; i < 160; i++) ctx.fillRect((i * 97) % W, (i * 61) % H, 18, 12);
-    }
-
-    function renderGridOverlay() {
-      const camp = getActiveCampaign();
-      const canvas = document.getElementById('gridOverlayCanvas');
-      if (!canvas || !camp) return;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const gridEnabled = camp.scene.gridEnabled;
-      document.getElementById('gridStatusText').textContent = gridEnabled ? 'accesa' : 'spenta';
-      const gridSize = Math.max(4, Math.min(120, Number(camp.scene.gridSize) || 16));
-      document.getElementById('inputGridSize').value = gridSize;
-      document.getElementById('inputGridSizeNumber').value = gridSize;
-      if (!gridEnabled) return;
-      const cellPx = canvas.width / gridSize;
-      ctx.strokeStyle = 'rgba(243, 231, 194, 0.24)'; ctx.lineWidth = 1;
-      for (let x = 0; x <= canvas.width; x += cellPx) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
-      for (let y = 0; y <= canvas.height; y += cellPx) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
-    }
-
-    function renderFogOfWar() {
-      const camp = getActiveCampaign();
-      const fogLayer = document.getElementById('fogGridLayer');
-      if (!fogLayer || !camp) return;
-      const fogEnabled = camp.scene.fogEnabled;
-      document.getElementById('fogStatusText').textContent = fogEnabled ? 'accesa' : 'spenta';
-      const brushBtn = document.getElementById('btnToggleFogBrush');
-      if (brushBtn) brushBtn.classList.toggle('btn-felt', appState.fogEditMode);
-
-      if (fogLayer.children.length !== 192) {
-        fogLayer.innerHTML = '';
-        for (let i = 0; i < 192; i++) {
-          const cell = document.createElement('div');
-          cell.className = 'fog-cell'; cell.dataset.index = i;
-          fogLayer.appendChild(cell);
-        }
-      }
-      fogLayer.classList.toggle('editing-fog', appState.viewMode === 'DM' && appState.fogEditMode && fogEnabled);
-      const cells = fogLayer.children;
-      for (let i = 0; i < 192; i++) {
-        const isFogged = fogEnabled && Boolean(camp.scene.fogCells[i]);
-        cells[i].className = 'fog-cell';
-        if (isFogged) cells[i].classList.add(appState.viewMode === 'DM' ? 'fogged-dm' : 'fogged-player');
-      }
-    }
-
-    function getActiveTurnTokenId() {
-      const camp = getActiveCampaign();
-      if (!camp || !camp.initMeta || !camp.initMeta.inCombat || !camp.init || camp.init.length === 0) return null;
-      return camp.init[camp.initMeta.activeIndex % camp.init.length]?.tokenId || null;
-    }
-
-    function renderTokens() {
-      const camp = getActiveCampaign();
-      const tokenLayer = document.getElementById('tokenLayer');
-      if (!tokenLayer || !camp) return;
-      tokenLayer.innerHTML = '';
-      const gridSize = Math.max(4, Math.min(120, Number(camp.scene.gridSize) || 16));
-      const cellPx = 800 / gridSize;
-      const tokenSize = Math.max(18, Math.min(64, cellPx * 0.84));
-      const activeTurnTokenId = getActiveTurnTokenId();
-
-      camp.tokens.forEach(tok => {
-        if (appState.viewMode === 'PLAYER' && tok.hidden) return;
-        const centerPxX = (tok.gridX + 0.5) * cellPx;
-        const centerPxY = (tok.gridY + 0.5) * cellPx;
-
-        const el = document.createElement('div');
-        el.className = `map-token ${tok.type === 'pc' ? 'token-pc' : 'token-enemy'}`;
-        if (tok.hidden && appState.viewMode === 'DM') el.classList.add('token-hidden-dm');
-        if (activeTurnTokenId && tok.id === activeTurnTokenId) el.classList.add('active-turn-token');
-
-        el.style.width = `${tokenSize}px`; el.style.height = `${tokenSize}px`;
-        el.style.left = `${centerPxX - tokenSize / 2}px`; el.style.top = `${centerPxY - tokenSize / 2}px`;
-        el.style.fontSize = `${Math.max(10, Math.round(tokenSize * 0.38))}px`;
-        el.dataset.tokenId = tok.id;
-        el.textContent = tok.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
-
-        if ((appState.viewMode === 'DM' || tok.type === 'pc') && tok.maxHp > 0) {
-          const hpWrap = document.createElement('div'); hpWrap.className = 'token-hp-bar';
-          const hpFill = document.createElement('div'); hpFill.className = 'token-hp-fill';
-          const pct = Math.max(0, Math.min(100, Math.round((tok.hp / tok.maxHp) * 100)));
-          hpFill.style.width = `${pct}%`;
-          hpWrap.appendChild(hpFill); el.appendChild(hpWrap);
-        }
-
-        const label = document.createElement('div'); label.className = 'token-label-pill';
-        label.textContent = appState.viewMode === 'DM' ? `${tok.name} (${tok.hp}/${tok.maxHp})` : tok.name;
-        el.appendChild(label);
-
-        el.addEventListener('pointerdown', onTokenPointerDown);
-        tokenLayer.appendChild(el);
-      });
-    }
-
-    function onTokenPointerDown(e) {
-      if (e.button !== 0 && e.pointerType === 'mouse') return;
-      e.stopPropagation();
-      const tokenEl = e.currentTarget;
-      const tok = getActiveCampaign().tokens.find(t => t.id === tokenEl.dataset.tokenId);
-      if (!tok) return;
-
-      const cellPx = 800 / Math.max(4, Math.min(120, Number(getActiveCampaign().scene.gridSize) || 16));
-      appState.draggingToken = {
-        tokenId: tok.id, tokenEl, startGridX: tok.gridX, startGridY: tok.gridY,
-        startCenterX: (tok.gridX + 0.5) * cellPx, startCenterY: (tok.gridY + 0.5) * cellPx,
-        pointerStartX: e.clientX, pointerStartY: e.clientY, moved: false, cellPx
-      };
-      tokenEl.setPointerCapture(e.pointerId);
-      tokenEl.addEventListener('pointermove', onTokenPointerMove);
-      tokenEl.addEventListener('pointerup', onTokenPointerUp);
-    }
-
-    function getStageCoordsFromClient(clientX, clientY) {
-      const stage = document.getElementById('mapStage');
-      const rect = stage.getBoundingClientRect();
-      return {
-        x: Math.max(0, Math.min(800, (clientX - rect.left) / appState.zoom)),
-        y: Math.max(0, Math.min(600, (clientY - rect.top) / appState.zoom))
-      };
-    }
-
-    function onTokenPointerMove(e) {
-      const drag = appState.draggingToken;
-      if (!drag) return;
-      if (Math.hypot(e.clientX - drag.pointerStartX, e.clientY - drag.pointerStartY) > 5) {
-        drag.moved = true; closeTokenPopover();
-      }
-      if (!drag.moved) return;
-
-      const coords = getStageCoordsFromClient(e.clientX, e.clientY);
-      const tokenSize = drag.tokenEl.offsetWidth;
-      drag.tokenEl.style.left = `${coords.x - tokenSize / 2}px`;
-      drag.tokenEl.style.top = `${coords.y - tokenSize / 2}px`;
-    }
-
-    function onTokenPointerUp(e) {
-      const drag = appState.draggingToken;
-      if (!drag) return;
-      drag.tokenEl.releasePointerCapture(e.pointerId);
-      drag.tokenEl.removeEventListener('pointermove', onTokenPointerMove);
-      drag.tokenEl.removeEventListener('pointerup', onTokenPointerUp);
-
-      const camp = getActiveCampaign();
-      const tok = camp.tokens.find(t => t.id === drag.tokenId);
-      if (drag.moved && tok) {
-        const coords = getStageCoordsFromClient(e.clientX, e.clientY);
-        const gridSize = Math.max(4, Math.min(120, Number(camp.scene.gridSize) || 16));
-        tok.gridX = Math.max(0, Math.min(gridSize - 1, Math.floor(coords.x / drag.cellPx)));
-        tok.gridY = Math.max(0, Math.min(Math.ceil((600/800)*gridSize)-1, Math.floor(coords.y / drag.cellPx)));
-        renderTokens(); saveCampaignsToDB();
-      } else if (tok) {
-        openTokenPopover(tok);
-      }
-      appState.draggingToken = null;
-    }
-
-    function openTokenPopover(tok) {
-      appState.selectedTokenId = tok.id;
-      const popover = document.getElementById('tokenQuickPopover');
-      if (!popover) return;
-      document.getElementById('popoverTokenName').textContent = tok.name;
-      document.getElementById('popoverTokenType').textContent = `${tok.type === 'pc' ? 'PG' : 'Nemico'} • CA ${tok.ac || 15}`;
-      document.getElementById('popoverHpText').textContent = `${tok.hp} / ${tok.maxHp}`;
-      popover.classList.remove('hidden'); popover.style.top = '16px'; popover.style.right = '16px';
-    }
-
-    function closeTokenPopover() {
-      appState.selectedTokenId = null;
-      document.getElementById('tokenQuickPopover')?.classList.add('hidden');
-    }
-
-    function modifyTokenHp(tokenId, delta) {
-      const camp = getActiveCampaign();
-      const tok = camp.tokens.find(t => t.id === tokenId);
-      if (!tok) return;
-      tok.hp = Math.max(0, Math.min(tok.maxHp, tok.hp + delta));
-      openTokenPopover(tok); renderTokens(); renderActiveCharSummary(); saveCampaignsToDB();
-    }
-
-    function setCharacterHp(char, newHp) {
-      if (!char) return;
-      char.hp = Math.max(0, Math.min(char.maxHp, parseInt(newHp, 10) || 0));
-      syncCharacterToMapToken(char); renderTokens(); renderActiveCharSummary(); renderCharacterSheetComputedOnly(); saveCampaignsToDB();
-    }
-
-    function renderInitiativeTracker() {
-      const camp = getActiveCampaign();
-      if (!camp) return;
-      document.getElementById('initRoundNumber').textContent = camp.initMeta.round || 1;
-      const listEl = document.getElementById('initiativeList');
-      if (!listEl) return;
-      listEl.innerHTML = '';
-      if (camp.init.length === 0) {
-        listEl.innerHTML = `<div class="text-xs text-[var(--muted)] italic py-2 text-center">Nessun combattente.</div>`;
-        return;
-      }
-      camp.init.forEach((item) => {
-        const row = document.createElement('div');
-        row.className = 'flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs bg-[var(--surface2)] border border-[var(--line)]';
-        row.innerHTML = `<span>${escapeHtml(item.name)}</span><span class="font-bold">${item.score}</span>`;
-        listEl.appendChild(row);
-      });
-    }
-
-    function rollMyInitiative() {
-      const camp = getActiveCampaign();
-      const char = getActiveCharacter();
-      if (!camp || !char) return;
-      const dexMod = getAbilityMod(char.abilities?.DES ?? 18);
-      const total = Math.floor(Math.random() * 20) + 1 + dexMod;
-      camp.init.push({ id: 'init_' + Date.now(), tokenId: 'tok_' + char.id, name: char.name, score: total });
-      camp.initMeta.inCombat = true; camp.init.sort((a, b) => b.score - a.score);
-      renderInitiativeTracker(); saveCampaignsToDB();
-      showToast(`🎲 Iniziativa: ${total}`);
-    }
-
-    function recordRoll(rollData) {
-      const camp = getActiveCampaign();
-      if (!camp) return;
-      camp.rolls.unshift({ id: 'roll_' + Date.now(), timestamp: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }), ...rollData });
-      if (camp.rolls.length > 30) camp.rolls.pop();
-      renderRollHistory(); saveCampaignsToDB();
-    }
-
-    function renderRollHistory() {
-      const camp = getActiveCampaign();
-      const listEl = document.getElementById('rollHistoryList');
-      if (!listEl || !camp) return;
-      listEl.innerHTML = '';
-      camp.rolls.slice(0, 15).forEach(r => {
-        const card = document.createElement('div');
-        card.className = 'card-surface2 p-2 text-xs flex justify-between';
-        card.innerHTML = `<span>${escapeHtml(r.label)}</span><strong class="font-bold">${r.total}</strong>`;
-        listEl.appendChild(card);
-      });
-    }
-
-    function renderActiveCharSummary() {
-      const char = getActiveCharacter();
-      const summaryEl = document.getElementById('activeCharSummaryText');
-      if (!summaryEl || !char) return;
-      summaryEl.innerHTML = `
-        <strong class="font-serif-title text-base text-[var(--felt)]">${escapeHtml(char.name)}</strong>
-        <span>|</span><span>PF <strong>${char.hp}/${char.maxHp}</strong></span>
-        <span>|</span><span>CA <strong>${char.ac}</strong></span>
-      `;
-    }
-
-    function renderCharacterSheetComputedOnly() {
-      const char = getActiveCharacter();
-      if (!char) return;
-      const hpIn = document.getElementById('sheetInputHp'); if (hpIn) hpIn.value = char.hp;
-      const maxHpIn = document.getElementById('sheetInputMaxHp'); if (maxHpIn) maxHpIn.value = char.maxHp;
-      const pct = char.maxHp > 0 ? Math.round((char.hp / char.maxHp) * 100) : 0;
-      document.getElementById('sheetHpPercentBadge').textContent = `${pct}%`;
-      document.getElementById('sheetHpBarFill').style.width = `${pct}%`;
-      ['FOR', 'DES', 'COS', 'INT', 'SAG', 'CAR'].forEach(ab => {
-        const el = document.getElementById(`sheetMod_${ab}`);
-        if (el) el.textContent = formatSignedMod(getAbilityMod(char.abilities?.[ab] ?? 10));
-      });
-    }
-
-    function renderPersonaggioPreview() {
-      const camp = getActiveCampaign();
-      const char = getActiveCharacter();
-      if (!camp || !char) return;
-      const isComplete = camp.sheetViewMode === 'complete';
-      document.getElementById('sheetInputName').value = char.name;
-      document.getElementById('sheetInputRace').value = char.race;
-      document.getElementById('sheetInputClass').value = char.className;
-      document.getElementById('sheetInputLevel').value = char.level;
-      document.getElementById('sheetInputAc').value = char.ac;
-      document.getElementById('sheetInputSpeed').value = char.speed;
-      renderCharacterSheetComputedOnly();
-    }
-
-    function renderJournalSection() {
-      const camp = getActiveCampaign();
-      const listEl = document.getElementById('journalEntriesList');
-      if (!camp || !listEl) return;
-      listEl.innerHTML = camp.journal.map(j => `<div class="card-surface2 p-3 text-xs"><strong>${escapeHtml(j.title)}</strong><p>${escapeHtml(j.content)}</p></div>`).join('');
-    }
-
-    function renderRulesGlossary() {
-      const grid = document.getElementById('rulesGlossaryGrid');
-      if (!grid) return;
-      grid.innerHTML = DND5E_CONDITIONS.map(c => `<div class="card-surface2 p-2 text-xs font-bold">⚠️ ${escapeHtml(c.name)}</div>`).join('');
-    }
-
-    function renderDmViewSection() {
-      const camp = getActiveCampaign();
-      if (!camp) return;
-      document.getElementById('dmInputCampaignName').value = camp.title;
-      document.getElementById('dmTextareaSecretNotes').value = camp.dmState?.secretNotes || '';
-    }
-
-    function renderIndexedPdfsList() {
-      const listEl = document.getElementById('indexedPdfsList');
-      if (!listEl) return;
-      listEl.innerHTML = appState.indexedBooks.map(b => `<div class="card-surface2 p-2 text-xs">📖 ${escapeHtml(b.title)}</div>`).join('') || '<div class="text-xs text-[var(--muted)]">Nessun PDF.</div>';
-    }
-
-    function renderJournalAndDmPreviews() {
-      renderJournalSection();
-      renderDmViewSection();
-      renderIndexedPdfsList();
-      renderRulesGlossary();
-    }
-
-    function renderCampaignHeader() {
-      const camp = getActiveCampaign();
-      if (!camp) return;
-      document.getElementById('campaignTitleInput').value = camp.title;
-    }
-
-    function renderMapBackground() {
-      drawDefaultDungeonMap();
-    }
-
-    function applyViewModeUI() {
-      const isDM = appState.viewMode === 'DM';
-      document.getElementById('viewModeLabel').textContent = isDM ? 'DM' : 'Giocatore';
-      document.getElementById('playerModeBanner').classList.toggle('hidden', isDM);
-      document.getElementById('fogToolbar').style.display = isDM ? 'flex' : 'none';
-      renderFogOfWar(); renderTokens();
-    }
-
-    function renderAll() {
-      renderCampaignHeader(); renderMapBackground(); renderGridOverlay(); renderFogOfWar();
-      renderTokens(); renderInitiativeTracker(); renderRollHistory(); renderActiveCharSummary();
-      renderPersonaggioPreview(); renderJournalAndDmPreviews(); applyViewModeUI();
-    }
-
-    function switchTab(tabId) {
-      appState.activeTab = tabId;
-      document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabId));
-      ['tavolo', 'personaggio', 'diario', 'regole', 'vistadm'].forEach(s => {
-        const el = document.getElementById(`tab-${s}`);
-        if (el) { el.classList.toggle('hidden', s !== tabId); el.classList.toggle('flex', s === tabId); }
-      });
-    }
-
-    function showToast(msg) {
-      const toast = document.getElementById('toastNotification');
-      if (!toast) return;
-      toast.textContent = msg; toast.classList.remove('hidden');
-      clearTimeout(toast._timer);
-      toast._timer = setTimeout(() => toast.classList.add('hidden'), 2800);
-    }
-
-    function escapeHtml(str) {
-      return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    function initEventListeners() {
-      document.getElementById('btnOpenLobbyHome')?.addEventListener('click', openLobbyHome);
-      document.getElementById('btnCloseLobbyToTable')?.addEventListener('click', closeLobbyHome);
-      document.getElementById('btnToggleViewMode')?.addEventListener('click', () => {
-        appState.viewMode = appState.viewMode === 'DM' ? 'PLAYER' : 'DM';
-        applyViewModeUI();
-      });
-      document.querySelectorAll('.nav-tab').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
-    }
-
-    window.onload = async function () {
-      checkUrlInviteParams();
-      await loadAppDatabaseData();
-      initEventListeners();
-      await initSupabaseConnection();
-      renderAll();
-      renderLobbyCampaigns();
-    };
-  </script>
+  <div id="toastNotification" role="status" aria-live="polite" class="fixed bottom-16 right-4 left-4 sm:left-auto z-[70] hidden card-surface px-4 py-2.5 text-sm font-medium shadow-lg border-l-4 border-l-[var(--brass)]"></div>
+
+  <div id="modalCloudStatus" class="hidden fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
+    <div class="card-surface p-5 w-full max-w-lg flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl">
+      <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+        <h3 class="font-serif-title font-bold text-xl">☁️ Sincronizzazione</h3>
+        <button id="btnCloseCloudModal" type="button" class="btn text-xs" aria-label="Chiudi">✕</button>
+      </div>
+      <div id="cloudStatusHeadline" class="font-bold text-sm"></div>
+      <div id="cloudStatusBody" class="text-xs text-[var(--muted)] leading-relaxed flex flex-col gap-2"></div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-[var(--line)]">
+        <button id="btnCloudRetry" type="button" class="btn btn-felt text-xs font-bold">🔄 Riprova</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/rules.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/table.js"></script>
+  <script src="js/sheet.js"></script>
+  <script src="js/journal.js"></script>
+  <script src="js/books.js"></script>
+  <script src="js/dm.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
