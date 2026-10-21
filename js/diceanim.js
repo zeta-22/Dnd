@@ -25,7 +25,7 @@ const SECRET_DICE_COLOR = '#4b3a86';
 
 const diceQueue = [];
 let diceBusy = false;
-let dice3d = null;          // { box, sounds }
+let dice3d = null;          // { box }
 let dice3dLoading = null;
 let dice3dFailed = false;
 let webglOk = null;
@@ -163,10 +163,9 @@ function loadScriptOnce(src) {
   });
 }
 
-// La libreria si scarica solo al primo tiro; la scatola si ricrea se cambia l'impostazione del suono
+// La libreria si scarica solo al primo tiro
 async function getDiceBox() {
-  const sounds = diceSoundEnabled();
-  if (dice3d && dice3d.sounds === sounds) return dice3d.box;
+  if (dice3d) return dice3d.box;
   if (!dice3dLoading) {
     dice3dLoading = (async () => {
       await loadScriptOnce(DICE3D_PATH + 'dice-box-threejs.umd.js');
@@ -175,16 +174,35 @@ async function getDiceBox() {
       const holder = $('dice3d');
       holder.innerHTML = '';
       const small = Math.min(window.innerWidth, window.innerHeight) < 600;
+      // I suoni si caricano a parte (vedi ensureDiceSounds): così non possono bloccare i dadi
       const box = new DiceBox('#dice3d', {
-        assetPath: DICE3D_PATH, sounds, volume: 60, shadows: true, theme_surface: 'green-felt',
+        assetPath: DICE3D_PATH, sounds: false, volume: 60, shadows: true, theme_surface: 'green-felt',
         theme_material: 'plastic', baseScale: small ? 90 : 115, strength: small ? 1 : 1.3
       });
-      await box.initialize();
-      dice3d = { box, sounds };
+      await Promise.race([box.initialize(), waitMs(10000).then(() => { throw new Error('dice-box timeout'); })]);
+      dice3d = { box };
       return box;
     })().finally(() => { dice3dLoading = null; });
   }
   return dice3dLoading;
+}
+
+// Alcuni browser (es. Safari su iPhone) non caricano i suoni finché non si tocca lo schermo:
+// i dadi intanto rotolano muti e il suono si attiva appena è pronto
+async function ensureDiceSounds(box) {
+  if (!diceSoundEnabled()) { box.sounds = false; return; }
+  if (box.tavoloSoundsReady) { box.sounds = true; return; }
+  if (box.tavoloSoundsLoading) return;
+  box.tavoloSoundsLoading = true;
+  try {
+    await Promise.race([box.loadSounds(), waitMs(10000).then(() => { throw new Error('sounds timeout'); })]);
+    box.tavoloSoundsReady = true;
+    box.sounds = diceSoundEnabled();
+  } catch (e) {
+    box.sounds = false;
+  } finally {
+    box.tavoloSoundsLoading = false;
+  }
 }
 
 function inkFor(hex) {
@@ -226,6 +244,7 @@ function waitMs(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function animateRoll3D(roll) {
   const box = await getDiceBox();
+  ensureDiceSounds(box);
   await box.updateConfig({ theme_customColorset: diceColorset(roll) });
   const holder = $('dice3d');
   holder.classList.remove('dice3d-fade');
