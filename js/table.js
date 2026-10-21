@@ -19,7 +19,7 @@ function performD20Roll({ label, bonus = 0, vsAc = null, mode = App.advMode, sec
   const total = d.kept + bonus;
   const roll = {
     id: uid('roll'), at: Date.now(), by: by || actorName(), byId: DEVICE_ID, label: label || 'Tiro',
-    formula: describeFormula(1, 20, bonus), dice: d.rolls, kept: d.kept, bonus, total,
+    formula: describeFormula(1, 20, bonus), dice: d.rolls, diceSides: d.rolls.map(() => 20), kept: d.kept, bonus, total,
     mode: d.rolls.length > 1 ? mode : 'normal', nat: d.kept,
     crit: d.kept === 20, fumble: d.kept === 1, vsAc: vsAc || null,
     hit: vsAc ? (d.kept === 20 || (d.kept !== 1 && total >= vsAc)) : null
@@ -29,11 +29,13 @@ function performD20Roll({ label, bonus = 0, vsAc = null, mode = App.advMode, sec
 }
 
 function performDamageRoll({ label, formula, crit = false, secret = false }) {
+  // I tiri del Master possono restare segreti; quelli dei giocatori no
+  secret = secret && isDM();
   const res = rollDamageFormula(formula, crit);
   if (!res) { showToast(`⚠️ Formula non valida: ${formula}`); return null; }
   const roll = {
     id: uid('roll'), at: Date.now(), by: actorName(), byId: DEVICE_ID, label: `${label || 'Danni'}${crit ? ' (critico)' : ''}`,
-    formula: res.formula, dice: res.rolls, bonus: res.bonus, total: res.total, kind: 'damage'
+    formula: res.formula, dice: res.rolls, diceSides: res.sides, bonus: res.bonus, total: res.total, kind: 'damage'
   };
   recordRoll(roll, secret);
   return roll;
@@ -55,10 +57,31 @@ function performDicePanelRoll(sides) {
   const total = dice.reduce((s, v) => s + v, 0) + bonus;
   const roll = {
     id: uid('roll'), at: Date.now(), by: actorName(), byId: DEVICE_ID, label,
-    formula: describeFormula(count, sides, bonus), dice, bonus, total
+    formula: describeFormula(count, sides, bonus), dice, diceSides: dice.map(() => sides), bonus, total
   };
   if (sides === 20 && vsAc) roll.vsAc = vsAc;
   recordRoll(roll, secret);
+}
+
+// Formula libera: "2d6+1d4+3", "d20+5" (vantaggio/svantaggio se è un solo d20)
+function performFormulaRoll(formula, label) {
+  const parsed = parseDiceFormula(formula);
+  if (!parsed || !parsed.dice.length) { showToast('⚠️ Formula non valida: prova per esempio 2d6+3 o d20+5'); return false; }
+  const secret = isDM() && $('inputSecretRoll').checked;
+  const vsAc = parseInt($('inputTargetAc').value, 10) || null;
+  const single = parsed.dice.length === 1 && parsed.dice[0].count === 1 && parsed.dice[0].sides === 20 && parsed.dice[0].sign === 1;
+  if (single) {
+    performD20Roll({ label: label || `d20${parsed.bonus ? formatSignedMod(parsed.bonus) : ''}`, bonus: parsed.bonus, vsAc, secret });
+    return true;
+  }
+  const res = rollDamageFormula(formula, false);
+  const roll = {
+    id: uid('roll'), at: Date.now(), by: actorName(), byId: DEVICE_ID, label: label || res.formula,
+    formula: res.formula, dice: res.rolls, diceSides: res.sides, bonus: res.bonus,
+    total: res.rolls.reduce((s, v) => s + v, 0) + res.bonus
+  };
+  recordRoll(roll, secret);
+  return true;
 }
 
 function recordRoll(roll, secret) {
@@ -76,6 +99,7 @@ function recordRoll(roll, secret) {
 }
 
 function describeRollDice(r) {
+  if (r.kind === 'cast') return '';
   const dice = (r.dice || []).join(', ');
   if (r.mode === 'adv' || r.mode === 'dis') return `${r.formula} (${ADV_LABELS[r.mode]}: ${dice} → ${r.kept})`;
   return `${r.formula}${dice ? ` [${dice}]` : ''}`;
@@ -93,6 +117,17 @@ function renderRolls() {
   const listEl = $('rollHistoryList');
   if (!listEl) return;
   const all = getRolls().concat(isDM() ? App.secretRolls : []).sort((a, b) => b.at - a.at).slice(0, 25);
+  // Animazione per i tiri nuovi (non per quelli già presenti quando si apre l'avventura)
+  if (!App.rollsPrimed) {
+    App.seenRollIds = new Set(all.map(r => r.id));
+    App.rollsPrimed = true;
+  } else {
+    all.filter(r => !App.seenRollIds.has(r.id)).sort((a, b) => a.at - b.at).forEach(r => {
+      App.seenRollIds.add(r.id);
+      queueDiceAnimation(r);
+    });
+  }
+
   if (!all.length) {
     listEl.innerHTML = '<div class="text-xs text-[var(--muted)] italic py-1">Nessun tiro ancora. Prova un d20!</div>';
     showEl('lastRollDisplay', false);
@@ -223,7 +258,9 @@ function nextTurn() {
   else if (next >= list.length) { next = 0; meta.round += 1; }
   meta.activeId = list[next].id;
   meta.inCombat = true;
+  App.lastActiveInitId = meta.activeId;
   touchEnt('initmeta');
+  tickConditionsForTurn(list[next]);
   scheduleRender();
   announceTurn(list[next]);
 }
@@ -359,12 +396,13 @@ function renderSummaryBar() {
   if (!ch) { bar.classList.add('hidden'); return; }
   bar.classList.remove('hidden');
   bar.classList.add('flex');
-  const conds = ch.conditions.length ? `<span>|</span><span class="text-[var(--danger)] font-bold">⚠️ ${escapeHtml(ch.conditions.join(', '))}</span>` : '';
+  const conds = ch.conditions.length ? `<span>|</span><span class="text-[var(--danger)] font-bold">⚠️ ${escapeHtml(ch.conditions.map(c => conditionLabel(ch, c)).join(', '))}</span>` : '';
+  const conc = ch.concentration?.name ? `<span>|</span><span class="text-[var(--brass)] font-bold">🔮 ${escapeHtml(ch.concentration.name)}</span>` : '';
   const down = ch.hp <= 0 ? `<span>|</span><span class="text-[var(--danger)] font-bold">💀 TS morte ${ch.deathSaves.successes}✓ ${ch.deathSaves.failures}✗</span>` : '';
   $('activeCharSummaryText').innerHTML = `
     <strong class="font-serif-title text-base text-[var(--ok)]">${escapeHtml(ch.name)}</strong>
     <span>|</span><span>PF <strong>${ch.hp}/${ch.maxHp}</strong>${ch.tempHp ? ` <span class="text-[var(--muted)]">(+${ch.tempHp} temp.)</span>` : ''}</span>
-    <span>|</span><span>CA <strong>${ch.ac}</strong></span>${conds}${down}`;
+    <span>|</span><span>CA <strong>${ch.ac}</strong></span>${conds}${conc}${down}`;
   const editable = canEditChar(ch);
   $('btnCharHpMinus').disabled = !editable;
   $('btnCharHpPlus').disabled = !editable;
@@ -383,6 +421,14 @@ function initTableEvents() {
     renderRolls();
   });
   $('btnToggleModPanel').addEventListener('click', () => $('diceModPanel').classList.toggle('hidden'));
+  $('diceFormulaForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $('inputDiceFormula');
+    if (performFormulaRoll(input.value, $('inputRollLabel').value.trim())) input.select();
+  });
+  const animToggle = $('inputDiceAnimation');
+  animToggle.checked = diceAnimationEnabled();
+  animToggle.addEventListener('change', () => Prefs.set('iltavolo_dice_anim', animToggle.checked ? '1' : '0'));
   document.querySelectorAll('.adv-mode-btn').forEach(b => b.addEventListener('click', () => setAdvMode(b.dataset.adv)));
   $('btnQuickResetMod').addEventListener('click', () => {
     $('inputDiceCount').value = 1;

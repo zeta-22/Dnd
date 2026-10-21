@@ -25,6 +25,9 @@ function renderAll() {
   renderJournal();
   renderDmView();
   renderSummaryBar();
+  renderHandouts();
+  renderMessagesBadge();
+  if (!isDM() && myChar()) ensureMyKeys();
 }
 
 // ---------------------------------------------------------------------------
@@ -66,6 +69,7 @@ function syncStatusInfo() {
         : { badge: '☁️ Sincronizzato', color: 'var(--ok)', short: Sync.realtime ? 'Tempo reale' : 'Cloud' };
     case 'connecting': return { badge: '⏳ Connessione…', color: 'var(--muted)', short: 'Connessione…' };
     case 'setup': return { badge: '⚠️ Cloud da configurare', color: 'var(--danger)', short: 'Da configurare' };
+    case 'locked': return { badge: '🔐 Serve il codice del gruppo', color: 'var(--brass)', short: 'Codice gruppo' };
     case 'offline': return { badge: pending ? `📴 Offline · ${pending} modifiche in attesa` : '📴 Offline', color: 'var(--danger)', short: 'Offline' };
     default: return { badge: '✓ Salvato sul dispositivo', color: 'var(--ok)', short: 'Solo locale' };
   }
@@ -78,6 +82,11 @@ function renderSyncBadges() {
   badge.style.color = info.color;
   setText('headerCloudStatusLabel', info.short);
   setText('lobbyCloudStatusLabel', info.short);
+  showEl('lobbyGroupCodeBox', Sync.mode === 'locked');
+  if (Sync.mode === 'locked' && App.lastSyncMode !== 'locked' && App.activeId) {
+    showToast('🔐 Serve il codice del gruppo per continuare a sincronizzare: inseriscilo nella Home', 6000);
+  }
+  App.lastSyncMode = Sync.mode;
   if (!$('modalCloudStatus').classList.contains('hidden')) renderCloudModal();
 }
 
@@ -97,6 +106,10 @@ function renderCloudModal() {
     headline = '⚠️ Il database va configurato (una volta sola)';
     lines.push('Apri Supabase → SQL Editor, incolla il contenuto del file <code>supabase/setup.sql</code> del progetto e premi Run. Poi torna qui e premi “Riprova”.');
     lines.push('Nel frattempo puoi giocare su questo dispositivo: tutto viene salvato in locale.');
+  } else if (Sync.mode === 'locked') {
+    headline = '🔐 Serve il codice del gruppo';
+    lines.push('Questo tavolo è riservato al vostro gruppo: inserisci il codice nella schermata Home (🏠). Su questo dispositivo te lo chiederà una volta sola.');
+    lines.push('Nel frattempo le avventure salvate su questo dispositivo restano utilizzabili.');
   } else if (Sync.mode === 'offline') {
     headline = '📴 Cloud non raggiungibile';
     lines.push('Stai lavorando offline: le modifiche restano su questo dispositivo e partono da sole appena torna la connessione.');
@@ -209,6 +222,33 @@ function closeLobbyHome() {
   lobbyPollTimer = null;
 }
 
+async function joinGroupFromLobby() {
+  const code = $('inputGroupCode').value.trim();
+  const err = $('groupCodeError');
+  if (!code) return;
+  $('btnJoinGroup').disabled = true;
+  const res = await Sync.joinGroup(code);
+  $('btnJoinGroup').disabled = false;
+  if (!res.ok) {
+    err.textContent = {
+      wrong_code: '❌ Codice sbagliato: controlla di averlo scritto giusto (maiuscole e minuscole non contano).',
+      anon_disabled: '⚠️ Su Supabase vanno attivati gli accessi anonimi (Authentication → Sign In / Providers → Allow anonymous sign-ins).',
+      offline: '📴 Non riesco a raggiungere il cloud: controlla la connessione e riprova.'
+    }[res.reason] || '⚠️ Non sono riuscito a entrare, riprova tra poco.';
+    showEl(err, true, '');
+    return;
+  }
+  showEl(err, false);
+  $('inputGroupCode').value = '';
+  showToast('🔓 Benvenuto al tavolo!');
+  if (App.activeId && Sync.isCloud()) await Sync.openCampaign(App.activeId);
+  await refreshLobby();
+  scheduleRender();
+  const invited = App.pendingInvite;
+  App.pendingInvite = null;
+  if (invited && App.lobby.some(c => c.id === invited)) handleSelectAdventureFromLobby(invited, false);
+}
+
 async function handleSelectAdventureFromLobby(campId, forceWizard) {
   const entry = App.lobby.find(c => c.id === campId);
   if (!entry) return;
@@ -244,7 +284,13 @@ function resetCampaignState() {
   App.secretRolls = [];
   App.lastActiveInitId = null;
   App.lastShownRollId = null;
+  App.dmSceneId = null;
+  App.rollsPrimed = false;
+  App.seenRollIds = new Set();
   App.zoomUserSet = false;
+  App.joinedAt = Date.now();
+  stopInboxPolling();
+  clearMessageCaches();
   closeTokenPopover();
 }
 
@@ -422,6 +468,7 @@ function initAppEvents() {
   $('btnLobbyOpenCloud').addEventListener('click', openCloudModal);
   $('btnCloseCloudModal').addEventListener('click', () => showEl('modalCloudStatus', false));
   $('modalCloudStatus').addEventListener('click', (e) => { if (e.target.id === 'modalCloudStatus') showEl('modalCloudStatus', false); });
+  $('groupCodeForm').addEventListener('submit', (e) => { e.preventDefault(); joinGroupFromLobby(); });
   $('btnCloudRetry').addEventListener('click', async () => {
     await Sync.connect();
     if (App.activeId && Sync.isCloud()) await Sync.openCampaign(App.activeId);
@@ -514,7 +561,7 @@ function initAppEvents() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     closeTokenPopover();
-    ['modalAddToken', 'modalVerifyDmPassword', 'modalCloudStatus'].forEach(id => showEl(id, false));
+    ['modalAddToken', 'modalVerifyDmPassword', 'modalCloudStatus', 'modalSpellPicker', 'modalLevelUp', 'modalMessages', 'modalHandout'].forEach(id => showEl(id, false));
   });
   window.addEventListener('pagehide', () => { if (App.activeId) Sync.saveLocalNow(App.activeId); });
 }
@@ -540,9 +587,12 @@ async function startApp() {
   initMapEvents();
   initTableEvents();
   initSheetEvents();
+  initSpellEvents();
+  initWizardEvents();
   initJournalEvents();
   initBooksEvents();
   initDmEvents();
+  initMessageEvents();
   setAdvMode('normal');
   renderGlossary();
   renderChat();
@@ -559,8 +609,19 @@ async function startApp() {
       }
       App.lastActiveInitId = meta.activeId;
     }
-    if (keys.includes('scene') || keys.includes('map')) needsFit = true;
+    const current = currentSceneId();
+    if (keys.includes(sceneKey(current)) || keys.includes(mapKey(current))) needsFit = true;
+    if (keys.includes('stage')) {
+      needsFit = true;
+      if (!isDM()) {
+        App.zoomUserSet = false;
+        closeTokenPopover();
+        showToast(`🗺️ Il Master vi porta in: ${sceneName(getStage().activeSceneId)}`, 3500);
+      }
+    }
     if (keys.includes('meta') && !$('homeLobbyScreen').classList.contains('hidden')) refreshLobby();
+    announceNewHandouts(keys);
+    if (keys.some(k => k.startsWith('msg:')) && !$('modalMessages').classList.contains('hidden')) renderMessagesPanel();
     scheduleRender();
   };
   Sync.onCampaignGone = async (campId) => {
@@ -579,6 +640,7 @@ async function startApp() {
 
   if (invited) {
     if (App.lobby.some(c => c.id === invited)) handleSelectAdventureFromLobby(invited, false);
+    else if (Sync.mode === 'locked') { App.pendingInvite = invited; showToast('🔐 Inserisci il codice del gruppo per entrare nell\'avventura', 5000); }
     else showToast('⚠️ Non trovo l\'avventura del link d\'invito', 4000);
   }
 }

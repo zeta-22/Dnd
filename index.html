@@ -14,9 +14,10 @@
     // Applica subito il tema salvato per evitare il lampo chiaro/scuro
     try { const t = localStorage.getItem('iltavolo_theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <link rel="stylesheet" href="css/tailwind-base.css" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="css/tailwind.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 </head>
 
 <body>
@@ -61,6 +62,10 @@
         <div class="flex flex-wrap items-center gap-2">
           <button id="btnOpenSupabaseModal" type="button" class="btn text-xs px-2.5 py-1.5" title="Stato della sincronizzazione Cloud">
             ☁️ <span id="headerCloudStatusLabel" class="hidden sm:inline">Cloud</span>
+          </button>
+          <button id="btnOpenMessages" type="button" class="btn text-xs px-2.5 py-1.5 relative" title="Messaggi privati tra Master e giocatori">
+            💬 <span class="hidden sm:inline">Messaggi</span>
+            <span id="messagesUnreadBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--danger)] text-white text-[10px] font-bold leading-[18px] text-center">0</span>
           </button>
           <button id="btnSwitchRoleOrChar" type="button" class="btn text-xs px-2.5 py-1.5" title="Cambia il tuo personaggio o ruolo">
             👤 <span class="hidden sm:inline">Ruolo / PG</span>
@@ -117,6 +122,17 @@
               <button id="btnToggleFog" class="btn text-xs dm-only">Nebbia</button>
               <button id="btnAddTokenModal" class="btn btn-felt text-xs dm-only">+ Pedina</button>
             </div>
+          </div>
+
+          <div id="sceneBar" class="flex flex-wrap items-center gap-1.5 text-xs">
+            <span class="font-bold text-[var(--muted)]">Mappa:</span>
+            <select id="sceneSelect" class="input-field text-xs py-0.5 font-bold dm-only max-w-[12rem]" aria-label="Mappa da vedere o preparare"></select>
+            <strong id="sceneNameLabel" class="player-only font-serif-title text-sm"></strong>
+            <span id="sceneLiveBadge" class="dm-only px-2 py-0.5 rounded-full border text-[11px] font-bold"></span>
+            <button id="btnShowSceneToPlayers" type="button" class="btn btn-brass text-xs py-0.5 dm-only" title="Porta tutti i giocatori su questa mappa">📣 Mostra ai giocatori</button>
+            <button id="btnNewScene" type="button" class="btn text-xs py-0.5 dm-only" title="Prepara una nuova mappa">+ Nuova mappa</button>
+            <button id="btnRenameScene" type="button" class="btn text-xs py-0.5 dm-only" title="Rinomina questa mappa">✏️</button>
+            <button id="btnDeleteScene" type="button" class="btn text-xs py-0.5 dm-only text-[var(--danger)]" title="Elimina questa mappa">🗑️</button>
           </div>
 
           <div id="fogToolbar" class="dm-only flex flex-wrap items-center justify-between gap-2 bg-[var(--surface2)] px-3 py-1.5 rounded-lg border border-[var(--line)] text-xs">
@@ -204,6 +220,10 @@
               <h3 class="font-serif-title font-bold text-lg">🎲 Lancia-dadi</h3>
               <button id="btnToggleModPanel" class="btn text-xs">⚙️ Opzioni</button>
             </div>
+            <form id="diceFormulaForm" class="flex gap-1.5">
+              <input id="inputDiceFormula" type="text" inputmode="text" autocomplete="off" placeholder="Formula, es. 2d6+1d4+3" class="input-field flex-1 text-xs font-mono" aria-label="Formula dei dadi" />
+              <button type="submit" class="btn btn-brass text-xs font-bold px-3">🎲 Tira</button>
+            </form>
             <div class="grid grid-cols-4 gap-1.5">
               <button class="btn btn-felt font-serif-title font-bold text-sm dice-btn" data-sides="4">d4</button>
               <button class="btn btn-felt font-serif-title font-bold text-sm dice-btn" data-sides="6">d6</button>
@@ -244,7 +264,11 @@
                   <label for="inputSecretRoll" class="font-bold text-[var(--muted)] cursor-pointer">Segreto DM</label>
                 </div>
               </div>
-              <div class="flex justify-end">
+              <div class="flex items-center justify-between gap-2">
+                <label class="flex items-center gap-1.5 font-bold text-[var(--muted)] cursor-pointer">
+                  <input id="inputDiceAnimation" type="checkbox" class="w-4 h-4 accent-[var(--felt)]" checked />
+                  Animazione dei dadi
+                </label>
                 <button id="btnQuickResetMod" class="btn text-[11px] py-0.5">Azzera opzioni</button>
               </div>
             </div>
@@ -265,6 +289,7 @@
           <span class="text-xl">🧝‍♀️</span>
           <select id="sheetCharSelect" class="input-field font-serif-title font-bold text-base min-w-[200px]"></select>
           <button id="btnNewPcSheet" type="button" class="btn btn-felt text-xs font-bold">+ Nuovo PG</button>
+          <button id="btnSheetWizard" type="button" class="btn btn-brass text-xs font-bold" title="Creazione guidata passo passo">🧭 Guidata</button>
           <button id="btnNewNpcSheet" type="button" class="btn btn-brass text-xs font-bold dm-only">+ Nuova scheda PNG</button>
           <button id="btnDeleteSheet" type="button" class="btn text-xs text-[var(--danger)]">Elimina scheda</button>
         </div>
@@ -300,7 +325,10 @@
                 <h3 class="font-serif-title font-bold text-xl" id="sheetCardMainTitle">Scheda Avventuriero</h3>
                 <span id="sheetCharTypeBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--brass-soft)] border border-[var(--brass)] text-[var(--ink)]">PG</span>
               </div>
-              <button id="btnSheetRollInit" type="button" class="btn btn-felt text-xs">🎲 Tira Iniziativa</button>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button id="btnLevelUp" type="button" class="btn btn-brass text-xs" title="Passa al livello successivo">⬆️ Sali di livello</button>
+                <button id="btnSheetRollInit" type="button" class="btn btn-felt text-xs">🎲 Tira Iniziativa</button>
+              </div>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
@@ -324,14 +352,14 @@
                 <label for="sheetInputBackground" class="block font-bold text-[var(--muted)] mb-1">Background</label>
                 <input id="sheetInputBackground" type="text" class="input-field w-full font-bold" />
               </div>
-              <div class="col-span-3">
+              <div class="col-span-2 sm:col-span-3">
                 <label for="sheetInputBonusAction" class="block font-bold text-[var(--muted)] mb-1">⚡ Azione bonus principale</label>
                 <input id="sheetInputBonusAction" type="text" class="input-field w-full font-bold" />
               </div>
             </div>
 
             <div class="card-surface2 p-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs items-center">
-              <div class="flex flex-col gap-1">
+              <div class="flex flex-col gap-1 col-span-2 sm:col-span-1">
                 <div class="flex items-center justify-between">
                   <span class="font-bold text-[var(--ink)]">Punti Ferita</span>
                   <span id="sheetHpPercentBadge" class="text-[10px] font-bold text-[var(--muted)]">100%</span>
@@ -348,7 +376,7 @@
                 </div>
               </div>
 
-              <div class="grid grid-cols-2 gap-2">
+              <div class="grid grid-cols-2 gap-2 col-span-2 sm:col-span-1">
                 <div>
                   <label for="sheetInputAc" class="block font-bold text-[var(--muted)] mb-1">CA</label>
                   <input id="sheetInputAc" type="number" min="1" max="40" class="input-field w-full text-center font-bold text-base" />
@@ -466,6 +494,21 @@
           </div>
 
           <div class="card-surface p-4 flex flex-col gap-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+              <h3 class="font-serif-title font-bold text-lg">📖 Incantesimi</h3>
+              <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span id="sheetSpellStats" class="text-[var(--muted)]"></span>
+                <label class="flex items-center gap-1 text-[var(--muted)]">Caratteristica
+                  <select id="sheetSpellAbility" class="input-field text-xs py-0.5"></select>
+                </label>
+                <button id="btnOpenSpellPicker" type="button" class="btn btn-felt text-xs">+ Aggiungi</button>
+              </div>
+            </div>
+            <div id="sheetConcentrationBar" class="hidden flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-lg border-2 border-[var(--brass)] bg-[var(--brass-soft)] text-xs"></div>
+            <div id="sheetSpellList" class="flex flex-col gap-2 text-xs"></div>
+          </div>
+
+          <div class="card-surface p-4 flex flex-col gap-3">
             <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
               <h3 class="font-serif-title font-bold text-lg">⚠️ Condizioni Attive</h3>
               <button id="btnClearAllConditions" type="button" class="btn text-xs">Rimuovi tutte</button>
@@ -532,6 +575,10 @@
 
     <!-- Scheda 3: Diario -->
     <section id="tab-diario" class="hidden flex-col gap-3">
+      <div id="handoutSection" class="hidden card-surface p-3.5 flex-col gap-2">
+        <h3 class="font-serif-title font-bold text-lg">📜 Dispense del Master</h3>
+        <div id="handoutList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+      </div>
       <div class="card-surface p-3.5 flex flex-wrap items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-1.5" id="journalFilterButtons">
           <button type="button" class="btn btn-felt text-xs journal-filter-btn" data-jfilter="Tutto">📚 Tutto</button>
@@ -647,6 +694,15 @@
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2" id="rulesGlossaryGrid"></div>
         </div>
+
+        <p class="text-[10px] text-[var(--muted)] leading-relaxed pt-3 border-t border-[var(--line)]">
+          Mostri, incantesimi, classi e razze vengono dal System Reference Document 5.1 (“SRD 5.1”) di Wizards of the Coast LLC,
+          disponibile su <a class="underline" href="https://dnd.wizards.com/resources/systems-reference-document" target="_blank" rel="noopener">dnd.wizards.com</a>
+          e distribuito con licenza <a class="underline" href="https://creativecommons.org/licenses/by/4.0/legalcode" target="_blank" rel="noopener">Creative Commons Attribution 4.0</a>.
+          Nomi tradotti in italiano e dati riorganizzati per questa app; descrizioni nel testo inglese originale.
+          Dati ricavati da <a class="underline" href="https://github.com/soryy708/5e-database" target="_blank" rel="noopener">5e-database</a> (licenza MIT).
+          Il Tavolo non è affiliato a Wizards of the Coast.
+        </p>
       </div>
     </section>
 
@@ -752,6 +808,24 @@
                 </div>
               </div>
             </div>
+
+            <div class="card-surface p-4 flex flex-col gap-2.5 text-xs">
+              <div class="border-b border-[var(--line)] pb-2">
+                <h3 class="font-serif-title font-bold text-lg">📜 Dispense</h3>
+                <span class="text-[11px] text-[var(--muted)]">Lettere, mappe, indizi: compaiono subito sullo schermo dei giocatori. Quelle per un solo giocatore sono cifrate e le legge solo lui.</span>
+              </div>
+              <form id="dmHandoutForm" class="flex flex-col gap-2">
+                <input id="dmHandoutTitle" type="text" maxlength="120" class="input-field w-full font-bold" placeholder="Titolo (es. Lettera del barone)" />
+                <textarea id="dmHandoutText" rows="3" maxlength="8000" class="input-field w-full" placeholder="Testo della dispensa..."></textarea>
+                <div class="flex flex-wrap items-center gap-2">
+                  <label class="btn cursor-pointer text-xs">🖼️ Immagine <input id="dmHandoutImage" type="file" accept="image/*" class="hidden" /></label>
+                  <select id="dmHandoutTo" class="input-field flex-1 min-w-[140px]"></select>
+                  <button type="submit" class="btn btn-felt text-xs font-bold">Manda</button>
+                </div>
+                <span id="dmHandoutImageName" class="text-[10px] text-[var(--muted)]"></span>
+              </form>
+              <div id="dmHandoutSentList" class="flex flex-col gap-1 max-h-48 overflow-y-auto"></div>
+            </div>
           </div>
 
           <div class="lg:col-span-7 flex flex-col gap-3">
@@ -796,6 +870,10 @@
               </div>
               <div class="card-surface2 p-3 flex flex-col gap-2 text-xs">
                 <div class="font-bold text-[var(--ink)]">👹 Aggiungi nemici preparati</div>
+                <div>
+                  <input id="dmEnemySearch" type="search" autocomplete="off" placeholder="🔎 Cerca nel regolamento: goblin, scheletro, drago…" class="input-field w-full" aria-label="Cerca un mostro del regolamento" />
+                  <div id="dmEnemySearchResults" class="flex flex-col gap-1 mt-1 max-h-44 overflow-y-auto"></div>
+                </div>
                 <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end">
                   <div class="col-span-2">
                     <label class="block text-[10px] font-bold text-[var(--muted)] mb-0.5">Nome</label>
@@ -856,6 +934,12 @@
       </div>
       <div class="grid grid-cols-2 gap-3 text-sm">
         <div class="col-span-2">
+          <label for="inputTokenMonsterSearch" class="block text-xs font-bold text-[var(--muted)] mb-1">🔎 Mostro del regolamento (facoltativo)</label>
+          <input id="inputTokenMonsterSearch" type="search" autocomplete="off" placeholder="Es. goblin, orco, drago rosso…" class="input-field w-full" />
+          <div id="tokenMonsterResults" class="flex flex-col gap-1 mt-1 max-h-44 overflow-y-auto"></div>
+          <div id="tokenMonsterChosen" class="hidden mt-1 text-xs items-center justify-between gap-2 card-surface2 px-2 py-1"></div>
+        </div>
+        <div class="col-span-2">
           <label class="block text-xs font-bold text-[var(--muted)] mb-1">Nome</label>
           <input id="inputNewTokenName" type="text" value="Goblin" class="input-field w-full" />
         </div>
@@ -879,9 +963,13 @@
           <label class="block text-xs font-bold text-[var(--muted)] mb-1">Max PF</label>
           <input id="inputNewTokenMaxHp" type="number" value="7" class="input-field w-full" />
         </div>
-        <label class="col-span-2 flex items-center gap-2 text-xs font-bold text-[var(--muted)] cursor-pointer">
+        <div>
+          <label class="block text-xs font-bold text-[var(--muted)] mb-1">Quante</label>
+          <input id="inputNewTokenQty" type="number" min="1" max="20" value="1" class="input-field w-full" />
+        </div>
+        <label class="flex items-end gap-2 text-xs font-bold text-[var(--muted)] cursor-pointer pb-1">
           <input id="inputNewTokenHidden" type="checkbox" class="w-4 h-4 accent-[var(--felt)]" />
-          Nascosta ai giocatori (per le imboscate)
+          Nascoste ai giocatori
         </label>
       </div>
       <div class="flex justify-end gap-2 pt-2 border-t border-[var(--line)]">
@@ -907,6 +995,15 @@
             <button id="btnLobbyCopyInviteLink" type="button" class="btn btn-brass text-xs font-bold py-2 px-3">🔗 Invita Giocatori</button>
             <button id="btnCloseLobbyToTable" type="button" class="btn text-xs py-2 px-3 hidden">✕ Torna al Tavolo</button>
           </div>
+        </div>
+        <div id="lobbyGroupCodeBox" class="hidden card-surface2 p-4 border-2 border-[var(--brass)] flex-col gap-2.5">
+          <h3 class="font-serif-title font-bold text-lg">🔐 Codice del gruppo</h3>
+          <p class="text-xs text-[var(--muted)]">Questo tavolo è riservato a un gruppo di amici. Chiedi il codice a chi ha creato il sito e scrivilo qui: su questo dispositivo te lo chiederà una volta sola.</p>
+          <form id="groupCodeForm" class="flex flex-wrap gap-2">
+            <input id="inputGroupCode" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" class="input-field flex-1 min-w-[180px] font-bold text-base" placeholder="Codice del gruppo..." />
+            <button id="btnJoinGroup" type="submit" class="btn btn-felt text-xs font-bold py-2 px-4">Entra</button>
+          </form>
+          <div id="groupCodeError" class="hidden text-xs font-bold text-[var(--danger)]"></div>
         </div>
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">
@@ -990,7 +1087,9 @@
         <div class="border-t border-[var(--line)] pt-3 flex flex-col gap-3">
           <div class="flex items-center justify-between">
             <h4 class="font-serif-title font-bold text-lg text-[var(--felt)]">✨ Oppure crea nuovo Personaggio</h4>
+            <button id="btnOnbWizard" type="button" class="btn btn-brass text-xs font-bold">🧭 Creazione guidata</button>
           </div>
+          <p class="text-[11px] text-[var(--muted)] -mt-1">La creazione guidata ti accompagna passo passo (razza, classe, caratteristiche, abilità). Oppure compila al volo qui sotto.</p>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
             <div class="col-span-2">
               <label class="block font-bold text-[var(--muted)] mb-1">Nome Eroe *</label>
@@ -1045,6 +1144,84 @@
     </div>
   </div>
 
+  <div id="modalCharWizard" class="hidden fixed inset-0 z-[55] bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-surface p-5 w-full max-w-3xl flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto">
+      <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+        <div>
+          <span id="wizardStepLabel" class="text-[11px] font-bold uppercase tracking-wider text-[var(--brass)]">Passo 1 di 5</span>
+          <h3 id="wizardTitle" class="font-serif-title font-bold text-2xl">Chi sei</h3>
+        </div>
+        <button id="btnCloseWizard" type="button" class="btn text-xs" aria-label="Chiudi">✕</button>
+      </div>
+      <div id="wizardBody" class="text-xs flex flex-col gap-3"></div>
+      <div class="flex items-center justify-between gap-2 pt-2 border-t border-[var(--line)]">
+        <button id="btnWizardBack" type="button" class="btn text-xs">← Indietro</button>
+        <span id="wizardProblem" class="text-[11px] font-bold text-[var(--danger)] text-center"></span>
+        <button id="btnWizardNext" type="button" class="btn btn-felt text-sm font-bold px-5">Avanti →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalLevelUp" class="hidden fixed inset-0 z-[55] bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-surface p-5 w-full max-w-lg flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto">
+      <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+        <h3 class="font-serif-title font-bold text-xl">⬆️ Sali di livello</h3>
+        <button id="btnCloseLevelUp" type="button" class="btn text-xs" aria-label="Chiudi">✕</button>
+      </div>
+      <div id="levelUpBody" class="text-xs flex flex-col gap-3"></div>
+      <div class="flex justify-end pt-2 border-t border-[var(--line)]">
+        <button id="btnApplyLevelUp" type="button" class="btn btn-felt text-sm font-bold px-5">Conferma</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalSpellPicker" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+    <div class="card-surface p-5 w-full max-w-2xl max-h-[90vh] flex flex-col gap-3 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
+        <h3 class="font-serif-title font-bold text-xl">📖 Aggiungi incantesimi</h3>
+        <button id="btnCloseSpellPicker" type="button" class="btn text-xs" aria-label="Chiudi">✕</button>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+        <input id="inputSpellSearch" type="search" autocomplete="off" placeholder="Cerca: palla di fuoco, cura…" class="input-field sm:col-span-1" aria-label="Cerca incantesimo" />
+        <select id="selectSpellClass" class="input-field" aria-label="Classe"></select>
+        <select id="selectSpellLevel" class="input-field" aria-label="Livello"></select>
+      </div>
+      <div id="spellPickerResults" class="flex flex-col gap-1.5 overflow-y-auto pr-1 text-xs"></div>
+      <p class="text-[10px] text-[var(--muted)]">Nomi in italiano; le descrizioni sono quelle ufficiali del regolamento base (SRD 5.1) in inglese.</p>
+    </div>
+  </div>
+
+  <div id="modalMessages" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+    <div class="card-surface w-full max-w-lg p-4 flex flex-col gap-3 max-h-[90vh]">
+      <div class="flex items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+        <div>
+          <h3 class="font-serif-title font-bold text-lg">💬 Messaggi privati</h3>
+          <span id="messagesWithLabel" class="text-[11px] text-[var(--muted)]"></span>
+        </div>
+        <button id="btnCloseMessages" type="button" class="btn text-xs">✕</button>
+      </div>
+      <select id="messagesPlayerSelect" class="hidden input-field w-full font-bold"></select>
+      <div id="messagesThread" class="flex-1 min-h-[180px] overflow-y-auto flex flex-col gap-2 p-2 rounded bg-[var(--surface2)] border border-[var(--line)] text-xs"></div>
+      <form id="messagesForm" class="flex gap-2">
+        <input id="messagesInput" type="text" maxlength="4000" autocomplete="off" class="input-field flex-1" placeholder="Scrivi un messaggio privato..." />
+        <button type="submit" class="btn btn-felt font-bold">Invia</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="modalHandout" class="hidden fixed inset-0 z-[58] bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-surface w-full max-w-xl p-5 flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl">
+      <div class="flex items-start justify-between gap-2 border-b border-[var(--line)] pb-2">
+        <div>
+          <span id="handoutPopupFrom" class="text-[11px] font-bold text-[var(--muted)]"></span>
+          <h3 id="handoutPopupTitle" class="font-serif-title font-bold text-xl">Dispensa</h3>
+        </div>
+        <button id="btnCloseHandoutPopup" type="button" class="btn text-xs">✕</button>
+      </div>
+      <div id="handoutPopupBody" class="flex flex-col gap-3 text-sm max-h-[70vh] overflow-y-auto"></div>
+    </div>
+  </div>
+
   <div id="modalVerifyDmPassword" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
     <div class="card-surface p-5 w-full max-w-md flex flex-col gap-3.5 border-2 border-[var(--brass)] shadow-2xl">
       <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
@@ -1061,7 +1238,7 @@
     </div>
   </div>
 
-  <div id="tokenQuickPopover" class="hidden fixed z-50 card-surface p-3.5 shadow-2xl flex flex-col gap-2.5 w-64 border-2 border-[var(--brass)]" role="dialog" aria-label="Dettagli pedina">
+  <div id="tokenQuickPopover" class="hidden fixed z-50 card-surface p-3.5 shadow-2xl flex flex-col gap-2.5 w-72 max-w-[94vw] max-h-[85vh] overflow-y-auto border-2 border-[var(--brass)]" role="dialog" aria-label="Dettagli pedina">
     <div class="flex items-center justify-between border-b border-[var(--line)] pb-1.5">
       <div class="min-w-0">
         <h4 id="popoverTokenName" class="font-serif-title font-bold text-base leading-tight truncate">Nome</h4>
@@ -1084,7 +1261,19 @@
       <button id="btnPopoverDamage" type="button" class="btn btn-danger text-xs py-1 px-2.5 flex-1 font-bold">Danno</button>
       <button id="btnPopoverHeal" type="button" class="btn btn-ok text-xs py-1 px-2.5 flex-1 font-bold">Cura</button>
     </div>
+    <div id="popoverConditions" class="flex flex-col gap-1.5 pt-1.5 border-t border-[var(--line)] text-xs">
+      <div id="popoverConditionList" class="flex flex-wrap gap-1"></div>
+      <div class="flex items-center gap-1">
+        <select id="popoverConditionSelect" class="input-field text-xs py-0.5 flex-1 min-w-0" aria-label="Condizione"></select>
+        <select id="popoverConditionRounds" class="input-field text-xs py-0.5 w-20" aria-label="Durata"></select>
+        <button id="btnPopoverAddCondition" type="button" class="btn text-xs py-0.5 px-2" title="Aggiungi condizione">+</button>
+      </div>
+    </div>
     <button id="btnPopoverOpenSheet" type="button" class="btn text-xs w-full justify-start hidden">🧝 Apri scheda</button>
+    <details id="popoverStatBlockWrap" class="hidden pt-1.5 border-t border-[var(--line)]">
+      <summary class="text-xs font-bold cursor-pointer text-[var(--brass)]">📜 Scheda del mostro</summary>
+      <div id="popoverStatBlock" class="mt-1.5"></div>
+    </details>
     <div id="popoverDmActions" class="flex flex-col gap-1 pt-1.5 border-t border-[var(--line)] text-xs">
       <button id="btnPopoverAddInit" type="button" class="btn text-xs w-full justify-start">⚡ Aggiungi all'iniziativa</button>
       <button id="btnPopoverToggleHidden" type="button" class="btn text-xs w-full justify-start">👁️‍🗨️ Nascondi</button>
@@ -1101,6 +1290,8 @@
       <button id="btnGoToSheet" type="button" class="btn btn-felt text-xs py-1 px-3 font-bold">Scheda</button>
     </div>
   </div>
+
+  <div id="diceOverlay" aria-hidden="true"></div>
 
   <div id="toastNotification" role="status" aria-live="polite" class="fixed bottom-16 right-4 left-4 sm:left-auto z-[70] hidden card-surface px-4 py-2.5 text-sm font-medium shadow-lg border-l-4 border-l-[var(--brass)]"></div>
 
@@ -1123,12 +1314,17 @@
   <script src="js/store.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/core.js"></script>
+  <script src="js/srd.js"></script>
   <script src="js/map.js"></script>
+  <script src="js/diceanim.js"></script>
   <script src="js/table.js"></script>
   <script src="js/sheet.js"></script>
+  <script src="js/spells.js"></script>
+  <script src="js/wizard.js"></script>
   <script src="js/journal.js"></script>
   <script src="js/books.js"></script>
   <script src="js/dm.js"></script>
+  <script src="js/messages.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

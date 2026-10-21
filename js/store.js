@@ -91,6 +91,11 @@ function ensureCharacterDefaults(char) {
     char.spellSlots[lvl] = { max, used: clampInt(s.used, 0, max, 0) };
   }
   if (!Array.isArray(char.conditions)) char.conditions = [];
+  if (!char.conditionRounds || typeof char.conditionRounds !== 'object') char.conditionRounds = {};
+  if (!Array.isArray(char.spells)) char.spells = [];
+  char.spells = char.spells.filter(s => s && !isNaN(Number(s.i)));
+  if (char.spellAbility && !ABILITY_KEYS.includes(char.spellAbility)) char.spellAbility = null;
+  if (char.concentration && typeof char.concentration !== 'object') char.concentration = null;
   ['equipmentText', 'spellsText', 'featuresText', 'notes'].forEach(f => { if (typeof char[f] !== 'string') char[f] = char[f] ? String(char[f]) : ''; });
   if (char.ownerId === undefined) char.ownerId = null;
   return char;
@@ -108,7 +113,11 @@ function normalizeToken(tok) {
   tok.ac = parseInt(tok.ac, 10) || 10;
   tok.hidden = Boolean(tok.hidden);
   tok.charId = tok.charId || null;
+  tok.sceneId = typeof tok.sceneId === 'string' && tok.sceneId ? tok.sceneId : 'main';
   tok.initMod = parseInt(tok.initMod, 10) || 0;
+  if (tok.srd !== undefined && tok.srd !== null && isNaN(Number(tok.srd))) delete tok.srd;
+  if (!Array.isArray(tok.conditions)) tok.conditions = [];
+  if (!tok.conditionRounds || typeof tok.conditionRounds !== 'object') tok.conditionRounds = {};
   return tok;
 }
 
@@ -159,7 +168,15 @@ function normalizeScene(scene) {
   }
   scene.mapVersion = parseInt(scene.mapVersion, 10) || 0;
   scene.hasMap = Boolean(scene.hasMap);
+  scene.name = String(scene.name || '').slice(0, 60);
+  scene.order = Number(scene.order) || 0;
   return scene;
+}
+
+function normalizeStage(stage) {
+  stage = stage && typeof stage === 'object' ? stage : {};
+  stage.activeSceneId = typeof stage.activeSceneId === 'string' && stage.activeSceneId ? stage.activeSceneId : 'main';
+  return stage;
 }
 
 function normalizeMeta(meta) {
@@ -203,7 +220,8 @@ function normalizeInitMeta(m) {
 function normalizeEntity(key, data) {
   if (data === null || data === undefined) return data;
   if (key === 'meta') return normalizeMeta(data);
-  if (key === 'scene') return normalizeScene(data);
+  if (key === 'scene' || key.startsWith('scene:')) return normalizeScene(data);
+  if (key === 'stage') return normalizeStage(data);
   if (key === 'initmeta') return normalizeInitMeta(data);
   if (key.startsWith('char:')) return ensureCharacterDefaults(data);
   if (key.startsWith('token:')) return normalizeToken(data);
@@ -225,9 +243,11 @@ function normalizeVault(v) {
     e.hp = Math.max(1, parseInt(e.hp, 10) || 1);
     e.qty = clampInt(e.qty, 1, 50, 1);
     e.included = e.included !== false;
+    if (e.srd !== undefined && e.srd !== null && isNaN(Number(e.srd))) delete e.srd;
   });
   v.partyCount = v.partyCount ? clampInt(v.partyCount, 1, 12, 4) : null;
   v.partyLevel = v.partyLevel ? clampInt(v.partyLevel, 1, 20, 1) : null;
+  v.sent = Array.isArray(v.sent) ? v.sent.slice(-150) : [];
   return v;
 }
 

@@ -171,16 +171,18 @@ function rollDamageFormula(formula, crit) {
   const parsed = parseDiceFormula(formula);
   if (!parsed) return null;
   const rolls = [];
+  const sides = [];
   let total = parsed.bonus;
   parsed.dice.forEach(d => {
     const count = crit ? d.count * 2 : d.count;
     for (let i = 0; i < count; i++) {
       const v = rollDie(d.sides);
       rolls.push(v * d.sign);
+      sides.push(d.sides);
       total += v * d.sign;
     }
   });
-  return { rolls, bonus: parsed.bonus, total: Math.max(0, total), formula: String(formula).replace(/\s+/g, '') };
+  return { rolls, sides, bonus: parsed.bonus, total: Math.max(0, total), formula: String(formula).replace(/\s+/g, '') };
 }
 
 function describeFormula(count, sides, bonus) {

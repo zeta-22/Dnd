@@ -5,9 +5,19 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 
 - **Lobby delle avventure**: si entra come Master (con password) o come Giocatore, scegliendo o creando il proprio personaggio.
 - **Mappa tattica**: griglia regolabile, nebbia di guerra da scoprire col pennello, pedine da trascinare con la misura in metri, mappe caricate dal Master.
+- **Più mappe per avventura**: il Master prepara la prossima mappa di nascosto e con **📣 Mostra ai giocatori** ci porta tutti.
 - **Iniziativa** con turno attivo evidenziato sulla mappa e avviso “Tocca a te!”.
-- **Lancia-dadi** con vantaggio/svantaggio, tiri contro CA, critici e tiri segreti del Master.
-- **Scheda personaggio** semplice o completa: PF e PF temporanei, riposi, tiri salvezza contro morte, abilità con competenza e maestria, attacchi, slot incantesimo, condizioni.
+- **Lancia-dadi** con vantaggio/svantaggio, tiri contro CA, critici, tiri segreti del Master e formule libere (`2d6+1d4+3`).
+  Ogni tiro attraversa il tavolo con un'animazione dei dadi su tutti gli schermi (si può spegnere su ogni dispositivo).
+- **Mostri del regolamento base**: cerchi “goblin” o “drago”, aggiungi uno o più mostri con PF, CA e iniziativa già pronti;
+  il Master vede la scheda del mostro e tira attacchi e danni con un tocco.
+- **Condizioni con durata** in round, che finiscono da sole al momento giusto del turno.
+- **Scheda personaggio** semplice o completa: PF e PF temporanei, riposi, tiri salvezza contro morte, abilità con competenza e maestria, attacchi, condizioni.
+- **Incantesimi**: si scelgono dall'elenco del regolamento base, si lanciano spendendo gli slot (anche a livello superiore),
+  con tiri d'attacco, danni, cure, CD e concentrazione (con il tiro salvezza quando si subiscono danni).
+- **Creazione guidata del personaggio** (razza, classe, caratteristiche con serie standard, acquisto a punti o 4d6, abilità)
+  e **passaggio di livello** con PF, aumenti di caratteristica e nuovi slot.
+- **Messaggi privati** tra Master e giocatori e **dispense** (testo e immagini) per tutti o per un solo giocatore.
 - **Diario condiviso** (missioni, PNG, bottino, domande per il DM con risposta).
 - **Regole & PDF**: carichi i tuoi manuali, ci cerchi dentro e l'assistente li usa per rispondere.
 - **Schermo del Master**: note segrete, appunti di sessione trasformati in voci del diario, bilanciamento degli scontri (DMG 2014).
@@ -23,12 +33,27 @@ Tutto si sincronizza da solo tra i dispositivi. Se la connessione cade si contin
 1. Apri il progetto su [supabase.com](https://supabase.com) → **SQL Editor** → **New query**.
 2. Incolla tutto il contenuto di [`supabase/setup.sql`](supabase/setup.sql) e premi **Run**.
 
-Lo script crea le tabelle nuove e copia lì le campagne della vecchia tabella `campaigns`. Si può rieseguire senza problemi.
+Lo script crea le tabelle nuove e copia lì le campagne della vecchia tabella `campaigns`. Si può rieseguire senza problemi:
+**rieseguilo ogni volta che aggiorni il sito**, così il database ha sempre le funzioni nuove (per esempio i messaggi privati).
 
 > La vecchia tabella resta nel database come backup, ma il sito non può più leggerla: conteneva le password del Master in chiaro.
 > Finché lo script non è stato eseguito il sito funziona solo in locale e lo dice nel pulsante ☁️ in alto.
 
-### 2. Assistente IA (facoltativo)
+### 2. Codice del gruppo (facoltativo, consigliato)
+
+Senza codice chiunque abbia il link del sito può entrare. Per riservare il tavolo ai tuoi amici:
+
+1. Supabase → **Authentication → Sign In / Providers** → attiva **Allow anonymous sign-ins** e salva.
+2. Supabase → **SQL Editor** → esegui (con il codice che vuoi tu):
+
+   ```sql
+   select tavolo_set_group_code('il-vostro-codice');
+   ```
+
+Ogni dispositivo chiede il codice una volta sola (maiuscole e minuscole non contano). Se cambi il codice, tutti dovranno
+inserire quello nuovo. Per riaprire il tavolo a chiunque: `select tavolo_set_group_code(null);`
+
+### 3. Assistente IA (facoltativo)
 
 Su Vercel → progetto → **Settings → Environment Variables** aggiungi:
 
@@ -40,7 +65,7 @@ Su Vercel → progetto → **Settings → Environment Variables** aggiungi:
 Poi rifai il deploy (Deployments → ⋯ → Redeploy). La chiave resta sul server: i giocatori usano l'assistente senza vederla.
 Senza chiave l'assistente funziona lo stesso, ma risponde solo con il glossario e la ricerca nei PDF.
 
-### 3. Pubblicazione
+### 4. Pubblicazione
 
 Vercel pubblica in automatico ogni push su GitHub: i branch diversi da `main` diventano un'**anteprima** con un indirizzo suo,
 `main` diventa il sito vero. Non serve nessun passaggio di build: sono file statici più la funzione in `api/`.
@@ -61,30 +86,57 @@ Il Master può premere **👁️ Vista** per vedere la mappa esattamente come la
 - **Protetto dalla password del Master**: note segrete, appunti di sessione, nemici preparati. Stanno in una “cassaforte” nel database che si apre solo con la password giusta.
 - **Tiri segreti del Master**: restano solo sul suo dispositivo.
 - **PDF dei manuali**: restano nel browser di chi li carica, non vengono mai inviati online.
-- **Non protetto**: non c'è un login, quindi chi ha il link può vedere e modificare la campagna (mappa, schede, diario).
-  Va benissimo tra amici; non pubblicare il link in giro. Le pedine nascoste e la mappa sotto la nebbia non si vedono
-  sullo schermo dei giocatori, ma un giocatore molto curioso potrebbe trovarle negli strumenti per sviluppatori del browser.
+- **Messaggi e dispense per un solo giocatore**: sono cifrati con una chiave che esiste solo sul dispositivo di quel giocatore.
+  Se il giocatore cambia telefono, i messaggi vecchi su quello nuovo non si leggono (quelli nuovi sì).
+  I messaggi dei giocatori al Master si leggono solo con la password del Master.
+- **Con il codice del gruppo**: solo i dispositivi che hanno inserito il codice possono vedere e modificare le avventure.
+- **Senza codice del gruppo**: chi ha il link può vedere e modificare la campagna (mappa, schede, diario). Va bene tra amici; non pubblicare il link in giro.
+- In ogni caso le pedine nascoste e la mappa sotto la nebbia non si vedono sullo schermo dei giocatori, ma un giocatore
+  molto curioso potrebbe trovarle negli strumenti per sviluppatori del browser.
 
 ## Struttura del progetto
 
 ```
 index.html          pagina dell'app
 style.css           colori, tema chiaro/scuro, componenti
+css/                Tailwind precompilato (vedi sotto)
 js/config.js        indirizzo Supabase e impostazioni
 js/rules.js         regole 5e: condizioni, abilità, tabelle PE, dadi
 js/store.js         modello dati, valori di default, conversione dal vecchio formato, salvataggio locale
-js/sync.js          sincronizzazione con Supabase (tempo reale + controllo periodico) e cassaforte del Master
-js/core.js          stato dell'interfaccia e permessi (chi può modificare cosa)
-js/map.js           mappa, griglia, nebbia, pedine
+js/sync.js          sincronizzazione con Supabase (tempo reale + controllo periodico), cassaforte del Master, codice del gruppo
+js/core.js          stato dell'interfaccia e permessi (chi può modificare cosa), condizioni, mappe
+js/srd.js           mostri, incantesimi, classi e razze del regolamento base
+js/map.js           mappe, griglia, nebbia, pedine, schede dei mostri
+js/diceanim.js      animazione dei dadi sul tavolo
 js/table.js         iniziativa, dadi, assistente, barra del personaggio
 js/sheet.js         scheda personaggio
+js/spells.js        incantesimi, slot e concentrazione
+js/wizard.js        creazione guidata del personaggio e passaggio di livello
 js/journal.js       diario
 js/books.js         PDF, ricerca, assistente
 js/dm.js            schermo del Master, esporta/importa/duplica/elimina
+js/messages.js      messaggi privati e dispense
 js/app.js           avvio, lobby, ingresso nelle avventure
+data/               dati del regolamento base (SRD 5.1), caricati solo quando servono
 api/gemini.js       funzione Vercel che parla con Gemini
 supabase/setup.sql  tabelle e funzioni del database
+tools/build-srd.py  rigenera i file in data/
+```
+
+Lo stile usa Tailwind già compilato in `css/`, così il sito non dipende dal CDN di Tailwind.
+Se aggiungi classi nuove in `index.html` o in `js/`, rigenera i due file:
+
+```
+npx tailwindcss@3.4.17 -i tailwind/base.css -o css/tailwind-base.css --minify
+npx tailwindcss@3.4.17 -i tailwind/utilities.css -o css/tailwind.css --minify
 ```
 
 Per provarlo sul computer basta aprire `index.html` nel browser (l'assistente IA lì non c'è, il resto sì).
 Le campagne salvate con la prima versione (file `.json`) si possono caricare con **Carica (.json)**.
+
+## Crediti
+
+Mostri, incantesimi, classi e razze vengono dal System Reference Document 5.1 di Wizards of the Coast LLC,
+distribuito con licenza [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/legalcode),
+con i nomi tradotti in italiano per questa app. I dati sono ricavati da [5e-database](https://github.com/soryy708/5e-database) (MIT).
+Dettagli in [`data/LICENZE.md`](data/LICENZE.md). Il Tavolo non è affiliato a Wizards of the Coast.
