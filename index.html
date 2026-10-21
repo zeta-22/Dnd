@@ -271,6 +271,21 @@
                 </label>
                 <button id="btnQuickResetMod" class="btn text-[11px] py-0.5">Azzera opzioni</button>
               </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <select id="inputDiceStyle" class="input-field text-xs py-0.5" aria-label="Tipo di dadi">
+                  <option value="3d">Dadi 3D</option>
+                  <option value="2d">Dadi semplici</option>
+                </select>
+                <label class="flex items-center gap-1.5 font-bold text-[var(--muted)] cursor-pointer">
+                  <input id="inputDiceSound" type="checkbox" class="w-4 h-4 accent-[var(--felt)]" />
+                  Suono
+                </label>
+                <label class="flex items-center gap-1.5 font-bold text-[var(--muted)] cursor-pointer" title="Il colore con cui gli altri vedono i tuoi dadi">
+                  <input id="inputDiceColor" type="color" value="#2e5b44" class="w-7 h-6 p-0 border border-[var(--line)] rounded cursor-pointer bg-transparent" />
+                  I tuoi dadi
+                </label>
+                <button id="btnPreviewDice" type="button" class="btn text-[11px] py-0.5">🎲 Prova</button>
+              </div>
             </div>
             <div id="lastRollDisplay" class="hidden last-roll"></div>
             <div class="flex flex-col gap-1.5 pt-1">
@@ -321,7 +336,11 @@
         <div class="lg:col-span-8 flex flex-col gap-3">
           <div class="card-surface p-4 flex flex-col gap-3.5">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2.5">
+                <div class="flex flex-col items-center gap-0.5">
+                  <button id="sheetPortrait" type="button" class="portrait" title="Tocca per scegliere l'immagine del personaggio" aria-label="Immagine del personaggio"><span id="sheetPortraitInitials"></span></button>
+                  <button id="btnRemovePortrait" type="button" class="hidden text-[10px] text-[var(--muted)] underline">togli</button>
+                </div>
                 <h3 class="font-serif-title font-bold text-xl" id="sheetCardMainTitle">Scheda Avventuriero</h3>
                 <span id="sheetCharTypeBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--brass-soft)] border border-[var(--brass)] text-[var(--ink)]">PG</span>
               </div>
@@ -702,6 +721,10 @@
           Nomi tradotti in italiano e dati riorganizzati per questa app; descrizioni nel testo inglese originale.
           Dati ricavati da <a class="underline" href="https://github.com/soryy708/5e-database" target="_blank" rel="noopener">5e-database</a> (licenza MIT).
           Il Tavolo non è affiliato a Wizards of the Coast.
+          Icone dei mostri di <a class="underline" href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a>
+          (Lorc, Delapouite, Carl Olsen, Caro Asercion, DarkZaitzev, Skoll, Sparker), licenza
+          <a class="underline" href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>.
+          Dadi 3D: <a class="underline" href="https://github.com/3d-dice/dice-box-threejs" target="_blank" rel="noopener">dice-box-threejs</a> (MIT), con three.js e cannon-es.
         </p>
       </div>
     </section>
@@ -873,6 +896,10 @@
                 <div>
                   <input id="dmEnemySearch" type="search" autocomplete="off" placeholder="🔎 Cerca nel regolamento: goblin, scheletro, drago…" class="input-field w-full" aria-label="Cerca un mostro del regolamento" />
                   <div id="dmEnemySearchResults" class="flex flex-col gap-1 mt-1 max-h-44 overflow-y-auto"></div>
+                  <details class="mt-1.5">
+                    <summary class="font-bold cursor-pointer text-[var(--brass)]">🐺 Mostri comuni delle prime avventure</summary>
+                    <div id="dmMonsterGallery" class="monster-gallery"></div>
+                  </details>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end">
                   <div class="col-span-2">
@@ -926,8 +953,8 @@
   </main>
 
   <!-- Modali e schermate secondarie -->
-  <div id="modalAddToken" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-    <div class="card-surface p-5 w-full max-w-md flex flex-col gap-3 shadow-2xl">
+  <div id="modalAddToken" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-surface p-5 w-full max-w-md flex flex-col gap-3 shadow-2xl my-auto">
       <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
         <h3 class="font-serif-title font-bold text-xl">Nuova Pedina</h3>
         <button id="btnCloseAddTokenModal" class="btn text-xs">✕</button>
@@ -938,6 +965,10 @@
           <input id="inputTokenMonsterSearch" type="search" autocomplete="off" placeholder="Es. goblin, orco, drago rosso…" class="input-field w-full" />
           <div id="tokenMonsterResults" class="flex flex-col gap-1 mt-1 max-h-44 overflow-y-auto"></div>
           <div id="tokenMonsterChosen" class="hidden mt-1 text-xs items-center justify-between gap-2 card-surface2 px-2 py-1"></div>
+          <details id="tokenMonsterGalleryWrap" class="mt-1.5">
+            <summary class="text-xs font-bold cursor-pointer text-[var(--brass)]">🐺 Mostri comuni delle prime avventure</summary>
+            <div id="tokenMonsterGallery" class="monster-gallery"></div>
+          </details>
         </div>
         <div class="col-span-2">
           <label class="block text-xs font-bold text-[var(--muted)] mb-1">Nome</label>
@@ -1222,6 +1253,34 @@
     </div>
   </div>
 
+  <input id="inputImageFile" type="file" accept="image/*" class="hidden" />
+  <div id="modalImageCrop" class="hidden fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-surface w-full max-w-sm p-4 flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto">
+      <div class="border-b border-[var(--line)] pb-2">
+        <h3 class="font-serif-title font-bold text-lg">🖼️ Ritaglia l'immagine</h3>
+        <span id="cropTargetLabel" class="text-[11px] text-[var(--muted)]"></span>
+      </div>
+      <div class="crop-frame mx-auto">
+        <canvas id="cropCanvas" width="260" height="260" aria-label="Trascina per spostare l'immagine"></canvas>
+      </div>
+      <label class="flex items-center gap-2 text-xs font-bold text-[var(--muted)]">🔍
+        <input id="inputCropZoom" type="range" min="1" max="4" step="0.01" value="1" class="flex-1 accent-[var(--felt)]" aria-label="Ingrandimento" />
+      </label>
+      <p class="text-[11px] text-[var(--muted)] -mt-1">Trascina per centrare. L'immagine viene rimpicciolita e pesa circa 10 KB.</p>
+      <div id="cropScopeRow" class="hidden flex-col gap-1 text-xs card-surface2 p-2">
+        <label class="flex items-center gap-2 cursor-pointer"><input id="cropScopeAll" type="radio" name="cropScope" value="all" class="accent-[var(--felt)]" checked /> <span id="cropScopeAllLabel">Tutti i mostri di questo tipo</span></label>
+        <label class="flex items-center gap-2 cursor-pointer"><input id="cropScopeOne" type="radio" name="cropScope" value="one" class="accent-[var(--felt)]" /> Solo questa pedina</label>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <button id="btnChangeCropImage" type="button" class="btn text-xs">📁 Altra immagine</button>
+        <div class="flex gap-2">
+          <button id="btnCancelCrop" type="button" class="btn text-xs">Annulla</button>
+          <button id="btnConfirmCrop" type="button" class="btn btn-felt text-xs font-bold">Usa immagine</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="modalVerifyDmPassword" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
     <div class="card-surface p-5 w-full max-w-md flex flex-col gap-3.5 border-2 border-[var(--brass)] shadow-2xl">
       <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
@@ -1239,8 +1298,9 @@
   </div>
 
   <div id="tokenQuickPopover" class="hidden fixed z-50 card-surface p-3.5 shadow-2xl flex flex-col gap-2.5 w-72 max-w-[94vw] max-h-[85vh] overflow-y-auto border-2 border-[var(--brass)]" role="dialog" aria-label="Dettagli pedina">
-    <div class="flex items-center justify-between border-b border-[var(--line)] pb-1.5">
-      <div class="min-w-0">
+    <div class="flex items-center justify-between gap-2 border-b border-[var(--line)] pb-1.5">
+      <span id="popoverAvatar" class="avatar avatar-lg hidden" aria-hidden="true"></span>
+      <div class="min-w-0 flex-1">
         <h4 id="popoverTokenName" class="font-serif-title font-bold text-base leading-tight truncate">Nome</h4>
         <span id="popoverTokenType" class="text-[10px] text-[var(--muted)]">Tipo</span>
       </div>
@@ -1270,6 +1330,10 @@
       </div>
     </div>
     <button id="btnPopoverOpenSheet" type="button" class="btn text-xs w-full justify-start hidden">🧝 Apri scheda</button>
+    <div id="popoverImageRow" class="hidden gap-1">
+      <button id="btnPopoverImage" type="button" class="btn text-xs flex-1 justify-start">🖼️ Immagine</button>
+      <button id="btnPopoverRemoveImage" type="button" class="btn text-xs hidden" title="Togli l'immagine">✕</button>
+    </div>
     <details id="popoverStatBlockWrap" class="hidden pt-1.5 border-t border-[var(--line)]">
       <summary class="text-xs font-bold cursor-pointer text-[var(--brass)]">📜 Scheda del mostro</summary>
       <div id="popoverStatBlock" class="mt-1.5"></div>
@@ -1291,6 +1355,7 @@
     </div>
   </div>
 
+  <div id="dice3d" aria-hidden="true"></div>
   <div id="diceOverlay" aria-hidden="true"></div>
 
   <div id="toastNotification" role="status" aria-live="polite" class="fixed bottom-16 right-4 left-4 sm:left-auto z-[70] hidden card-surface px-4 py-2.5 text-sm font-medium shadow-lg border-l-4 border-l-[var(--brass)]"></div>
@@ -1314,6 +1379,7 @@
   <script src="js/store.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/core.js"></script>
+  <script src="js/bestiary.js"></script>
   <script src="js/srd.js"></script>
   <script src="js/map.js"></script>
   <script src="js/diceanim.js"></script>
@@ -1325,6 +1391,7 @@
   <script src="js/books.js"></script>
   <script src="js/dm.js"></script>
   <script src="js/messages.js"></script>
+  <script src="js/images.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

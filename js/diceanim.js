@@ -1,5 +1,9 @@
 // Animazione dei dadi: rotolano attraverso tutto il tavolo, si fermano sul risultato e spariscono.
 // Parte per ogni tiro nuovo, sia tuo sia degli altri giocatori.
+//
+// • Dadi 3D (predefiniti): dice-box-threejs con fisica vera. Il risultato lo decide chi tira, gli
+//   altri schermi fanno rotolare i dadi in modo diverso ma li fanno fermare sugli stessi numeri.
+// • Dadi semplici: animazione in SVG, usata anche quando il 3D non è disponibile.
 
 const DICE_SHAPES = {
   4: { points: '50,6 95,88 5,88', textY: 66, size: 30 },
@@ -11,11 +15,51 @@ const DICE_SHAPES = {
   100: { points: '50,4 93,42 50,96 7,42', textY: 58, size: 24 }
 };
 
+const DICE3D_PATH = 'vendor/dice-box-threejs/';
+const DICE3D_SIDES = [4, 6, 8, 10, 12, 20, 100];
+const DICE3D_MAX = 15;
+// Colori predefiniti dei dadi dei giocatori (scelti in base al personaggio)
+const DICE_PALETTE = ['#2e5b44', '#1f4e8c', '#8c2f1f', '#6b3fa0', '#a8740f', '#0f766e', '#9d174d', '#3f4a5a'];
+const DM_DICE_COLOR = '#5b1a1a';
+const SECRET_DICE_COLOR = '#4b3a86';
+
 const diceQueue = [];
 let diceBusy = false;
+let dice3d = null;          // { box, sounds }
+let dice3dLoading = null;
+let dice3dFailed = false;
+let webglOk = null;
 
 function diceAnimationEnabled() {
   return Prefs.get('iltavolo_dice_anim', '1') === '1';
+}
+
+function diceStyle() { return Prefs.get('iltavolo_dice_style', '3d'); }
+function diceSoundEnabled() { return Prefs.get('iltavolo_dice_sound', '0') === '1'; }
+
+function defaultDiceColor(charId) {
+  let h = 0;
+  for (const ch of String(charId || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return DICE_PALETTE[h % DICE_PALETTE.length];
+}
+
+function validColor(c) { return /^#[0-9a-f]{6}$/i.test(c || ''); }
+
+// Colore dei dadi di chi tira su questo dispositivo
+function myDiceColor() {
+  if (isDM()) {
+    const c = Prefs.get('iltavolo_dm_dice_color');
+    return validColor(c) ? c : DM_DICE_COLOR;
+  }
+  const ch = myChar();
+  return validColor(ch?.diceColor) ? ch.diceColor : defaultDiceColor(ch?.id || DEVICE_ID);
+}
+
+function setMyDiceColor(color) {
+  if (!validColor(color)) return;
+  if (isDM()) { Prefs.set('iltavolo_dm_dice_color', color); return; }
+  const ch = myChar();
+  if (ch) { ch.diceColor = color; touchEnt(`char:${ch.id}`); }
 }
 
 function reducedMotion() {
@@ -61,7 +105,7 @@ function dieVariant(roll, sides, idx) {
 
 // Chiamata da renderRolls per ogni tiro nuovo
 function queueDiceAnimation(roll) {
-  if (!diceAnimationEnabled() || !roll || !Array.isArray(roll.dice) || !roll.dice.length) return;
+  if (!diceAnimationEnabled() || document.hidden || !roll || !Array.isArray(roll.dice) || !roll.dice.length) return;
   diceQueue.push(roll);
   // Se arrivano molti tiri insieme (es. iniziativa di tutto il gruppo) mostriamo solo gli ultimi
   while (diceQueue.length > 3) diceQueue.shift();
@@ -72,7 +116,157 @@ function playNextDice() {
   const roll = diceQueue.shift();
   if (!roll) { diceBusy = false; return; }
   diceBusy = true;
-  animateRollAcrossTable(roll).then(() => playNextDice());
+  const run = canUse3d(roll)
+    ? animateRoll3D(roll).catch(() => {
+      // Il 3D non parte (libreria non caricata, scheda grafica non adatta…): torniamo ai dadi semplici
+      dice3dFailed = true;
+      return animateRollAcrossTable(roll);
+    })
+    : animateRollAcrossTable(roll);
+  run.then(() => playNextDice());
+}
+
+// ---------------------------------------------------------------------------
+// Dadi 3D
+// ---------------------------------------------------------------------------
+
+function webglAvailable() {
+  if (webglOk === null) {
+    try {
+      const c = document.createElement('canvas');
+      webglOk = Boolean(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl')));
+    } catch (e) {
+      webglOk = false;
+    }
+  }
+  return webglOk;
+}
+
+function diceSidesOf(roll) {
+  return roll.diceSides && roll.diceSides.length === roll.dice.length ? roll.diceSides.map(s => Math.abs(s)) : roll.dice.map(() => 20);
+}
+
+function canUse3d(roll) {
+  return diceStyle() === '3d' && !dice3dFailed && !reducedMotion() && webglAvailable() && diceSidesOf(roll).every(s => DICE3D_SIDES.includes(s));
+}
+
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[data-src="${src}"]`);
+    if (existing) { existing.dataset.loaded ? resolve() : existing.addEventListener('load', resolve); return; }
+    const el = document.createElement('script');
+    el.src = src;
+    el.dataset.src = src;
+    el.onload = () => { el.dataset.loaded = '1'; resolve(); };
+    el.onerror = () => { el.remove(); reject(new Error('script')); };
+    document.head.appendChild(el);
+  });
+}
+
+// La libreria si scarica solo al primo tiro; la scatola si ricrea se cambia l'impostazione del suono
+async function getDiceBox() {
+  const sounds = diceSoundEnabled();
+  if (dice3d && dice3d.sounds === sounds) return dice3d.box;
+  if (!dice3dLoading) {
+    dice3dLoading = (async () => {
+      await loadScriptOnce(DICE3D_PATH + 'dice-box-threejs.umd.js');
+      const DiceBox = window['dice-box-threejs'];
+      if (typeof DiceBox !== 'function') throw new Error('dice-box');
+      const holder = $('dice3d');
+      holder.innerHTML = '';
+      const small = Math.min(window.innerWidth, window.innerHeight) < 600;
+      const box = new DiceBox('#dice3d', {
+        assetPath: DICE3D_PATH, sounds, volume: 60, shadows: true, theme_surface: 'green-felt',
+        theme_material: 'plastic', baseScale: small ? 90 : 115, strength: small ? 1 : 1.3
+      });
+      await box.initialize();
+      dice3d = { box, sounds };
+      return box;
+    })().finally(() => { dice3dLoading = null; });
+  }
+  return dice3dLoading;
+}
+
+function inkFor(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return lum > 0.6 ? '#111111' : '#ffffff';
+}
+
+function diceColorset(roll) {
+  const color = roll.secret ? SECRET_DICE_COLOR : validColor(roll.color) ? roll.color.toLowerCase() : '#2e5b44';
+  const ink = inkFor(color);
+  return { name: `tavolo-${color.slice(1)}`, foreground: ink, background: color, outline: ink === '#ffffff' ? '#000000' : color, texture: 'none', material: 'plastic' };
+}
+
+// "2d6+1d20@3,4,17": i dadi dello stesso tipo vanno raggruppati, nello stesso ordine dei valori.
+// Il d100 diventa un dado delle decine più un d10 delle unità.
+function dice3dNotation(roll) {
+  const groups = new Map();
+  const push = (sides, value) => { if (!groups.has(sides)) groups.set(sides, []); groups.get(sides).push(value); };
+  const sides = diceSidesOf(roll);
+  let count = 0;
+  roll.dice.forEach((v, i) => {
+    if (count >= DICE3D_MAX) return;
+    const value = Math.abs(v);
+    if (sides[i] === 100) {
+      push(100, Math.floor((value % 100) / 10) * 10 || 100);
+      push(10, value % 10 || 10);
+      count += 2;
+    } else {
+      push(sides[i], value);
+      count += 1;
+    }
+  });
+  const list = [...groups];
+  return `${list.map(([s, vals]) => `${vals.length}d${s}`).join('+')}@${list.flatMap(([, vals]) => vals).join(',')}`;
+}
+
+function waitMs(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function animateRoll3D(roll) {
+  const box = await getDiceBox();
+  await box.updateConfig({ theme_customColorset: diceColorset(roll) });
+  const holder = $('dice3d');
+  holder.classList.remove('dice3d-fade');
+  holder.classList.add('dice3d-on');
+  // Se la scheda va in secondo piano l'animazione si ferma: non aspettiamo all'infinito
+  await Promise.race([box.roll(dice3dNotation(roll)), waitMs(9000)]);
+  const badge = showRollBadge(roll, window.innerHeight * 0.78);
+  await waitMs(1800);
+  holder.classList.add('dice3d-fade');
+  await Promise.all([fadeOutBadge(badge), waitMs(450)]);
+  box.clearDice();
+  holder.classList.remove('dice3d-on', 'dice3d-fade');
+}
+
+// ---------------------------------------------------------------------------
+// Risultato e dadi semplici
+// ---------------------------------------------------------------------------
+
+function showRollBadge(roll, top) {
+  const overlay = $('diceOverlay');
+  const badge = document.createElement('div');
+  const nat20 = roll.crit && roll.nat === 20;
+  const nat1 = roll.fumble && roll.nat === 1;
+  badge.className = `dice-total-badge${nat20 ? ' is-crit' : nat1 ? ' is-fumble' : ''}`;
+  const outcome = roll.vsAc ? (roll.hit ? ' · colpisce!' : ' · manca') : nat20 ? ' · 20 naturale!' : nat1 ? ' · 1 naturale' : '';
+  badge.innerHTML = `<span class="dice-total-label">${roll.secret ? '🔒 ' : ''}${escapeHtml(roll.by)} · ${escapeHtml(roll.label)}${outcome}</span><span class="dice-total-value">${escapeHtml(String(roll.total))}</span>`;
+  badge.style.top = `${top}px`;
+  overlay.appendChild(badge);
+  badge.animate([{ transform: 'translate(-50%, 10px) scale(0.8)', opacity: 0 }, { transform: 'translate(-50%, 0) scale(1)', opacity: 1 }], { duration: 220, easing: 'ease-out', fill: 'forwards' });
+  return badge;
+}
+
+function fadeOutBadge(badge) {
+  return badge.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, fill: 'forwards' }).finished.catch(() => {}).then(() => badge.remove());
+}
+
+// Un tiro di prova solo su questo dispositivo, per vedere i propri dadi
+function previewDice() {
+  const ch = myChar();
+  const value = rollDie(20);
+  queueDiceAnimation({ id: uid('prova'), dice: [value], diceSides: [20], total: value, by: isDM() ? 'DM' : ch?.name || 'Tu', label: 'Prova', color: myDiceColor(), nat: value, crit: value === 20, fumble: value === 1 });
 }
 
 function animateRollAcrossTable(roll) {
@@ -129,17 +323,10 @@ function animateRollAcrossTable(roll) {
     }
 
     Promise.all(dice.map(d => d.anim.finished.catch(() => {}))).then(() => {
-      const badge = document.createElement('div');
-      badge.className = 'dice-total-badge';
-      const outcome = roll.vsAc ? (roll.hit ? ' · colpisce!' : ' · manca') : roll.crit && roll.nat === 20 ? ' · 20 naturale!' : roll.fumble && roll.nat === 1 ? ' · 1 naturale' : '';
-      badge.innerHTML = `<span class="dice-total-label">${roll.secret ? '🔒 ' : ''}${escapeHtml(roll.by)} · ${escapeHtml(roll.label)}${outcome}</span><span class="dice-total-value">${roll.total}</span>`;
-      badge.style.top = `${H * 0.42 + size * 0.75}px`;
-      overlay.appendChild(badge);
-      badge.animate([{ transform: 'translate(-50%, 10px) scale(0.8)', opacity: 0 }, { transform: 'translate(-50%, 0) scale(1)', opacity: 1 }], { duration: 220, easing: 'ease-out', fill: 'forwards' });
+      const badge = showRollBadge(roll, H * 0.42 + size * 0.75);
       setTimeout(() => {
-        const fades = [badge, ...dice.map(d => d.el)].map(el => el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, fill: 'forwards' }).finished.catch(() => {}));
+        const fades = [fadeOutBadge(badge), ...dice.map(d => d.el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, fill: 'forwards' }).finished.catch(() => {}))];
         Promise.all(fades).then(() => {
-          badge.remove();
           dice.forEach(d => d.el.remove());
           resolve();
         });

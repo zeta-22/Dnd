@@ -154,6 +154,51 @@ function spellcastingAbility(ch) {
 }
 
 // Campo di ricerca dei mostri con elenco di risultati cliccabili
+// Icone pronte dei mostri comuni (vedi bestiary.js), con lo sfondo colorato per famiglia
+const BESTIARY_COLORS = { Umanoidi: ['#a8743d', '#4a2f14'], 'Non morti': ['#6f6a8f', '#24212f'], Bestie: ['#5f8f45', '#22381a'], Mostri: ['#a23a3a', '#3d1212'] };
+const bestiaryIconCache = new Map();
+
+function commonMonsterIcon(srd) {
+  const i = Number(srd);
+  if (bestiaryIconCache.has(i)) return bestiaryIconCache.get(i);
+  const m = typeof COMMON_MONSTERS !== 'undefined' ? COMMON_MONSTERS.find(x => x.i === i) : null;
+  let url = null;
+  if (m) {
+    const [c1, c2] = BESTIARY_COLORS[m.g] || BESTIARY_COLORS.Mostri;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><radialGradient id="g" cx="35%" cy="30%" r="85%"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></radialGradient></defs><rect width="512" height="512" fill="url(#g)"/><path transform="translate(80 80) scale(0.6875)" fill="#f6eedb" d="${m.d}"/></svg>`;
+    url = `data:image/svg+xml,${encodeURIComponent(svg).replace(/'/g, '%27')}`;
+  }
+  bestiaryIconCache.set(i, url);
+  return url;
+}
+
+function renderMonsterGallery(containerId, onPick) {
+  const box = $(containerId);
+  if (!box || box.dataset.ready) return;
+  box.dataset.ready = '1';
+  const groups = [...new Set(COMMON_MONSTERS.map(m => m.g))];
+  box.innerHTML = groups.map(g => `
+    <div class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mt-1">${escapeHtml(g)}</div>
+    <div class="grid grid-cols-3 sm:grid-cols-4 gap-1.5">${COMMON_MONSTERS.filter(m => m.g === g).map(m => `
+      <button type="button" class="monster-tile" data-i="${m.i}" title="${escapeHtml(m.n)} · GS ${escapeHtml(m.cr)}">
+        <span class="avatar avatar-lg" style="background-image:url('${commonMonsterIcon(m.i)}')"></span>
+        <span class="truncate w-full">${escapeHtml(m.n)}</span>
+        <span class="text-[9px] font-normal text-[var(--muted)]">GS ${escapeHtml(m.cr)}</span>
+      </button>`).join('')}</div>`).join('');
+  box.addEventListener('click', async (e) => {
+    const b = e.target.closest('.monster-tile');
+    if (!b) return;
+    try {
+      await loadSrd('monsters');
+    } catch (err) {
+      showToast(srdUnavailableMessage(), 4000);
+      return;
+    }
+    const m = srdMonster(Number(b.dataset.i));
+    if (m) onPick(m);
+  });
+}
+
 function bindMonsterSearch(inputId, resultsId, onPick) {
   const input = $(inputId);
   const box = $(resultsId);

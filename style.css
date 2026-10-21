@@ -150,6 +150,25 @@ h1, h2, h3, h4, .font-serif-title { font-family: 'Alegreya', serif; }
 .map-token.token-enemy { border-radius: 7px; background: linear-gradient(145deg, #C04332, #7D261A); border: 2.5px solid #F7C6BE; }
 .map-token.token-npc { border-radius: 9999px; background: radial-gradient(circle at 30% 30%, #4A6FA5, #24395E); border: 2.5px solid #D6E4F7; }
 .map-token.token-hidden-dm { opacity: 0.55; border-style: dashed; }
+/* Pedina con immagine: le iniziali spariscono, il bordo resta del colore del tipo */
+.map-token.has-image { background-size: cover; background-position: center; background-color: #1b241f; }
+.map-token.has-image .token-initials { display: none; }
+.map-token.token-enemy.has-image { border-radius: 9999px; border-color: #e0574a; }
+.avatar { display: inline-block; flex-shrink: 0; width: 22px; height: 22px; border-radius: 9999px; background-size: cover; background-position: center; border: 1.5px solid var(--line); vertical-align: middle; }
+.avatar.avatar-lg { width: 40px; height: 40px; border-width: 2px; border-color: var(--brass); }
+.monster-gallery { max-height: 15rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.25rem; padding: 0.25rem 0.1rem; }
+.monster-tile { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; padding: 0.35rem 0.2rem; min-width: 0;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface2); font-size: 11px; font-weight: 700; line-height: 1.15; text-align: center; cursor: pointer; }
+.monster-tile:hover, .monster-tile:focus-visible { border-color: var(--brass); }
+.portrait { width: 56px; height: 56px; border-radius: 9999px; border: 2px dashed var(--brass); background: var(--surface2) center / cover no-repeat;
+  display: flex; align-items: center; justify-content: center; font-family: 'Alegreya', serif; font-weight: 700; font-size: 1.2rem; color: var(--muted); cursor: pointer; }
+.portrait.has-image { border-style: solid; }
+.portrait.has-image #sheetPortraitInitials { display: none; }
+.portrait:disabled { cursor: default; }
+.crop-frame { position: relative; width: min(260px, 70vw); aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: #141c17; touch-action: none; }
+.crop-frame canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+/* Guida circolare: quello che sta fuori dal cerchio non si vede sulla pedina */
+.crop-frame::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 9999px; box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.45); border: 2px solid rgba(243, 231, 194, 0.85); }
 .map-token.token-down { filter: grayscale(0.85) brightness(0.8); }
 .map-token.token-mine { outline: 2px dashed rgba(243, 231, 194, 0.7); outline-offset: 3px; }
 .map-token.dragging { z-index: 60; cursor: grabbing; box-shadow: 0 10px 24px rgba(0,0,0,0.6); }
@@ -246,6 +265,11 @@ textarea.input-field { resize: vertical; }
 
 /* Dadi che rotolano sul tavolo */
 #diceOverlay { position: fixed; inset: 0; pointer-events: none; z-index: 65; overflow: hidden; }
+/* La tela dei dadi 3D resta sempre al suo posto (serve la misura) ma è invisibile quando non si tira */
+#dice3d { position: fixed; inset: 0; pointer-events: none; z-index: 64; opacity: 0; visibility: hidden; }
+#dice3d.dice3d-on { opacity: 1; visibility: visible; transition: opacity 0.15s ease; }
+#dice3d.dice3d-on.dice3d-fade { opacity: 0; transition: opacity 0.42s ease; }
+#dice3d canvas { width: 100% !important; height: 100% !important; display: block; }
 .die-flying { position: absolute; left: 0; top: 0; will-change: transform; filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.45)); }
 .die-flying svg { width: 100%; height: 100%; display: block; }
 .die-flying.die-landed { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 10px rgba(243, 231, 194, 0.55)); }
@@ -256,3 +280,7 @@ textarea.input-field { resize: vertical; }
 }
 .dice-total-label { font-size: 0.8rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dice-total-value { font-family: 'Alegreya', serif; font-weight: 700; font-size: 1.9rem; line-height: 1; color: var(--brass); }
+.dice-total-badge.is-crit { border-color: #e2b21b; box-shadow: 0 0 0 3px rgba(226, 178, 27, 0.35), 0 0 28px 6px rgba(255, 210, 74, 0.75); }
+.dice-total-badge.is-crit .dice-total-value { color: #c9930a; text-shadow: 0 0 12px rgba(255, 210, 74, 0.9); }
+.dice-total-badge.is-fumble { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(163, 57, 42, 0.3), 0 0 26px 6px rgba(200, 50, 30, 0.6); }
+.dice-total-badge.is-fumble .dice-total-value { color: var(--danger); }
