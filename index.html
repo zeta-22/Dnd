@@ -535,6 +535,20 @@
             <div class="flex flex-wrap gap-1.5" id="sheetConditionsButtons"></div>
             <div id="sheetActiveConditionsInfo" class="hidden flex-col gap-1.5 p-3 rounded-lg bg-[var(--surface2)] border border-[var(--danger)] text-xs"></div>
           </div>
+
+          <div id="sheetStoryCard" class="card-surface p-4 flex flex-col gap-3 text-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+              <div>
+                <h3 class="font-serif-title font-bold text-lg">📖 Storia del personaggio</h3>
+                <span id="storyVisibilityHint" class="text-[11px] text-[var(--muted)]"></span>
+              </div>
+              <select id="storyVisibility" class="input-field text-xs" aria-label="Chi può leggere la storia">
+                <option value="all">👥 Visibile a tutti</option>
+                <option value="private">🔒 Solo io e il Master</option>
+              </select>
+            </div>
+            <div id="sheetStoryFields" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+          </div>
         </div>
 
         <div class="lg:col-span-4 flex flex-col gap-3">
@@ -597,6 +611,23 @@
       <div id="handoutSection" class="hidden card-surface p-3.5 flex-col gap-2">
         <h3 class="font-serif-title font-bold text-lg">📜 Dispense del Master</h3>
         <div id="handoutList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+      </div>
+
+      <div id="personalNotesSection" class="hidden card-surface p-3.5 flex-col gap-2.5 border-2 border-dashed border-[var(--brass)]">
+        <div>
+          <h3 class="font-serif-title font-bold text-lg">📓 Le mie note</h3>
+          <span class="text-[11px] text-[var(--muted)]">Private e cifrate: le leggi solo tu, nemmeno il Master.</span>
+        </div>
+        <div id="personalNotesLocked" class="hidden flex-wrap items-center justify-between gap-2 text-xs">
+          <span id="personalNotesLockedText"></span>
+          <button id="btnUnlockNotes" type="button" class="btn btn-felt text-xs font-bold">🔓 Apri le mie note</button>
+        </div>
+        <div id="personalNotesForm" class="hidden flex-col gap-2 text-xs">
+          <input id="personalNoteTitle" type="text" maxlength="160" class="input-field w-full font-bold" placeholder="Titolo (es. Sospetti sul barone)" />
+          <textarea id="personalNoteText" rows="3" maxlength="20000" class="input-field w-full" placeholder="Scrivi quello che vuoi ricordare solo per te…"></textarea>
+          <div class="flex justify-end"><button id="btnSavePersonalNote" type="button" class="btn btn-felt text-xs font-bold">💾 Salva nota</button></div>
+        </div>
+        <div id="personalNotesList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
       </div>
       <div class="card-surface p-3.5 flex flex-wrap items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-1.5" id="journalFilterButtons">
@@ -776,6 +807,18 @@
               📂 Carica (.json)
               <input type="file" accept=".json,application/json" class="hidden import-json-input" />
             </label>
+          </div>
+        </div>
+
+        <div id="dmCampaignPwdCard" class="card-surface p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="min-w-0">
+            <strong class="font-serif-title font-bold text-sm">🔒 Password dei giocatori</strong>
+            <span id="campaignPwdStatus" class="block text-[11px] text-[var(--muted)]"></span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <input id="inputCampaignPwd" type="text" autocomplete="off" placeholder="Nuova password dei giocatori…" class="input-field w-48 text-xs" />
+            <button id="btnSetCampaignPwd" type="button" class="btn btn-brass text-xs">Imposta</button>
+            <button id="btnRemoveCampaignPwd" type="button" class="btn text-xs text-[var(--danger)] hidden">Togli</button>
           </div>
         </div>
 
@@ -1042,6 +1085,7 @@
             <span id="lobbyCampaignsCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[var(--surface2)] border border-[var(--line)]">0</span>
           </div>
           <div class="flex flex-wrap items-center gap-2">
+            <button id="btnLobbyShowHidden" type="button" class="hidden btn text-xs py-1.5 px-3"></button>
             <button id="btnLobbyNewAdventure" type="button" class="btn btn-felt text-xs font-bold py-1.5 px-3.5">👑 + Crea Nuova Avventura (Master)</button>
           </div>
         </div>
@@ -1059,8 +1103,12 @@
               <label class="block font-bold text-[var(--muted)] mb-1">Password Master</label>
               <input id="inputLobbyNewAdvPassword" type="password" autocomplete="new-password" placeholder="Password..." class="input-field w-full font-bold text-base" />
             </div>
+            <div class="sm:col-span-2">
+              <label class="block font-bold text-[var(--muted)] mb-1">🔒 Password dei giocatori (facoltativa)</label>
+              <input id="inputLobbyNewAdvPlayerPwd" type="text" autocomplete="off" placeholder="Lasciala vuota se sul sito gioca solo il vostro gruppo" class="input-field w-full font-bold" />
+            </div>
           </div>
-          <p class="text-[11px] text-[var(--muted)]">La password serve per entrare come Master e protegge le tue note segrete. Puoi lasciarla vuota, ma allora chiunque potrà fare il Master.</p>
+          <p class="text-[11px] text-[var(--muted)]">La password del Master serve per entrare come Master e protegge le tue note segrete: puoi lasciarla vuota, ma allora chiunque potrà fare il Master. La password dei giocatori tiene fuori dall'avventura chi non è del tuo gruppo: gli altri vedranno solo il titolo con il lucchetto.</p>
           <div id="lobbyCreateError" class="hidden text-xs font-bold text-[var(--danger)]"></div>
           <div class="flex justify-end pt-1">
             <button id="btnConfirmLobbyCreateAdventure" type="button" class="btn btn-felt text-xs font-bold py-2 px-4">Crea ed Entra come Master</button>
@@ -1253,6 +1301,58 @@
     </div>
   </div>
 
+  <div id="modalLobbyManage" class="hidden fixed inset-0 z-[61] bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-surface w-full max-w-md p-5 flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto text-xs">
+      <div class="flex items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+        <h3 id="lobbyManageTitle" class="font-serif-title font-bold text-lg truncate">🛠️ Gestisci l'avventura</h3>
+        <button id="btnCloseLobbyManage" type="button" class="btn text-xs">✕</button>
+      </div>
+      <label id="lobbyManagePwdRow" class="hidden flex-col gap-1 font-bold text-[var(--muted)]">Password del Master
+        <input id="inputLobbyManagePwd" type="password" autocomplete="current-password" class="input-field w-full" placeholder="Serve per eliminare" />
+      </label>
+      <div class="flex flex-col gap-1.5">
+        <div class="font-bold">👥 Personaggi</div>
+        <span class="text-[11px] text-[var(--muted)]">Togli quelli che non giocano più: spariscono anche le loro pedine e i loro messaggi.</span>
+        <div id="lobbyManageChars" class="flex flex-col gap-1"></div>
+      </div>
+      <div class="flex flex-col gap-1.5 pt-2 border-t border-[var(--line)]">
+        <button id="btnLobbyDeleteCampaign" type="button" class="btn btn-danger text-xs font-bold self-start">🗑️ Elimina l'avventura per tutti</button>
+        <span class="text-[11px] text-[var(--muted)]">Cancella mappa, schede, diario e segreti del Master. Non si può annullare.</span>
+      </div>
+      <div id="lobbyManageError" class="text-xs font-bold text-[var(--danger)] min-h-[1rem]"></div>
+    </div>
+  </div>
+
+  <div id="modalCampaignPassword" class="hidden fixed inset-0 z-[61] bg-black/70 flex items-center justify-center p-4">
+    <form id="campaignPasswordForm" class="card-surface w-full max-w-sm p-5 flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl">
+      <h3 id="campaignPasswordTitle" class="font-serif-title font-bold text-lg">🔒 Avventura protetta</h3>
+      <p class="text-xs text-[var(--muted)]">Questa avventura è riservata al suo gruppo. Chiedi la password al Master (funziona anche la password del Master). Su questo dispositivo te la chiederà una volta sola.</p>
+      <input id="inputCampaignPassword" type="password" autocomplete="off" class="input-field w-full text-center font-bold text-base" placeholder="Password dell'avventura" aria-label="Password dell'avventura" />
+      <div id="campaignPasswordError" class="text-xs font-bold text-[var(--danger)] min-h-[1rem]"></div>
+      <div class="flex justify-end gap-2">
+        <button id="btnCancelCampaignPassword" type="button" class="btn text-xs">Annulla</button>
+        <button id="btnConfirmCampaignPassword" type="submit" class="btn btn-felt text-xs font-bold">🔓 Entra</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="modalPin" class="hidden fixed inset-0 z-[62] bg-black/70 flex items-center justify-center p-4">
+    <div class="card-surface w-full max-w-sm p-5 flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl">
+      <h3 id="pinModalTitle" class="font-serif-title font-bold text-lg">🔐 PIN personale</h3>
+      <p id="pinModalText" class="text-xs text-[var(--muted)]"></p>
+      <input id="inputPin" type="password" autocomplete="off" class="input-field w-full text-center font-bold text-lg tracking-widest" placeholder="PIN" aria-label="PIN" />
+      <div id="pinRepeatRow"><input id="inputPinRepeat" type="password" autocomplete="off" class="input-field w-full text-center font-bold text-lg tracking-widest" placeholder="Ripeti il PIN" aria-label="Ripeti il PIN" /></div>
+      <div id="pinError" class="text-xs font-bold text-[var(--danger)] min-h-[1rem]"></div>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <button id="btnPinForgot" type="button" class="text-[11px] underline text-[var(--muted)]">PIN dimenticato?</button>
+        <div class="flex gap-2 ml-auto">
+          <button id="btnPinCancel" type="button" class="btn text-xs">Annulla</button>
+          <button id="btnPinConfirm" type="button" class="btn btn-felt text-xs font-bold">Conferma</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <input id="inputImageFile" type="file" accept="image/*" class="hidden" />
   <div id="modalImageCrop" class="hidden fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
     <div class="card-surface w-full max-w-sm p-4 flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto">
@@ -1392,6 +1492,7 @@
   <script src="js/dm.js"></script>
   <script src="js/messages.js"></script>
   <script src="js/images.js"></script>
+  <script src="js/private.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

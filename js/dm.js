@@ -23,6 +23,7 @@ async function unlockDm(campId, password) {
   Prefs.set(`iltavolo_role_${campId}`, 'DM');
   Prefs.set(`iltavolo_dmpwd_${campId}`, App.dmPassword);
   startInboxPolling();
+  ensureDmKeys();
   return res;
 }
 
@@ -52,6 +53,38 @@ async function saveVaultNow() {
   if (!res.ok && res.reason === 'offline') scheduleVaultSave();
 }
 
+function renderCampaignPwdCard() {
+  const c = camp();
+  const synced = Boolean(c?.synced) && Sync.isCloud();
+  const locked = Boolean(getMeta().locked);
+  setText('campaignPwdStatus', !c?.synced
+    ? '📱 Si può impostare quando l\'avventura è nel cloud.'
+    : locked ? '🔒 Attiva: chi non la conosce vede solo il titolo con il lucchetto.' : '🔓 Nessuna: chiunque usi il sito può entrare in questa avventura.');
+  $('inputCampaignPwd').disabled = !synced;
+  $('btnSetCampaignPwd').disabled = !synced;
+  setText('btnSetCampaignPwd', locked ? 'Cambia' : 'Imposta');
+  showEl('btnRemoveCampaignPwd', locked && synced, '');
+}
+
+async function changeCampaignPassword(remove) {
+  if (!App.dmUnlocked || !App.activeId) return;
+  const value = remove ? '' : $('inputCampaignPwd').value.trim();
+  if (!remove && !value) { showToast('Scrivi la nuova password dei giocatori'); return; }
+  const locked = Boolean(getMeta().locked);
+  const question = remove
+    ? 'Togliere la password? Chiunque usi il sito potrà entrare in questa avventura.'
+    : locked ? 'Cambiare la password? Chi era già entrato dovrà inserire quella nuova.' : null;
+  if (question && !window.confirm(question)) return;
+  const res = await Sync.setCampaignPassword(App.activeId, App.dmPassword, value);
+  if (!res.ok) { showToast(campaignPwdMessage(res.reason), 6000); return; }
+  // Lo segniamo anche qui: una nostra modifica alle informazioni dell'avventura non deve cancellarlo
+  getMeta().locked = Boolean(value);
+  touchEnt('meta');
+  $('inputCampaignPwd').value = '';
+  showToast(remove ? '🔓 Password dei giocatori tolta' : '🔒 Password dei giocatori impostata: dalla al tuo gruppo', 4000);
+  scheduleRender();
+}
+
 function vaultReasonMessage(reason) {
   if (reason === 'wrong_password') return 'Password errata.';
   if (reason === 'offline') return 'Cloud non raggiungibile: riprova tra poco.';
@@ -78,6 +111,7 @@ function renderDmView() {
     return;
   }
   if (document.activeElement !== $('dmHandoutTo')) populateHandoutTargets();
+  renderCampaignPwdCard();
   setText('dmPasswordStatusBadge', meta.hasPassword ? '🔒 Protetta da password' : '🔓 Nessuna password: chiunque può fare il Master');
   setText('btnSaveDmPassword', meta.hasPassword ? '🔑 Cambia password' : '🔑 Imposta password');
   $('btnLockDmNow').classList.toggle('hidden', !meta.hasPassword);
@@ -449,6 +483,8 @@ function initDmEvents() {
     $('dmNewEnemyQty').focus();
   };
   bindMonsterSearch('dmEnemySearch', 'dmEnemySearchResults', pickEnemy);
+  $('btnSetCampaignPwd').addEventListener('click', () => changeCampaignPassword(false));
+  $('btnRemoveCampaignPwd').addEventListener('click', () => changeCampaignPassword(true));
   renderMonsterGallery('dmMonsterGallery', pickEnemy);
   $('btnAddPreparedEnemy').addEventListener('click', () => {
     if (!App.vault) return;

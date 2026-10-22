@@ -30,6 +30,8 @@ const Sync = {
   onRemoteChange: null,      // (campId, keys) => void
   onStatusChange: null,      // () => void
   onCampaignGone: null,      // (campId) => void
+  onCampaignLocked: null,    // (campId) => void: l'avventura ha una password che non abbiamo (più)
+  lastLocked: null,
 
   // -------------------------------------------------------------------------
   // Avvio e stato
@@ -114,23 +116,69 @@ const Sync = {
     return false;
   },
 
+  // Accesso anonimo di Supabase: serve per ricordare chi ha già inserito un codice o una password
+  async ensureSession() {
+    const { data } = await this.client.auth.getSession();
+    if (data?.session) return { ok: true };
+    const { error } = await this.client.auth.signInAnonymously();
+    if (!error) return { ok: true };
+    this.lastError = describeSupabaseError(error);
+    return { ok: false, reason: isNetworkError(error) ? 'offline' : 'anon_disabled' };
+  },
+
   async joinGroup(code) {
     if (!this.client) return { ok: false, reason: 'offline' };
     try {
-      const { data } = await this.client.auth.getSession();
-      if (!data?.session) {
-        const { error } = await this.client.auth.signInAnonymously();
-        if (error) {
-          this.lastError = describeSupabaseError(error);
-          return { ok: false, reason: isNetworkError(error) ? 'offline' : 'anon_disabled' };
-        }
-      }
+      const session = await this.ensureSession();
+      if (!session.ok) return session;
       const res = await this.rpc('tavolo_join', { p_code: code });
       if (res.ok) await this.connect();
       return res;
     } catch (err) {
       this.lastError = describeSupabaseError(err);
       return { ok: false, reason: isNetworkError(err) ? 'offline' : 'error' };
+    }
+  },
+
+  // Stato di un'avventura che non riusciamo a leggere → 'ok' | 'gone' | 'locked' | 'unknown'
+  async campaignAccess(campId) {
+    try {
+      const st = await this.rpc('tavolo_campaign_state', { p_campaign: campId });
+      if (!st.member) { this.setMode('locked'); return 'unknown'; }
+      if (st.locked) return 'locked';
+      return st.exists ? 'ok' : 'gone';
+    } catch (err) {
+      // Database configurato con una versione precedente di setup.sql
+      if (err?.code === 'PGRST202' || /tavolo_campaign_state/.test(String(err?.message || ''))) return (await this.stillMember()) ? 'gone' : 'unknown';
+      return 'unknown';
+    }
+  },
+
+  async joinCampaign(campId, password) {
+    if (!this.isCloud()) return { ok: false, reason: 'offline' };
+    try {
+      const session = await this.ensureSession();
+      if (!session.ok) return session;
+      return await this.rpc('tavolo_join_campaign', { p_campaign: campId, p_password: password || '' });
+    } catch (err) {
+      this.lastError = describeSupabaseError(err);
+      return { ok: false, reason: isNetworkError(err) ? 'offline' : 'error' };
+    }
+  },
+
+  async setCampaignPassword(campId, dmPassword, newPassword) {
+    if (!this.usesCloudVault(campId)) return { ok: false, reason: 'local' };
+    try {
+      if (newPassword) {
+        const session = await this.ensureSession();
+        if (!session.ok) return session;
+      }
+      const res = await this.rpc('tavolo_set_campaign_password', { p_campaign: campId, p_dm_password: dmPassword || '', p_new_password: newPassword || '' });
+      if (res.ok) await this.fetchKeys(campId, ['meta']);
+      return res;
+    } catch (err) {
+      this.lastError = describeSupabaseError(err);
+      return { ok: false, reason: /tavolo_set_campaign_password/.test(String(err?.message || '')) ? 'old_db' : 'offline' };
     }
   },
 
@@ -301,8 +349,8 @@ const Sync = {
           this.setMode('offline');
           this.scheduleReconnect();
         } else if (err?.code === '42501') {
-          // Scrittura rifiutata dal database: forse il codice del gruppo è cambiato
-          await this.stillMember();
+          // Scrittura rifiutata dal database: forse è cambiato il codice del gruppo o la password dell'avventura
+          if (await this.campaignAccess(campId) === 'locked' && this.onCampaignLocked) this.onCampaignLocked(campId);
         }
       }
       this.scheduleLocalSave(campId);
@@ -338,13 +386,23 @@ const Sync = {
           const local = Campaigns[r.campaign_id];
           if (local) local.synced = true;
         });
+        // Avventure con la password dei giocatori: solo il titolo, con il lucchetto
+        try {
+          const locked = await this.rpc('tavolo_locked_list', {});
+          (Array.isArray(locked) ? locked : []).forEach(r => {
+            if (seen.has(r.id)) return;
+            seen.add(r.id);
+            list.push({ id: r.id, meta: normalizeMeta({ title: r.title, createdAt: r.createdAt, locked: true }), pcs: [], source: 'locked' });
+          });
+        } catch (e) {
+          // Database senza la password delle avventure: nessun lucchetto
+        }
         // Campagne che conoscevamo dal cloud ma che sono state eliminate
         const gone = Object.values(Campaigns).filter(camp => camp.synced && !seen.has(camp.id) && !this.isPending(camp.id, 'meta'));
-        if (gone.length && await this.stillMember()) {
-          for (const camp of gone) {
-            if (camp.id === this.activeId && this.onCampaignGone) this.onCampaignGone(camp.id);
-            else await this.forgetCampaign(camp.id);
-          }
+        for (const camp of gone) {
+          if (await this.campaignAccess(camp.id) !== 'gone') continue;
+          if (camp.id === this.activeId && this.onCampaignGone) this.onCampaignGone(camp.id);
+          else await this.forgetCampaign(camp.id);
         }
       } catch (err) {
         this.lastError = describeSupabaseError(err);
@@ -384,10 +442,18 @@ const Sync = {
             if (!remoteKeys.has(k) && !this.isPending(campId, k)) { delete camp.ents[k]; delete camp.rev[k]; }
           });
           this.scheduleLocalSave(campId);
-        } else if (camp && camp.synced && await this.stillMember()) {
-          await this.forgetCampaign(campId);
-          this.activeId = null;
-          return null;
+        } else {
+          const access = await this.campaignAccess(campId);
+          if (access === 'locked') {
+            this.lastLocked = campId;
+            this.activeId = null;
+            return null;
+          }
+          if (access === 'gone' && camp?.synced) {
+            await this.forgetCampaign(campId);
+            this.activeId = null;
+            return null;
+          }
         }
       } catch (err) {
         this.lastError = describeSupabaseError(err);
@@ -475,7 +541,10 @@ const Sync = {
       if (error) throw error;
       if (this.activeId !== campId) return;
       if (!data.length) {
-        if (await this.stillMember() && this.activeId === campId && this.onCampaignGone) this.onCampaignGone(campId);
+        const access = await this.campaignAccess(campId);
+        if (this.activeId !== campId) return;
+        if (access === 'gone' && this.onCampaignGone) this.onCampaignGone(campId);
+        if (access === 'locked' && this.onCampaignLocked) this.onCampaignLocked(campId);
         return;
       }
       const remote = new Map(data.map(r => [r.key, Number(r.rev)]));
@@ -685,6 +754,37 @@ const Sync = {
     } catch (err) {
       return { ok: false, reason: 'offline' };
     }
+  },
+
+  // Toglie un personaggio da un'avventura anche senza aprirla (dalla Home), con pedine, iniziativa e messaggi
+  async deleteCharacterEverywhere(campId, charId) {
+    const camp = Campaigns[campId];
+    const cloud = this.isCloud() && (!camp || camp.synced);
+    let rows = [];
+    if (cloud) {
+      const { data, error } = await this.client.from(ENTITY_TABLE)
+        .select('key, charId:data->>charId, to:data->>to').eq('campaign_id', campId).limit(5000);
+      if (error) return { ok: false, reason: 'offline' };
+      rows = data || [];
+    } else if (camp) {
+      rows = Object.keys(camp.ents).map(k => ({ key: k, charId: camp.ents[k]?.charId, to: camp.ents[k]?.to }));
+    } else {
+      return { ok: false, reason: camp ? 'offline' : 'no_vault' };
+    }
+    const keys = rows.filter(r => r.key === `char:${charId}`
+      || (/^(token|init|note):/.test(r.key) && r.charId === charId)
+      || (/^(msg|handout):/.test(r.key) && r.to === charId)).map(r => r.key);
+    if (cloud) {
+      for (let i = 0; i < keys.length; i += 40) {
+        const { error } = await this.client.from(ENTITY_TABLE).delete().eq('campaign_id', campId).in('key', keys.slice(i, i + 40));
+        if (error) return { ok: false, reason: 'offline' };
+      }
+    }
+    if (camp) {
+      keys.forEach(k => { delete camp.ents[k]; delete camp.rev[k]; });
+      this.scheduleLocalSave(campId);
+    }
+    return { ok: true, count: keys.length };
   },
 
   async deleteCampaign(campId, password) {

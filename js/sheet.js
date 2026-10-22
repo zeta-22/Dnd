@@ -181,6 +181,7 @@ function renderSheet() {
   portrait.title = editable ? 'Tocca per scegliere l\'immagine del personaggio' : '';
   setText('sheetPortraitInitials', src ? '' : editable ? '📷' : initialsOf(ch.name));
   showEl('btnRemovePortrait', editable && Boolean(src), '');
+  renderStoryCard(ch);
   setText('sheetCharTypeBadge', ch.isNpc ? 'PNG' : 'PG');
   Object.entries(SHEET_FIELDS).forEach(([id, def]) => setVal($(id), ch[def.field]));
   setText('sheetHitDiceRemainingBadge', `${ch.hitDiceRemaining}/${ch.level}`);
