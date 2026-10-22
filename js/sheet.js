@@ -56,6 +56,7 @@ function parseAttacks(text) {
 
 function adjustCharHp(ch, delta) {
   if (!ch || !delta) return;
+  if (isCustomChar(ch)) { adjustCustomHp(ch, delta); return; }
   if (delta < 0) {
     let dmg = -delta;
     if (ch.tempHp > 0) {
@@ -238,7 +239,8 @@ function renderSheet() {
   // Sola lettura per le schede degli altri
   $('sheetBody').querySelectorAll('input, textarea, select, button').forEach(el => { el.disabled = !editable; });
   $('btnSwitchToCompleteFromGuide').disabled = false;
-  $('btnLevelUp').classList.toggle('hidden', !editable || ch.level >= 20);
+  $('btnLevelUp').classList.toggle('hidden', !editable || ch.level >= 20 || isCustomChar(ch));
+  renderCustomSheet(ch, editable);
   $('btnSheetRollInit').disabled = !editable;
   ['btnShortRest', 'btnLongRest'].forEach(id => { $(id).disabled = !editable; });
 }
@@ -516,7 +518,10 @@ function initSheetEvents() {
   $('btnNewPcSheet').addEventListener('click', () => {
     if (!App.activeId) return;
     const dm = isDM();
-    const ch = createCharacter({ name: 'Nuovo eroe', race: 'Umano', className: 'Guerriero', level: 1, maxHp: 10, ac: 12 }, { own: !dm });
+    const type = $('newSheetType').value;
+    const ch = type && type !== '5e' && ent(`sheettpl:${type}`)
+      ? createCustomCharacter('Nuovo eroe', type, { own: !dm })
+      : createCharacter({ name: 'Nuovo eroe', race: 'Umano', className: 'Guerriero', level: 1, maxHp: 10, ac: 12 }, { own: !dm });
     if (!dm && !App.myCharId) {
       App.myCharId = ch.id;
       Prefs.set(`iltavolo_mychar_${App.activeId}`, ch.id);
@@ -527,7 +532,10 @@ function initSheetEvents() {
   });
   $('btnNewNpcSheet').addEventListener('click', () => {
     if (!isDM()) return;
-    const ch = createCharacter({ name: 'Nuovo PNG', race: 'Umano', className: 'Popolano', level: 1, maxHp: 8, ac: 10 }, { isNpc: true, own: false });
+    const type = $('newSheetType').value;
+    const ch = type && type !== '5e' && ent(`sheettpl:${type}`)
+      ? createCustomCharacter('Nuovo PNG', type, { isNpc: true, own: false })
+      : createCharacter({ name: 'Nuovo PNG', race: 'Umano', className: 'Popolano', level: 1, maxHp: 8, ac: 10 }, { isNpc: true, own: false });
     App.sheetCharId = ch.id;
     scheduleRender();
     focusSoon('sheetInputName', true);

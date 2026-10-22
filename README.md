@@ -23,8 +23,13 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Creazione guidata del personaggio** (razza, classe, caratteristiche con serie standard, acquisto a punti o 4d6, abilità)
   e **passaggio di livello** con PF, aumenti di caratteristica e nuovi slot.
 - **Messaggi privati** tra Master e giocatori e **dispense** (testo e immagini) per tutti o per un solo giocatore.
-- **Diario condiviso** (missioni, PNG, bottino, domande per il DM con risposta) e **note personali** che legge solo
+- **Diario condiviso** (missioni, PNG, luoghi, bottino, domande per il DM con risposta) e **note personali** che legge solo
   chi le scrive (nemmeno il Master), protette da un PIN personale.
+- **Collegamenti nel Diario**: i nomi di personaggi, PNG, luoghi, missioni, bottino e mappe diventano link da soli;
+  scrivendo “@” si sceglie un nome dall'elenco (o si crea una voce nuova). Ogni voce mostra dove viene citata.
+- **Schede personalizzate** per giocare con altre regole (Daggerheart, D&D 2024, homebrew…): il Master prepara un
+  modello con valori, risorse, testi e tiri; i giocatori lo scelgono quando creano il personaggio e possono aggiungere
+  campi loro. Senza modelli resta solo la scheda D&D 5e, identica a prima.
 - **Storia del personaggio** (storia, aspetto, tratti, ideali, legami, difetti), visibile a tutti oppure solo al giocatore e al Master.
 - **Password delle avventure**: sullo stesso sito possono giocare gruppi diversi; le avventure degli altri si vedono
   solo come titolo con il lucchetto.
@@ -139,6 +144,8 @@ js/dm.js            schermo del Master, esporta/importa/duplica/elimina
 js/messages.js      messaggi privati e dispense
 js/images.js        immagini di personaggi e pedine (ritaglio, compressione, pulizia)
 js/private.js       PIN personale, note personali, storia del personaggio
+js/links.js         collegamenti nel Diario e menu "@"
+js/customsheet.js   modelli e schede personalizzate
 js/bestiary.js      i mostri comuni con le loro icone (generato da tools/build-bestiary.py)
 vendor/             libreria dei dadi 3D (scaricata solo al primo tiro) e i suoi suoni
 js/app.js           avvio, lobby, ingresso nelle avventure

@@ -112,6 +112,7 @@ function renderDmView() {
   }
   if (document.activeElement !== $('dmHandoutTo')) populateHandoutTargets();
   renderCampaignPwdCard();
+  renderTemplatesCard();
   setText('dmPasswordStatusBadge', meta.hasPassword ? '🔒 Protetta da password' : '🔓 Nessuna password: chiunque può fare il Master');
   setText('btnSaveDmPassword', meta.hasPassword ? '🔑 Cambia password' : '🔑 Imposta password');
   $('btnLockDmNow').classList.toggle('hidden', !meta.hasPassword);

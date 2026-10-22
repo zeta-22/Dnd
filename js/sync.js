@@ -756,6 +756,20 @@ const Sync = {
     }
   },
 
+  // Pezzi di un'avventura anche se non è aperta (es. i modelli di scheda nella finestra d'ingresso)
+  async fetchByPrefix(campId, prefix) {
+    const camp = Campaigns[campId];
+    const local = () => camp ? Object.keys(camp.ents).filter(k => k.startsWith(prefix)).map(k => camp.ents[k]).filter(Boolean) : [];
+    if (!this.isCloud() || (camp && !camp.synced)) return local();
+    try {
+      const { data, error } = await this.client.from(ENTITY_TABLE).select('key, data').eq('campaign_id', campId).like('key', `${prefix}%`).limit(200);
+      if (error) throw error;
+      return (data || []).map(r => normalizeEntity(r.key, r.data));
+    } catch (err) {
+      return local();
+    }
+  },
+
   // Toglie un personaggio da un'avventura anche senza aprirla (dalla Home), con pedine, iniziativa e messaggi
   async deleteCharacterEverywhere(campId, charId) {
     const camp = Campaigns[campId];

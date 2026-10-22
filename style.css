@@ -263,6 +263,13 @@ textarea.input-field { resize: vertical; }
   background: var(--surface); border: 1px solid var(--brass); border-radius: 8px; box-shadow: var(--shadow-md); padding: 0.2rem; }
 .mention-item { display: block; width: 100%; text-align: left; padding: 0.35rem 0.5rem; border-radius: 6px; font-size: 12px; }
 .mention-item.active, .mention-item:hover { background: var(--brass-soft); }
+/* Schede personalizzate: le parti della scheda 5e spariscono, il resto resta */
+#sheetBody.is-custom .sheet-5e { display: none !important; }
+@media (min-width: 1024px) { #sheetBody.is-custom #sheetMainColumn { grid-column: span 12 / span 12; } }
+#onboardingStepCharacter.custom-sheet .onb-5e { display: none !important; }
+.cf-box { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--felt); background: var(--surface); cursor: pointer; }
+.cf-box.on { background: var(--felt); }
+.cf-box:disabled { cursor: default; }
 
 .skill-prof-btn { width: 18px; height: 18px; border-radius: 999px; border: 2px solid var(--felt); background: var(--surface); flex-shrink: 0; }
 .skill-prof-btn.prof { background: var(--felt); }

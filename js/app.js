@@ -29,6 +29,7 @@ function renderAll() {
   renderMessagesBadge();
   collectUnusedImages();
   renderPersonalNotes();
+  refreshSheetTypeSelects();
   if (!isDM() && myChar()) ensureMyKeys();
 }
 
@@ -560,6 +561,7 @@ function openOnboardingCharacterStep() {
   const entry = App.lobby.find(c => c.id === App.onboardingCampId);
   showEl('onboardingStepRole', false);
   showEl('onboardingStepCharacter', true);
+  loadOnboardingSheetTypes(App.onboardingCampId);
   const pcs = entry?.pcs || [];
   showEl('onboardingExistingCharsSection', pcs.length > 0);
   $('onboardingExistingCharsList').innerHTML = pcs.map(pc => {
@@ -580,8 +582,15 @@ async function createCharFromOnboarding() {
   const name = $('onbCharName').value.trim();
   if (!name) { showToast('Dai un nome al tuo eroe'); $('onbCharName').focus(); return; }
   const campId = App.onboardingCampId;
+  const sheetType = $('onbSheetType').value;
   if (!(await ensureCampaignLoaded(campId))) return;
   if (App.dmUnlocked) lockDm();
+  if (sheetType && sheetType !== '5e' && ent(`sheettpl:${sheetType}`)) {
+    const custom = createCustomCharacter(name, sheetType);
+    $('onbCharName').value = '';
+    await enterAsPlayer(campId, custom.id);
+    return;
+  }
   const abilities = {};
   ABILITY_KEYS.forEach(k => { abilities[k] = clampInt($(`onbStat${k}`).value, 1, 30, 10); });
   const maxHp = clampInt($('onbCharHp').value, 1, 999, 10);
@@ -754,7 +763,7 @@ function initAppEvents() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     closeTokenPopover();
-    ['modalAddToken', 'modalVerifyDmPassword', 'modalCloudStatus', 'modalSpellPicker', 'modalLevelUp', 'modalMessages', 'modalHandout', 'modalImageCrop', 'modalCampaignPassword', 'modalLobbyManage'].forEach(id => showEl(id, false));
+    ['modalAddToken', 'modalVerifyDmPassword', 'modalCloudStatus', 'modalSpellPicker', 'modalLevelUp', 'modalMessages', 'modalHandout', 'modalImageCrop', 'modalCampaignPassword', 'modalLobbyManage', 'modalTemplateEditor'].forEach(id => showEl(id, false));
     if (!$('modalPin').classList.contains('hidden')) finishPinRequest(null);
   });
   window.addEventListener('pagehide', () => { if (App.activeId) Sync.saveLocalNow(App.activeId); });
@@ -790,6 +799,7 @@ async function startApp() {
   initImageEvents();
   initPrivateEvents();
   initLinkEvents();
+  initCustomSheetEvents();
   setAdvMode('normal');
   renderGlossary();
   renderChat();
