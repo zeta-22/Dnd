@@ -8,9 +8,14 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Più mappe per avventura**: il Master prepara la prossima mappa di nascosto e con **📣 Mostra ai giocatori** ci porta tutti.
 - **Iniziativa** con turno attivo evidenziato sulla mappa e avviso “Tocca a te!”.
 - **Lancia-dadi** con vantaggio/svantaggio, tiri contro CA, critici, tiri segreti del Master e formule libere (`2d6+1d4+3`).
-  Ogni tiro attraversa il tavolo con un'animazione dei dadi su tutti gli schermi (si può spegnere su ogni dispositivo).
+- **Dadi 3D** con la fisica: ogni tiro rotola sullo schermo di tutti e si ferma sugli stessi numeri. Ogni giocatore sceglie
+  il colore dei suoi dadi; il 20 naturale si illumina d'oro, l'1 di rosso; suono facoltativo. Sui dispositivi che non
+  reggono il 3D (o se si sceglie così) si usano i dadi semplici; l'animazione si può anche spegnere.
 - **Mostri del regolamento base**: cerchi “goblin” o “drago”, aggiungi uno o più mostri con PF, CA e iniziativa già pronti;
-  il Master vede la scheda del mostro e tira attacchi e danni con un tocco.
+  il Master vede la scheda del mostro e tira attacchi e danni con un tocco. I 44 mostri più comuni delle prime avventure
+  sono in una galleria con la loro icona pronta.
+- **Immagini** per personaggi e pedine: ritagliate e compresse sul telefono (circa 10 KB l'una), salvate una volta sola
+  anche se usate da più pedine; un'immagine può valere per tutti i mostri dello stesso tipo.
 - **Condizioni con durata** in round, che finiscono da sole al momento giusto del turno.
 - **Scheda personaggio** semplice o completa: PF e PF temporanei, riposi, tiri salvezza contro morte, abilità con competenza e maestria, attacchi, condizioni.
 - **Incantesimi**: si scelgono dall'elenco del regolamento base, si lanciano spendendo gli slot (anche a livello superiore),
@@ -116,11 +121,15 @@ js/journal.js       diario
 js/books.js         PDF, ricerca, assistente
 js/dm.js            schermo del Master, esporta/importa/duplica/elimina
 js/messages.js      messaggi privati e dispense
+js/images.js        immagini di personaggi e pedine (ritaglio, compressione, pulizia)
+js/bestiary.js      i mostri comuni con le loro icone (generato da tools/build-bestiary.py)
+vendor/             libreria dei dadi 3D (scaricata solo al primo tiro) e i suoi suoni
 js/app.js           avvio, lobby, ingresso nelle avventure
 data/               dati del regolamento base (SRD 5.1), caricati solo quando servono
 api/gemini.js       funzione Vercel che parla con Gemini
 supabase/setup.sql  tabelle e funzioni del database
 tools/build-srd.py  rigenera i file in data/
+tools/build-bestiary.py  rigenera js/bestiary.js dalle icone di game-icons.net
 ```
 
 Lo stile usa Tailwind già compilato in `css/`, così il sito non dipende dal CDN di Tailwind.
@@ -140,3 +149,9 @@ Mostri, incantesimi, classi e razze vengono dal System Reference Document 5.1 di
 distribuito con licenza [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/legalcode),
 con i nomi tradotti in italiano per questa app. I dati sono ricavati da [5e-database](https://github.com/soryy708/5e-database) (MIT).
 Dettagli in [`data/LICENZE.md`](data/LICENZE.md). Il Tavolo non è affiliato a Wizards of the Coast.
+
+Icone dei mostri di [game-icons.net](https://game-icons.net), licenza [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/):
+Lorc, Delapouite, Carl Olsen, Caro Asercion, DarkZaitzev, Skoll, Sparker (l'autore di ogni icona è indicato in `js/bestiary.js`).
+
+Dadi 3D: [dice-box-threejs](https://github.com/3d-dice/dice-box-threejs) (MIT, © 3D Dice), che include
+[three.js](https://threejs.org) (MIT) e [cannon-es](https://github.com/pmndrs/cannon-es) (MIT); vedi `vendor/dice-box-threejs/`.

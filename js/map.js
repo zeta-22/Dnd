@@ -265,7 +265,15 @@ function renderTokens() {
     el.setAttribute('role', 'button');
     el.setAttribute('aria-label', stats.name);
     el.title = stats.name;
-    el.appendChild(document.createTextNode(initialsOf(stats.name)));
+    const initials = document.createElement('span');
+    initials.className = 'token-initials';
+    initials.textContent = initialsOf(stats.name);
+    el.appendChild(initials);
+    const src = tokenImageSrc(tok);
+    if (src) {
+      el.classList.add('has-image');
+      el.style.backgroundImage = `url("${src}")`;
+    }
 
     const showHp = stats.maxHp > 0 && (dm || tok.type === 'pc' || stats.char);
     if (showHp && tokenSize >= 18) {
@@ -601,6 +609,15 @@ function fillTokenPopover() {
   showEl(status, !publicStats && stats.maxHp > 0, '');
   showEl('popoverHpControls', canControlToken(tok) && stats.maxHp > 0);
   showEl('btnPopoverOpenSheet', Boolean(stats.char), '');
+  const src = tokenImageSrc(tok);
+  const avatar = $('popoverAvatar');
+  showEl(avatar, Boolean(src), '');
+  avatar.style.backgroundImage = src ? `url("${src}")` : '';
+  // Immagine: il Master per tutte le pedine, i giocatori per il proprio personaggio
+  const canImage = dm || Boolean(stats.char && canEditChar(stats.char));
+  showEl('popoverImageRow', canImage, 'flex');
+  const ownImage = stats.char ? Boolean(stats.char.img) : Boolean(tok.img || srdImageHash(tok.srd));
+  showEl('btnPopoverRemoveImage', canImage && ownImage, '');
   const holder = conditionHolderForToken(tok);
   const canCond = canControlToken(tok);
   showEl('popoverConditions', canCond || stats.conditions.length > 0);
@@ -1030,6 +1047,7 @@ function initMapEvents() {
   });
   $('popoverStatBlock').addEventListener('click', onStatBlockRoll);
   bindMonsterSearch('inputTokenMonsterSearch', 'tokenMonsterResults', setAddTokenMonster);
+  renderMonsterGallery('tokenMonsterGallery', (m) => { setAddTokenMonster(m); $('tokenMonsterGalleryWrap').open = false; });
   $('tokenMonsterChosen').addEventListener('click', (e) => { if (e.target.closest('#btnClearTokenMonster')) setAddTokenMonster(null); });
   $('btnPopoverAddCondition').addEventListener('click', () => {
     const tok = getToken(App.selectedTokenId);

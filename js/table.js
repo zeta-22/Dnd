@@ -85,6 +85,7 @@ function performFormulaRoll(formula, label) {
 }
 
 function recordRoll(roll, secret) {
+  roll.color = roll.color || myDiceColor();
   if (secret) {
     roll.secret = true;
     App.secretRolls.unshift(roll);
@@ -117,6 +118,8 @@ function renderRolls() {
   const listEl = $('rollHistoryList');
   if (!listEl) return;
   const all = getRolls().concat(isDM() ? App.secretRolls : []).sort((a, b) => b.at - a.at).slice(0, 25);
+  const colorInput = $('inputDiceColor');
+  if (document.activeElement !== colorInput) colorInput.value = myDiceColor();
   // Animazione per i tiri nuovi (non per quelli già presenti quando si apre l'avventura)
   if (!App.rollsPrimed) {
     App.seenRollIds = new Set(all.map(r => r.id));
@@ -310,7 +313,7 @@ function renderInitiative() {
       const hidden = initEntryHiddenFromPlayers(e);
       return `
         <div class="init-row ${active ? 'active' : ''} ${mine ? 'mine' : ''}" data-init-id="${escapeHtml(e.id)}">
-          <span class="init-name truncate">${active ? '▶ ' : ''}${hidden ? '👁️‍🗨️ ' : ''}${escapeHtml(e.name)}</span>
+          <span class="init-name truncate flex items-center gap-1.5">${avatarHtml(initEntryImageSrc(e))}<span class="truncate">${active ? '▶ ' : ''}${hidden ? '👁️‍🗨️ ' : ''}${escapeHtml(e.name)}</span></span>
           <span class="flex items-center gap-1 flex-shrink-0">
             ${dm ? `<input type="number" class="input-field w-12 text-center py-0 px-1 text-xs font-bold init-score-input" value="${e.score}" aria-label="Punteggio di iniziativa" />
                    <button type="button" class="btn text-[10px] py-0 px-1.5 init-remove-btn" title="Togli dall'iniziativa">✕</button>`
@@ -429,6 +432,12 @@ function initTableEvents() {
   const animToggle = $('inputDiceAnimation');
   animToggle.checked = diceAnimationEnabled();
   animToggle.addEventListener('change', () => Prefs.set('iltavolo_dice_anim', animToggle.checked ? '1' : '0'));
+  $('inputDiceStyle').value = diceStyle();
+  $('inputDiceStyle').addEventListener('change', (e) => { Prefs.set('iltavolo_dice_style', e.target.value); e.target.blur(); });
+  $('inputDiceSound').checked = diceSoundEnabled();
+  $('inputDiceSound').addEventListener('change', (e) => Prefs.set('iltavolo_dice_sound', e.target.checked ? '1' : '0'));
+  $('inputDiceColor').addEventListener('change', (e) => { setMyDiceColor(e.target.value); previewDice(); });
+  $('btnPreviewDice').addEventListener('click', previewDice);
   document.querySelectorAll('.adv-mode-btn').forEach(b => b.addEventListener('click', () => setAdvMode(b.dataset.adv)));
   $('btnQuickResetMod').addEventListener('click', () => {
     $('inputDiceCount').value = 1;

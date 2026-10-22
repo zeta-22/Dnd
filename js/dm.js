@@ -127,6 +127,7 @@ function renderEncounter() {
       <div class="card-surface2 p-2 flex flex-wrap items-center justify-between gap-2 text-xs" data-enemy-id="${escapeHtml(e.id)}">
         <label class="flex items-center gap-2 min-w-0 cursor-pointer">
           <input type="checkbox" class="w-4 h-4 accent-[var(--felt)] enemy-include" ${e.included ? 'checked' : ''} title="Includi nel calcolo" />
+          ${e.srd !== undefined && e.srd !== null ? avatarHtml(imgData(srdImageHash(e.srd)) || commonMonsterIcon(e.srd)) : ''}
           <span class="min-w-0">
             <strong class="block truncate">${e.srd !== undefined && e.srd !== null ? '📜 ' : ''}${escapeHtml(e.name)}</strong>
             <span class="text-[10px] text-[var(--muted)]">GS ${escapeHtml(e.cr)} · ${getXpByCr(e.cr).toLocaleString('it-IT')} PE · CA ${e.ac} · PF ${e.hp}</span>
@@ -438,7 +439,7 @@ function initDmEvents() {
     renderEncounter();
     showToast(`🔄 ${def.count} PG di livello medio ${def.level}`);
   });
-  bindMonsterSearch('dmEnemySearch', 'dmEnemySearchResults', (m) => {
+  const pickEnemy = (m) => {
     App.enemySrd = m.i;
     App.enemySrdName = m.n;
     $('dmNewEnemyName').value = m.n;
@@ -446,7 +447,9 @@ function initDmEvents() {
     $('dmNewEnemyAc').value = m.ca;
     $('dmNewEnemyHp').value = m.hp;
     $('dmNewEnemyQty').focus();
-  });
+  };
+  bindMonsterSearch('dmEnemySearch', 'dmEnemySearchResults', pickEnemy);
+  renderMonsterGallery('dmMonsterGallery', pickEnemy);
   $('btnAddPreparedEnemy').addEventListener('click', () => {
     if (!App.vault) return;
     const name = $('dmNewEnemyName').value.trim() || 'Nemico';

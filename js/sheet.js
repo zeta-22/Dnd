@@ -173,6 +173,14 @@ function renderSheet() {
   $('btnDeleteSheet').classList.toggle('hidden', !editable);
 
   setText('sheetCardMainTitle', ch.isNpc ? 'Scheda PNG' : 'Scheda Avventuriero');
+  const portrait = $('sheetPortrait');
+  const src = charImageSrc(ch);
+  portrait.classList.toggle('has-image', Boolean(src));
+  portrait.style.backgroundImage = src ? `url("${src}")` : '';
+  portrait.disabled = !editable;
+  portrait.title = editable ? 'Tocca per scegliere l\'immagine del personaggio' : '';
+  setText('sheetPortraitInitials', src ? '' : editable ? '📷' : initialsOf(ch.name));
+  showEl('btnRemovePortrait', editable && Boolean(src), '');
   setText('sheetCharTypeBadge', ch.isNpc ? 'PNG' : 'PG');
   Object.entries(SHEET_FIELDS).forEach(([id, def]) => setVal($(id), ch[def.field]));
   setText('sheetHitDiceRemainingBadge', `${ch.hitDiceRemaining}/${ch.level}`);

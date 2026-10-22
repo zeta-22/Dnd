@@ -27,6 +27,7 @@ function renderAll() {
   renderSummaryBar();
   renderHandouts();
   renderMessagesBadge();
+  collectUnusedImages();
   if (!isDM() && myChar()) ensureMyKeys();
 }
 
@@ -561,7 +562,7 @@ function initAppEvents() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     closeTokenPopover();
-    ['modalAddToken', 'modalVerifyDmPassword', 'modalCloudStatus', 'modalSpellPicker', 'modalLevelUp', 'modalMessages', 'modalHandout'].forEach(id => showEl(id, false));
+    ['modalAddToken', 'modalVerifyDmPassword', 'modalCloudStatus', 'modalSpellPicker', 'modalLevelUp', 'modalMessages', 'modalHandout', 'modalImageCrop'].forEach(id => showEl(id, false));
   });
   window.addEventListener('pagehide', () => { if (App.activeId) Sync.saveLocalNow(App.activeId); });
 }
@@ -593,6 +594,7 @@ async function startApp() {
   initBooksEvents();
   initDmEvents();
   initMessageEvents();
+  initImageEvents();
   setAdvMode('normal');
   renderGlossary();
   renderChat();
