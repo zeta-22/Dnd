@@ -23,7 +23,18 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Creazione guidata del personaggio** (razza, classe, caratteristiche con serie standard, acquisto a punti o 4d6, abilità)
   e **passaggio di livello** con PF, aumenti di caratteristica e nuovi slot.
 - **Messaggi privati** tra Master e giocatori e **dispense** (testo e immagini) per tutti o per un solo giocatore.
-- **Diario condiviso** (missioni, PNG, bottino, domande per il DM con risposta).
+- **Diario condiviso** (missioni, PNG, luoghi, bottino, domande per il DM con risposta) e **note personali** che legge solo
+  chi le scrive (nemmeno il Master), protette da un PIN personale.
+- **Collegamenti nel Diario**: i nomi di personaggi, PNG, luoghi, missioni, bottino e mappe diventano link da soli;
+  scrivendo “@” si sceglie un nome dall'elenco (o si crea una voce nuova). Ogni voce mostra dove viene citata.
+- **Schede personalizzate** per giocare con altre regole (Daggerheart, D&D 2024, homebrew…): il Master prepara un
+  modello con valori, risorse, testi e tiri; i giocatori lo scelgono quando creano il personaggio e possono aggiungere
+  campi loro. Senza modelli resta solo la scheda D&D 5e, identica a prima.
+- **Storia del personaggio** (storia, aspetto, tratti, ideali, legami, difetti), visibile a tutti oppure solo al giocatore e al Master.
+- **Password delle avventure**: sullo stesso sito possono giocare gruppi diversi; le avventure degli altri si vedono
+  solo come titolo con il lucchetto.
+- **Gestione dalla Home**: il Master elimina le avventure e toglie i personaggi che non giocano più; chiunque può
+  nascondere dalla propria Home le avventure che non gli interessano.
 - **Regole & PDF**: carichi i tuoi manuali, ci cerchi dentro e l'assistente li usa per rispondere.
 - **Schermo del Master**: note segrete, appunti di sessione trasformati in voci del diario, bilanciamento degli scontri (DMG 2014).
 
@@ -44,12 +55,18 @@ Lo script crea le tabelle nuove e copia lì le campagne della vecchia tabella `c
 > La vecchia tabella resta nel database come backup, ma il sito non può più leggerla: conteneva le password del Master in chiaro.
 > Finché lo script non è stato eseguito il sito funziona solo in locale e lo dice nel pulsante ☁️ in alto.
 
-### 2. Codice del gruppo (facoltativo, consigliato)
+### 2. Accessi anonimi (servono per codice del gruppo e password delle avventure)
+
+Supabase → **Authentication → Sign In / Providers** → attiva **Allow anonymous sign-ins** e salva.
+Non crea account visibili ai giocatori: serve solo a ricordare, su ogni dispositivo, chi ha già inserito un codice o una password.
+
+Le **password delle avventure** si impostano dall'app (creazione dell'avventura o schermo del Master): non serve altro.
+
+### 2b. Codice del gruppo (facoltativo)
 
 Senza codice chiunque abbia il link del sito può entrare. Per riservare il tavolo ai tuoi amici:
 
-1. Supabase → **Authentication → Sign In / Providers** → attiva **Allow anonymous sign-ins** e salva.
-2. Supabase → **SQL Editor** → esegui (con il codice che vuoi tu):
+Con gli accessi anonimi attivi (punto 2), da Supabase → **SQL Editor** esegui (con il codice che vuoi tu):
 
    ```sql
    select tavolo_set_group_code('il-vostro-codice');
@@ -94,6 +111,10 @@ Il Master può premere **👁️ Vista** per vedere la mappa esattamente come la
 - **Messaggi e dispense per un solo giocatore**: sono cifrati con una chiave che esiste solo sul dispositivo di quel giocatore.
   Se il giocatore cambia telefono, i messaggi vecchi su quello nuovo non si leggono (quelli nuovi sì).
   I messaggi dei giocatori al Master si leggono solo con la password del Master.
+- **Note personali e storia privata**: cifrate con il PIN del giocatore (la storia privata anche con la chiave del Master,
+  che sta nella sua cassaforte). Se il PIN si dimentica, quei testi non si recuperano.
+- **Avventure con password**: chi non la conosce non può leggere né modificare niente, il controllo è nel database.
+  Cambiando la password, chi era già entrato deve inserire quella nuova.
 - **Con il codice del gruppo**: solo i dispositivi che hanno inserito il codice possono vedere e modificare le avventure.
 - **Senza codice del gruppo**: chi ha il link può vedere e modificare la campagna (mappa, schede, diario). Va bene tra amici; non pubblicare il link in giro.
 - In ogni caso le pedine nascoste e la mappa sotto la nebbia non si vedono sullo schermo dei giocatori, ma un giocatore
@@ -122,6 +143,9 @@ js/books.js         PDF, ricerca, assistente
 js/dm.js            schermo del Master, esporta/importa/duplica/elimina
 js/messages.js      messaggi privati e dispense
 js/images.js        immagini di personaggi e pedine (ritaglio, compressione, pulizia)
+js/private.js       PIN personale, note personali, storia del personaggio
+js/links.js         collegamenti nel Diario e menu "@"
+js/customsheet.js   modelli e schede personalizzate
 js/bestiary.js      i mostri comuni con le loro icone (generato da tools/build-bestiary.py)
 vendor/             libreria dei dadi 3D (scaricata solo al primo tiro) e i suoi suoni
 js/app.js           avvio, lobby, ingresso nelle avventure
@@ -142,6 +166,11 @@ npx tailwindcss@3.4.17 -i tailwind/utilities.css -o css/tailwind.css --minify
 
 Per provarlo sul computer basta aprire `index.html` nel browser (l'assistente IA lì non c'è, il resto sì).
 Le campagne salvate con la prima versione (file `.json`) si possono caricare con **Carica (.json)**.
+
+## Idee per il futuro
+
+- **Messaggi “nella notte”**: il Master programma un sogno, una lettera o un evento da consegnare ai giocatori a un'ora
+  precisa tra una sessione e l'altra, magari con una notifica sul telefono.
 
 ## Crediti
 

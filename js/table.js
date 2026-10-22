@@ -182,10 +182,24 @@ function setAdvMode(mode) {
 // Iniziativa
 // ---------------------------------------------------------------------------
 
+function customInitiativeRoll(ch) {
+  // Scheda personalizzata: si tira la formula del valore "iniziativa" del modello (o un d20 semplice)
+  const f = customFlagField(ch, 'init');
+  const res = rollDamageFormula(resolveCustomFormula(f ? (f.formula || '1d20+{v}') : '1d20', ch, f), false);
+  const roll = {
+    id: uid('roll'), at: Date.now(), by: isDM() ? 'DM' : ch.name, byId: DEVICE_ID, label: `Iniziativa (${ch.name})`,
+    formula: res.formula, dice: res.rolls, diceSides: res.sides, bonus: res.bonus, total: res.total
+  };
+  recordRoll(roll, false);
+  return { roll, dexMod: f ? parseInt(f.value, 10) || 0 : 0 };
+}
+
 function rollInitiativeForChar(ch, quiet = false) {
   if (!ch) return;
-  const dexMod = getAbilityMod(ch.abilities?.DES);
-  const roll = performD20Roll({ label: `Iniziativa (${ch.name})`, bonus: dexMod, mode: 'normal', by: isDM() ? 'DM' : ch.name });
+  let dexMod = getAbilityMod(ch.abilities?.DES);
+  let roll;
+  if (isCustomChar(ch)) ({ roll, dexMod } = customInitiativeRoll(ch));
+  else roll = performD20Roll({ label: `Iniziativa (${ch.name})`, bonus: dexMod, mode: 'normal', by: isDM() ? 'DM' : ch.name });
   const existing = getInitEntries().find(e => e.charId === ch.id);
   const tok = tokenForChar(ch.id);
   const entry = normalizeInitEntry(Object.assign(existing || { id: uid('init') }, {
@@ -401,11 +415,14 @@ function renderSummaryBar() {
   bar.classList.add('flex');
   const conds = ch.conditions.length ? `<span>|</span><span class="text-[var(--danger)] font-bold">⚠️ ${escapeHtml(ch.conditions.map(c => conditionLabel(ch, c)).join(', '))}</span>` : '';
   const conc = ch.concentration?.name ? `<span>|</span><span class="text-[var(--brass)] font-bold">🔮 ${escapeHtml(ch.concentration.name)}</span>` : '';
-  const down = ch.hp <= 0 ? `<span>|</span><span class="text-[var(--danger)] font-bold">💀 TS morte ${ch.deathSaves.successes}✓ ${ch.deathSaves.failures}✗</span>` : '';
+  const custom = isCustomChar(ch);
+  const down = ch.hp <= 0 && !custom ? `<span>|</span><span class="text-[var(--danger)] font-bold">💀 TS morte ${ch.deathSaves.successes}✓ ${ch.deathSaves.failures}✗</span>` : '';
+  const hpLabel = custom ? customLabel(ch, 'hp', 'PF') : 'PF';
+  const defLabel = custom ? customLabel(ch, 'defense', '') : 'CA';
   $('activeCharSummaryText').innerHTML = `
     <strong class="font-serif-title text-base text-[var(--ok)]">${escapeHtml(ch.name)}</strong>
-    <span>|</span><span>PF <strong>${ch.hp}/${ch.maxHp}</strong>${ch.tempHp ? ` <span class="text-[var(--muted)]">(+${ch.tempHp} temp.)</span>` : ''}</span>
-    <span>|</span><span>CA <strong>${ch.ac}</strong></span>${conds}${conc}${down}`;
+    ${!custom || customFlagField(ch, 'hp') ? `<span>|</span><span>${escapeHtml(hpLabel)} <strong>${ch.hp}/${ch.maxHp}</strong>${ch.tempHp ? ` <span class="text-[var(--muted)]">(+${ch.tempHp} temp.)</span>` : ''}</span>` : ''}
+    ${defLabel ? `<span>|</span><span>${escapeHtml(defLabel)} <strong>${ch.ac}</strong></span>` : ''}${conds}${conc}${down}`;
   const editable = canEditChar(ch);
   $('btnCharHpMinus').disabled = !editable;
   $('btnCharHpPlus').disabled = !editable;

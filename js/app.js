@@ -28,6 +28,8 @@ function renderAll() {
   renderHandouts();
   renderMessagesBadge();
   collectUnusedImages();
+  renderPersonalNotes();
+  refreshSheetTypeSelects();
   if (!isDM() && myChar()) ensureMyKeys();
 }
 
@@ -170,13 +172,52 @@ function recognizedRole(entry) {
   return null;
 }
 
+function hiddenCampaigns() {
+  try { return new Set(JSON.parse(Prefs.get('iltavolo_hidden_camps', '[]')) || []); } catch (e) { return new Set(); }
+}
+
+function setCampaignHidden(campId, hidden) {
+  const set = hiddenCampaigns();
+  if (hidden) set.add(campId); else set.delete(campId);
+  Prefs.set('iltavolo_hidden_camps', JSON.stringify([...set]));
+  renderLobby();
+}
+
+function lobbyCardTools(entry, rec) {
+  const hidden = hiddenCampaigns().has(entry.id);
+  return `<span class="flex items-center gap-1 flex-shrink-0">
+    ${rec?.role === 'DM' ? '<button type="button" class="btn text-xs py-0.5 px-1.5 lobby-manage-btn" title="Gestisci: personaggi ed eliminazione">🛠️</button>' : ''}
+    <button type="button" class="btn text-xs py-0.5 px-1.5 lobby-hide-btn" title="${hidden ? 'Mostra di nuovo nella mia Home' : 'Nascondi dalla mia Home'}">${hidden ? '👁️' : '🙈'}</button>
+  </span>`;
+}
+
 function renderLobby() {
   const grid = $('lobbyCampaignsGrid');
+  const hidden = hiddenCampaigns();
+  const hiddenCount = App.lobby.filter(c => hidden.has(c.id)).length;
+  const visible = App.lobby.filter(c => App.showHiddenCamps || !hidden.has(c.id));
   showEl('lobbyLoadingState', !App.lobbyLoaded, '');
-  showEl('lobbyEmptyState', App.lobbyLoaded && App.lobby.length === 0);
-  setText('lobbyCampaignsCountBadge', App.lobby.length);
+  showEl('lobbyEmptyState', App.lobbyLoaded && visible.length === 0);
+  setText('lobbyCampaignsCountBadge', visible.length);
+  showEl('btnLobbyShowHidden', hiddenCount > 0, '');
+  setText('btnLobbyShowHidden', App.showHiddenCamps ? '🙈 Nascondi di nuovo' : `👁️ Nascoste (${hiddenCount})`);
   $('btnCloseLobbyToTable').classList.toggle('hidden', !App.activeId);
-  grid.innerHTML = App.lobby.map(entry => {
+  grid.innerHTML = visible.map(entry => {
+    if (entry.source === 'locked') {
+      return `
+      <div class="card-surface2 p-4 flex flex-col justify-between gap-3 border-2 border-dashed border-[var(--line)]" data-camp-id="${escapeHtml(entry.id)}">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <h3 class="font-serif-title font-bold text-xl leading-tight">🔒 ${escapeHtml(entry.meta.title)}</h3>
+            <span class="text-[11px] text-[var(--muted)]">Avventura di un altro gruppo, protetta da password</span>
+          </div>
+          ${lobbyCardTools(entry, null)}
+        </div>
+        <div class="flex justify-end pt-2 border-t border-[var(--line)]">
+          <button type="button" class="btn btn-brass text-xs font-bold py-2 px-4 lobby-unlock-btn">🔑 Entra con la password</button>
+        </div>
+      </div>`;
+    }
     const rec = recognizedRole(entry);
     let pill = '<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[var(--surface)] border border-[var(--line)] text-[var(--muted)]">✨ Prima volta</span>';
     let primary = '✨ Scegli Ruolo / Crea PG →';
@@ -194,9 +235,12 @@ function renderLobby() {
     return `
       <div class="card-surface2 p-4 flex flex-col justify-between gap-3 border-2 ${entry.id === App.activeId ? 'border-[var(--brass)]' : 'border-[var(--line)]'} hover:border-[var(--brass)] transition-all" data-camp-id="${escapeHtml(entry.id)}">
         <div class="flex flex-col gap-2">
-          <div>
+          <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
             <h3 class="font-serif-title font-bold text-xl leading-tight">${escapeHtml(entry.meta.title)}</h3>
-            <span class="text-[11px] text-[var(--muted)]">👥 ${entry.pcs.length} PG${entry.pcs.length ? `: ${escapeHtml(entry.pcs.map(p => p.name).join(', '))}` : ''} • ${entry.meta.hasPassword ? '🔒 Master protetto' : '🔓 Aperta'}</span>
+            <span class="text-[11px] text-[var(--muted)]">👥 ${entry.pcs.length} PG${entry.pcs.length ? `: ${escapeHtml(entry.pcs.map(p => p.name).join(', '))}` : ''} • ${entry.meta.hasPassword ? '🔒 Master protetto' : '🔓 Master libero'}${entry.meta.locked ? ' • 🔑 Con password dei giocatori' : ''}</span>
+          </div>
+          ${lobbyCardTools(entry, rec)}
           </div>
           <div class="flex flex-wrap items-center gap-1.5">${pill}${source}${current}</div>
         </div>
@@ -250,9 +294,131 @@ async function joinGroupFromLobby() {
   if (invited && App.lobby.some(c => c.id === invited)) handleSelectAdventureFromLobby(invited, false);
 }
 
+// ---------------------------------------------------------------------------
+// Gestione dalla Home (solo per il Master): personaggi ed eliminazione
+// ---------------------------------------------------------------------------
+
+function openLobbyManage(campId) {
+  const entry = App.lobby.find(c => c.id === campId);
+  if (!entry) return;
+  App.manageCampId = campId;
+  setText('lobbyManageTitle', `🛠️ ${entry.meta.title}`);
+  const remembered = Prefs.get(`iltavolo_dmpwd_${campId}`);
+  showEl('lobbyManagePwdRow', entry.meta.hasPassword && !remembered, 'flex');
+  $('inputLobbyManagePwd').value = '';
+  setText('lobbyManageError', '');
+  renderLobbyManageChars();
+  showEl('modalLobbyManage', true);
+}
+
+function renderLobbyManageChars() {
+  const entry = App.lobby.find(c => c.id === App.manageCampId);
+  const box = $('lobbyManageChars');
+  if (!entry) { box.innerHTML = ''; return; }
+  box.innerHTML = entry.pcs.length ? entry.pcs.map(pc => `
+    <div class="flex items-center justify-between gap-2 card-surface2 px-2 py-1" data-char-id="${escapeHtml(pc.id)}">
+      <span class="truncate font-bold">${escapeHtml(pc.name)}</span>
+      <button type="button" class="btn text-[11px] py-0 px-1.5 text-[var(--danger)] lobby-char-delete-btn">🗑️ Togli</button>
+    </div>`).join('') : '<div class="italic text-[var(--muted)]">Nessun personaggio.</div>';
+}
+
+async function verifyLobbyDmPassword(campId) {
+  const entry = App.lobby.find(c => c.id === campId);
+  const pwd = $('inputLobbyManagePwd').value || Prefs.get(`iltavolo_dmpwd_${campId}`) || '';
+  if (!entry?.meta.hasPassword) return { ok: true, pwd: pwd || '' };
+  const res = await Sync.openVault(campId, pwd || '');
+  if (!res.ok) {
+    setText('lobbyManageError', vaultReasonMessage(res.reason));
+    showEl('lobbyManagePwdRow', true, 'flex');
+    return { ok: false };
+  }
+  return { ok: true, pwd };
+}
+
+async function deleteCharacterFromLobby(charId) {
+  const campId = App.manageCampId;
+  const entry = App.lobby.find(c => c.id === campId);
+  const pc = entry?.pcs.find(p => p.id === charId);
+  if (!pc || !window.confirm(`Togliere ${pc.name} dall'avventura? Spariscono anche la sua pedina e i suoi messaggi.`)) return;
+  const auth = await verifyLobbyDmPassword(campId);
+  if (!auth.ok) return;
+  let res;
+  if (campId === App.activeId && getChar(charId)) {
+    deleteCharacter(getChar(charId));
+    res = { ok: true };
+  } else {
+    res = await Sync.deleteCharacterEverywhere(campId, charId);
+  }
+  if (!res.ok) { setText('lobbyManageError', vaultReasonMessage(res.reason)); return; }
+  entry.pcs = entry.pcs.filter(p => p.id !== charId);
+  renderLobbyManageChars();
+  renderLobby();
+  showToast(`🗑️ ${pc.name} tolto dall'avventura`);
+}
+
+async function deleteCampaignFromLobby() {
+  const campId = App.manageCampId;
+  const entry = App.lobby.find(c => c.id === campId);
+  if (!entry || !window.confirm(`Eliminare per sempre “${entry.meta.title}” per tutti i giocatori? Non si può annullare.`)) return;
+  const auth = await verifyLobbyDmPassword(campId);
+  if (!auth.ok) return;
+  if (campId === App.activeId) {
+    if (App.dmUnlocked) lockDm();
+    resetCampaignState();
+    App.activeId = null;
+  }
+  const res = await Sync.deleteCampaign(campId, auth.pwd);
+  if (!res.ok) { setText('lobbyManageError', vaultReasonMessage(res.reason)); return; }
+  ['role', 'mychar', 'dmpwd'].forEach(k => Prefs.del(`iltavolo_${k}_${campId}`));
+  if (Prefs.get('iltavolo_activeCampaignId') === campId) Prefs.del('iltavolo_activeCampaignId');
+  showEl('modalLobbyManage', false);
+  App.manageCampId = null;
+  showToast('🗑️ Avventura eliminata');
+  await refreshLobby();
+}
+
+function campaignPwdMessage(reason) {
+  return {
+    wrong_password: '❌ Password sbagliata.',
+    anon_disabled: '⚠️ Su Supabase vanno attivati gli accessi anonimi (Authentication → Sign In / Providers → Allow anonymous sign-ins).',
+    not_signed_in: '⚠️ Su Supabase vanno attivati gli accessi anonimi (Authentication → Sign In / Providers → Allow anonymous sign-ins).',
+    offline: '📴 Cloud non raggiungibile: riprova tra poco.',
+    not_member: '🔐 Prima serve il codice del gruppo.',
+    old_db: '⚠️ Per le password delle avventure va rieseguito supabase/setup.sql su Supabase.',
+    local: '📱 Questa avventura è salvata solo su questo dispositivo: caricala nel cloud per proteggerla.',
+    no_vault: '⚠️ Apri prima la Vista DM di questa avventura.'
+  }[reason] || '⚠️ Non è andata, riprova tra poco.';
+}
+
+function openCampaignPasswordPrompt(campId) {
+  const entry = App.lobby.find(c => c.id === campId);
+  App.pwdCampId = campId;
+  setText('campaignPasswordTitle', `🔒 ${entry?.meta.title || 'Avventura protetta'}`);
+  $('inputCampaignPassword').value = '';
+  setText('campaignPasswordError', '');
+  showEl('modalCampaignPassword', true);
+  focusSoon('inputCampaignPassword');
+}
+
+async function submitCampaignPassword() {
+  const campId = App.pwdCampId;
+  if (!campId) return;
+  const btn = $('btnConfirmCampaignPassword');
+  btn.disabled = true;
+  const res = await Sync.joinCampaign(campId, $('inputCampaignPassword').value);
+  btn.disabled = false;
+  if (!res.ok) { setText('campaignPasswordError', campaignPwdMessage(res.reason)); return; }
+  showEl('modalCampaignPassword', false);
+  App.pwdCampId = null;
+  showToast('🔓 Benvenuto nell\'avventura!');
+  await refreshLobby();
+  if (App.lobby.some(c => c.id === campId && c.source !== 'locked')) handleSelectAdventureFromLobby(campId, false);
+}
+
 async function handleSelectAdventureFromLobby(campId, forceWizard) {
   const entry = App.lobby.find(c => c.id === campId);
   if (!entry) return;
+  if (entry.source === 'locked') { openCampaignPasswordPrompt(campId); return; }
   if (!forceWizard) {
     const rec = recognizedRole(entry);
     if (rec?.role === 'DM') {
@@ -292,15 +458,22 @@ function resetCampaignState() {
   App.joinedAt = Date.now();
   stopInboxPolling();
   clearMessageCaches();
+  clearPrivateCaches();
   closeTokenPopover();
 }
 
 async function ensureCampaignLoaded(campId) {
   if (App.activeId === campId && camp()) return true;
   resetCampaignState();
+  Sync.lastLocked = null;
   const c = await Sync.openCampaign(campId);
   if (!c) {
     App.activeId = null;
+    if (Sync.lastLocked === campId) {
+      await refreshLobby();
+      openCampaignPasswordPrompt(campId);
+      return false;
+    }
     showToast('⚠️ Avventura non trovata: forse è stata eliminata');
     refreshLobby();
     return false;
@@ -388,6 +561,7 @@ function openOnboardingCharacterStep() {
   const entry = App.lobby.find(c => c.id === App.onboardingCampId);
   showEl('onboardingStepRole', false);
   showEl('onboardingStepCharacter', true);
+  loadOnboardingSheetTypes(App.onboardingCampId);
   const pcs = entry?.pcs || [];
   showEl('onboardingExistingCharsSection', pcs.length > 0);
   $('onboardingExistingCharsList').innerHTML = pcs.map(pc => {
@@ -408,8 +582,15 @@ async function createCharFromOnboarding() {
   const name = $('onbCharName').value.trim();
   if (!name) { showToast('Dai un nome al tuo eroe'); $('onbCharName').focus(); return; }
   const campId = App.onboardingCampId;
+  const sheetType = $('onbSheetType').value;
   if (!(await ensureCampaignLoaded(campId))) return;
   if (App.dmUnlocked) lockDm();
+  if (sheetType && sheetType !== '5e' && ent(`sheettpl:${sheetType}`)) {
+    const custom = createCustomCharacter(name, sheetType);
+    $('onbCharName').value = '';
+    await enterAsPlayer(campId, custom.id);
+    return;
+  }
   const abilities = {};
   ABILITY_KEYS.forEach(k => { abilities[k] = clampInt($(`onbStat${k}`).value, 1, 30, 10); });
   const maxHp = clampInt($('onbCharHp').value, 1, 999, 10);
@@ -439,8 +620,16 @@ async function createAdventureFromLobby(sample = false) {
   $('inputLobbyNewAdvPassword').value = '';
   showEl('lobbyCreateAdventureBox', false);
   await refreshLobby();
+  const playerPwd = sample ? '' : $('inputLobbyNewAdvPlayerPwd').value.trim();
+  $('inputLobbyNewAdvPlayerPwd').value = '';
   const ok = await enterAsMaster(id, pwd, { silentError: true });
   if (!ok) showToast('⚠️ Avventura creata, ma non riesco ad aprirla: riprova dalla lobby');
+  if (ok && playerPwd) {
+    const res = await Sync.setCampaignPassword(id, pwd, playerPwd);
+    // Lo segniamo anche qui: una nostra modifica alle informazioni dell'avventura non deve cancellarlo
+    if (res.ok && App.activeId === id) { getMeta().locked = true; touchEnt('meta'); }
+    showToast(res.ok ? '🔒 Password dei giocatori impostata: dalla al tuo gruppo insieme al link' : campaignPwdMessage(res.reason), 5000);
+  }
   if (ok && !Campaigns[id]?.synced && Sync.mode !== 'local') showToast('📱 Avventura salvata su questo dispositivo: la caricherai nel cloud quando sarà disponibile', 4500);
 }
 
@@ -530,12 +719,24 @@ function initAppEvents() {
   });
 
   // Lobby
+  $('campaignPasswordForm').addEventListener('submit', (e) => { e.preventDefault(); submitCampaignPassword(); });
+  $('btnCancelCampaignPassword').addEventListener('click', () => { showEl('modalCampaignPassword', false); App.pwdCampId = null; });
   $('lobbyCampaignsGrid').addEventListener('click', (e) => {
     const card = e.target.closest('[data-camp-id]');
     if (!card) return;
+    if (e.target.closest('.lobby-unlock-btn')) openCampaignPasswordPrompt(card.dataset.campId);
+    if (e.target.closest('.lobby-hide-btn')) { setCampaignHidden(card.dataset.campId, !hiddenCampaigns().has(card.dataset.campId)); return; }
+    if (e.target.closest('.lobby-manage-btn')) { openLobbyManage(card.dataset.campId); return; }
     if (e.target.closest('.lobby-enter-btn')) handleSelectAdventureFromLobby(card.dataset.campId, false);
     if (e.target.closest('.lobby-change-role-btn')) handleSelectAdventureFromLobby(card.dataset.campId, true);
   });
+  $('btnLobbyShowHidden').addEventListener('click', () => { App.showHiddenCamps = !App.showHiddenCamps; renderLobby(); });
+  $('btnCloseLobbyManage').addEventListener('click', () => showEl('modalLobbyManage', false));
+  $('lobbyManageChars').addEventListener('click', (e) => {
+    const row = e.target.closest('[data-char-id]');
+    if (row && e.target.closest('.lobby-char-delete-btn')) deleteCharacterFromLobby(row.dataset.charId);
+  });
+  $('btnLobbyDeleteCampaign').addEventListener('click', deleteCampaignFromLobby);
   $('btnLobbyNewAdventure').addEventListener('click', () => {
     showEl('lobbyCreateAdventureBox', true);
     focusSoon('inputLobbyNewAdvTitle');
@@ -562,7 +763,8 @@ function initAppEvents() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     closeTokenPopover();
-    ['modalAddToken', 'modalVerifyDmPassword', 'modalCloudStatus', 'modalSpellPicker', 'modalLevelUp', 'modalMessages', 'modalHandout', 'modalImageCrop'].forEach(id => showEl(id, false));
+    ['modalAddToken', 'modalVerifyDmPassword', 'modalCloudStatus', 'modalSpellPicker', 'modalLevelUp', 'modalMessages', 'modalHandout', 'modalImageCrop', 'modalCampaignPassword', 'modalLobbyManage', 'modalTemplateEditor'].forEach(id => showEl(id, false));
+    if (!$('modalPin').classList.contains('hidden')) finishPinRequest(null);
   });
   window.addEventListener('pagehide', () => { if (App.activeId) Sync.saveLocalNow(App.activeId); });
 }
@@ -595,6 +797,9 @@ async function startApp() {
   initDmEvents();
   initMessageEvents();
   initImageEvents();
+  initPrivateEvents();
+  initLinkEvents();
+  initCustomSheetEvents();
   setAdvMode('normal');
   renderGlossary();
   renderChat();
@@ -625,6 +830,16 @@ async function startApp() {
     announceNewHandouts(keys);
     if (keys.some(k => k.startsWith('msg:')) && !$('modalMessages').classList.contains('hidden')) renderMessagesPanel();
     scheduleRender();
+  };
+  Sync.onCampaignLocked = async (campId) => {
+    if (campId !== App.activeId) return;
+    await Sync.closeCampaign();
+    resetCampaignState();
+    App.activeId = null;
+    showToast('🔒 La password di questa avventura è cambiata: chiedila al Master', 5000);
+    openLobbyHome();
+    await refreshLobby();
+    openCampaignPasswordPrompt(campId);
   };
   Sync.onCampaignGone = async (campId) => {
     if (campId !== App.activeId) return;

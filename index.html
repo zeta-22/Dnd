@@ -303,6 +303,7 @@
         <div class="flex flex-wrap items-center gap-2">
           <span class="text-xl">🧝‍♀️</span>
           <select id="sheetCharSelect" class="input-field font-serif-title font-bold text-base min-w-[200px]"></select>
+          <select id="newSheetType" class="hidden input-field text-xs" aria-label="Tipo di scheda per i nuovi personaggi"></select>
           <button id="btnNewPcSheet" type="button" class="btn btn-felt text-xs font-bold">+ Nuovo PG</button>
           <button id="btnSheetWizard" type="button" class="btn btn-brass text-xs font-bold" title="Creazione guidata passo passo">🧭 Guidata</button>
           <button id="btnNewNpcSheet" type="button" class="btn btn-brass text-xs font-bold dm-only">+ Nuova scheda PNG</button>
@@ -333,7 +334,7 @@
       </div>
 
       <div id="sheetBody" class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-        <div class="lg:col-span-8 flex flex-col gap-3">
+        <div id="sheetMainColumn" class="lg:col-span-8 flex flex-col gap-3">
           <div class="card-surface p-4 flex flex-col gap-3.5">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
               <div class="flex items-center gap-2.5">
@@ -355,29 +356,29 @@
                 <label for="sheetInputName" class="block font-bold text-[var(--muted)] mb-1">Nome</label>
                 <input id="sheetInputName" type="text" class="input-field w-full font-bold text-base" />
               </div>
-              <div>
+              <div class="sheet-5e">
                 <label for="sheetInputRace" class="block font-bold text-[var(--muted)] mb-1">Razza</label>
                 <input id="sheetInputRace" type="text" class="input-field w-full font-bold" />
               </div>
-              <div>
+              <div class="sheet-5e">
                 <label for="sheetInputClass" class="block font-bold text-[var(--muted)] mb-1">Classe</label>
                 <input id="sheetInputClass" type="text" class="input-field w-full font-bold" />
               </div>
-              <div>
+              <div class="sheet-5e">
                 <label for="sheetInputLevel" class="block font-bold text-[var(--muted)] mb-1">Livello (1-20)</label>
                 <input id="sheetInputLevel" type="number" min="1" max="20" class="input-field w-full text-center font-bold" />
               </div>
-              <div id="sheetBackgroundFieldWrap" class="col-span-2 hidden">
+              <div id="sheetBackgroundFieldWrap" class="col-span-2 hidden sheet-5e">
                 <label for="sheetInputBackground" class="block font-bold text-[var(--muted)] mb-1">Background</label>
                 <input id="sheetInputBackground" type="text" class="input-field w-full font-bold" />
               </div>
-              <div class="col-span-2 sm:col-span-3">
+              <div class="col-span-2 sm:col-span-3 sheet-5e">
                 <label for="sheetInputBonusAction" class="block font-bold text-[var(--muted)] mb-1">⚡ Azione bonus principale</label>
                 <input id="sheetInputBonusAction" type="text" class="input-field w-full font-bold" />
               </div>
             </div>
 
-            <div class="card-surface2 p-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs items-center">
+            <div class="card-surface2 p-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs items-center sheet-5e">
               <div class="flex flex-col gap-1 col-span-2 sm:col-span-1">
                 <div class="flex items-center justify-between">
                   <span class="font-bold text-[var(--ink)]">Punti Ferita</span>
@@ -418,7 +419,7 @@
               </div>
             </div>
 
-            <div id="sheetDeathSavesBox" class="hidden flex-col gap-2 p-3 rounded-lg bg-[var(--surface2)] border-2 border-[var(--danger)] text-xs">
+            <div id="sheetDeathSavesBox" class="hidden sheet-5e flex-col gap-2 p-3 rounded-lg bg-[var(--surface2)] border-2 border-[var(--danger)] text-xs">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <span class="text-lg">💀</span>
@@ -449,7 +450,7 @@
               </div>
             </div>
 
-            <div>
+            <div class="sheet-5e">
               <div class="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Caratteristiche</div>
               <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center">
                 <div class="card-surface2 p-2 flex flex-col gap-1 items-center">
@@ -485,14 +486,48 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+            <div class="grid grid-cols-3 gap-2 text-center text-xs sheet-5e">
               <div class="card-surface2 p-2"><span class="block text-[11px] text-[var(--muted)]">Iniziativa</span><span id="sheetInitModDisplay" class="font-serif-title font-bold text-base">+4</span></div>
               <div class="card-surface2 p-2"><span class="block text-[11px] text-[var(--muted)]">Competenza</span><span id="sheetProfBonusDisplay" class="font-serif-title font-bold text-base">+2</span></div>
               <div class="card-surface2 p-2"><span class="block text-[11px] text-[var(--muted)]">Percezione Passiva</span><span id="sheetPassivePerceptionDisplay" class="font-serif-title font-bold text-base">13</span></div>
             </div>
           </div>
 
-          <div class="card-surface p-4 flex flex-col gap-3">
+          <div id="sheetCustomCard" class="hidden card-surface p-4 flex-col gap-3 text-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+              <div>
+                <h3 class="font-serif-title font-bold text-lg">🧩 <span id="sheetCustomTplName">Scheda</span></h3>
+                <span class="text-[11px] text-[var(--muted)]">Scheda personalizzata: tocca i 🎲 per tirare</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <button id="btnCustomSyncTpl" type="button" class="hidden btn text-xs">🔄 Campi nuovi dal modello</button>
+                <button id="btnCustomAddField" type="button" class="btn text-xs">➕ Campo</button>
+              </div>
+            </div>
+            <div id="customAddFieldRow" class="hidden flex-wrap items-center gap-1.5 card-surface2 p-2">
+              <select id="customFieldType" class="input-field text-xs py-0.5">
+                <option value="number">🔢 Valore</option>
+                <option value="resource">❤️ Risorsa (con massimo)</option>
+                <option value="text">🏷️ Testo breve</option>
+                <option value="longtext">📝 Testo lungo</option>
+                <option value="roll">🎲 Tiro rapido</option>
+              </select>
+              <input id="customFieldLabel" type="text" maxlength="60" class="input-field text-xs py-0.5 flex-1 min-w-[8rem]" placeholder="Nome del campo (es. Mana)" />
+              <input id="customFieldFormula" type="text" maxlength="60" class="hidden input-field text-xs py-0.5 w-32 font-mono" placeholder="1d20+3" />
+              <button id="btnConfirmCustomField" type="button" class="btn btn-felt text-xs">Aggiungi</button>
+            </div>
+            <div id="sheetCustomFields" class="flex flex-col gap-3"></div>
+            <div class="flex flex-col gap-1.5 pt-2 border-t border-[var(--line)]">
+              <div class="font-bold text-[var(--muted)]">⚠️ Condizioni</div>
+              <div id="sheetCustomConditions" class="flex flex-wrap gap-1.5"></div>
+              <div class="flex gap-1.5">
+                <input id="inputCustomCondition" type="text" maxlength="40" class="input-field flex-1 text-xs" placeholder="Aggiungi una condizione (es. Vulnerabile)" />
+                <button id="btnAddCustomCondition" type="button" class="btn text-xs">Aggiungi</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
             <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
               <h3 class="font-serif-title font-bold text-lg">⚔️ Attacchi &amp; Incantesimi d'Offesa</h3>
               <span class="text-[11px] text-[var(--muted)]">Formato: Nome | +bonus | danno</span>
@@ -504,7 +539,7 @@
             </div>
           </div>
 
-          <div class="card-surface p-4 flex flex-col gap-3">
+          <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
             <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
               <h3 class="font-serif-title font-bold text-lg">✨ Slot Incantesimo (Livelli 1–9)</h3>
               <span class="text-[11px] text-[var(--muted)]">Imposta il massimo, poi tocca i quadratini per spenderli</span>
@@ -512,7 +547,7 @@
             <div id="sheetSpellSlotsGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
           </div>
 
-          <div class="card-surface p-4 flex flex-col gap-3">
+          <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
               <h3 class="font-serif-title font-bold text-lg">📖 Incantesimi</h3>
               <div class="flex flex-wrap items-center gap-2 text-xs">
@@ -527,7 +562,7 @@
             <div id="sheetSpellList" class="flex flex-col gap-2 text-xs"></div>
           </div>
 
-          <div class="card-surface p-4 flex flex-col gap-3">
+          <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
             <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
               <h3 class="font-serif-title font-bold text-lg">⚠️ Condizioni Attive</h3>
               <button id="btnClearAllConditions" type="button" class="btn text-xs">Rimuovi tutte</button>
@@ -535,10 +570,25 @@
             <div class="flex flex-wrap gap-1.5" id="sheetConditionsButtons"></div>
             <div id="sheetActiveConditionsInfo" class="hidden flex-col gap-1.5 p-3 rounded-lg bg-[var(--surface2)] border border-[var(--danger)] text-xs"></div>
           </div>
+
+          <div id="sheetStoryCard" class="card-surface p-4 flex flex-col gap-3 text-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+              <div>
+                <h3 class="font-serif-title font-bold text-lg">📖 Storia del personaggio</h3>
+                <span id="storyVisibilityHint" class="text-[11px] text-[var(--muted)]"></span>
+              </div>
+              <select id="storyVisibility" class="input-field text-xs" aria-label="Chi può leggere la storia">
+                <option value="all">👥 Visibile a tutti</option>
+                <option value="private">🔒 Solo io e il Master</option>
+              </select>
+            </div>
+            <div id="sheetStoryFields" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+            <div id="sheetMentions"></div>
+          </div>
         </div>
 
         <div class="lg:col-span-4 flex flex-col gap-3">
-          <div id="sheetSimpleTurnGuide" class="turn-guide-box p-4 flex flex-col gap-3">
+          <div id="sheetSimpleTurnGuide" class="turn-guide-box p-4 flex flex-col gap-3 sheet-5e">
             <div class="flex items-center gap-2 border-b border-[var(--brass)] pb-2">
               <span class="text-xl">💡</span>
               <h3 class="font-serif-title font-bold text-lg">Nel tuo turno puoi...</h3>
@@ -555,7 +605,7 @@
             </div>
           </div>
 
-          <div id="sheetCompleteSkillsColumn" class="hidden flex-col gap-3">
+          <div id="sheetCompleteSkillsColumn" class="hidden flex-col gap-3 sheet-5e">
             <div class="card-surface p-4 flex flex-col gap-3">
               <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
                 <h3 class="font-serif-title font-bold text-lg">🛡️ Tiri Salvezza</h3>
@@ -570,7 +620,7 @@
             </div>
           </div>
 
-          <div id="sheetCompleteTextAreas" class="hidden flex-col gap-3">
+          <div id="sheetCompleteTextAreas" class="hidden flex-col gap-3 sheet-5e">
             <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
               <label class="font-bold text-[var(--muted)]">🎒 Equipaggiamento</label>
               <textarea id="sheetTextareaEquipment" rows="3" class="input-field w-full text-xs"></textarea>
@@ -598,11 +648,29 @@
         <h3 class="font-serif-title font-bold text-lg">📜 Dispense del Master</h3>
         <div id="handoutList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
       </div>
+
+      <div id="personalNotesSection" class="hidden card-surface p-3.5 flex-col gap-2.5 border-2 border-dashed border-[var(--brass)]">
+        <div>
+          <h3 class="font-serif-title font-bold text-lg">📓 Le mie note</h3>
+          <span class="text-[11px] text-[var(--muted)]">Private e cifrate: le leggi solo tu, nemmeno il Master.</span>
+        </div>
+        <div id="personalNotesLocked" class="hidden flex-wrap items-center justify-between gap-2 text-xs">
+          <span id="personalNotesLockedText"></span>
+          <button id="btnUnlockNotes" type="button" class="btn btn-felt text-xs font-bold">🔓 Apri le mie note</button>
+        </div>
+        <div id="personalNotesForm" class="hidden flex-col gap-2 text-xs">
+          <input id="personalNoteTitle" type="text" maxlength="160" class="input-field w-full font-bold" placeholder="Titolo (es. Sospetti sul barone)" />
+          <textarea id="personalNoteText" rows="3" maxlength="20000" class="input-field w-full" placeholder="Scrivi quello che vuoi ricordare solo per te…"></textarea>
+          <div class="flex justify-end"><button id="btnSavePersonalNote" type="button" class="btn btn-felt text-xs font-bold">💾 Salva nota</button></div>
+        </div>
+        <div id="personalNotesList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+      </div>
       <div class="card-surface p-3.5 flex flex-wrap items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-1.5" id="journalFilterButtons">
           <button type="button" class="btn btn-felt text-xs journal-filter-btn" data-jfilter="Tutto">📚 Tutto</button>
           <button type="button" class="btn text-xs journal-filter-btn" data-jfilter="Missioni">🗺️ Missioni</button>
           <button type="button" class="btn text-xs journal-filter-btn" data-jfilter="Personaggi incontrati">🧙 Personaggi</button>
+          <button type="button" class="btn text-xs journal-filter-btn" data-jfilter="Luoghi">📍 Luoghi</button>
           <button type="button" class="btn text-xs journal-filter-btn" data-jfilter="Bottino">💰 Bottino</button>
           <button type="button" class="btn text-xs journal-filter-btn" data-jfilter="Domande per il DM">❓ Domande DM</button>
           <button type="button" class="btn text-xs journal-filter-btn" data-jfilter="Sessioni">📜 Sessioni</button>
@@ -624,6 +692,7 @@
             <select id="journalInputCategory" class="input-field w-full font-bold">
               <option value="Missioni">🗺️ Missioni</option>
               <option value="Personaggi incontrati">🧙 Personaggi incontrati</option>
+              <option value="Luoghi">📍 Luoghi</option>
               <option value="Bottino">💰 Bottino</option>
               <option value="Domande per il DM">❓ Domande per il DM</option>
               <option value="Sessioni">📜 Sessioni</option>
@@ -777,6 +846,36 @@
               <input type="file" accept=".json,application/json" class="hidden import-json-input" />
             </label>
           </div>
+        </div>
+
+        <div id="dmCampaignPwdCard" class="card-surface p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="min-w-0">
+            <strong class="font-serif-title font-bold text-sm">🔒 Password dei giocatori</strong>
+            <span id="campaignPwdStatus" class="block text-[11px] text-[var(--muted)]"></span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <input id="inputCampaignPwd" type="text" autocomplete="off" placeholder="Nuova password dei giocatori…" class="input-field w-48 text-xs" />
+            <button id="btnSetCampaignPwd" type="button" class="btn btn-brass text-xs">Imposta</button>
+            <button id="btnRemoveCampaignPwd" type="button" class="btn text-xs text-[var(--danger)] hidden">Togli</button>
+          </div>
+        </div>
+
+        <div id="dmTemplatesCard" class="card-surface p-3.5 flex flex-col gap-2 text-xs">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="min-w-0">
+              <strong class="font-serif-title font-bold text-sm">🧩 Schede personalizzate</strong>
+              <span class="block text-[11px] text-[var(--muted)]">Per giocare con altre regole (Daggerheart, D&amp;D 2024, homebrew…): prepara un modello e i giocatori potranno sceglierlo quando creano il personaggio. Senza modelli si usa solo la scheda D&amp;D 5e.</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <select id="newTemplateStarter" class="input-field text-xs" aria-label="Modello di partenza">
+                <option value="vuota">Parti da: scheda base</option>
+                <option value="daggerheart">Parti da: Daggerheart</option>
+                <option value="dnd2024">Parti da: D&amp;D 2024</option>
+              </select>
+              <button id="btnNewTemplate" type="button" class="btn btn-brass text-xs">➕ Nuovo modello</button>
+            </div>
+          </div>
+          <div id="dmTemplatesList" class="flex flex-col gap-1"></div>
         </div>
 
         <div id="dmLocalOnlyCard" class="hidden card-surface2 p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs border-2 border-[var(--brass)]">
@@ -1042,6 +1141,7 @@
             <span id="lobbyCampaignsCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[var(--surface2)] border border-[var(--line)]">0</span>
           </div>
           <div class="flex flex-wrap items-center gap-2">
+            <button id="btnLobbyShowHidden" type="button" class="hidden btn text-xs py-1.5 px-3"></button>
             <button id="btnLobbyNewAdventure" type="button" class="btn btn-felt text-xs font-bold py-1.5 px-3.5">👑 + Crea Nuova Avventura (Master)</button>
           </div>
         </div>
@@ -1059,8 +1159,12 @@
               <label class="block font-bold text-[var(--muted)] mb-1">Password Master</label>
               <input id="inputLobbyNewAdvPassword" type="password" autocomplete="new-password" placeholder="Password..." class="input-field w-full font-bold text-base" />
             </div>
+            <div class="sm:col-span-2">
+              <label class="block font-bold text-[var(--muted)] mb-1">🔒 Password dei giocatori (facoltativa)</label>
+              <input id="inputLobbyNewAdvPlayerPwd" type="text" autocomplete="off" placeholder="Lasciala vuota se sul sito gioca solo il vostro gruppo" class="input-field w-full font-bold" />
+            </div>
           </div>
-          <p class="text-[11px] text-[var(--muted)]">La password serve per entrare come Master e protegge le tue note segrete. Puoi lasciarla vuota, ma allora chiunque potrà fare il Master.</p>
+          <p class="text-[11px] text-[var(--muted)]">La password del Master serve per entrare come Master e protegge le tue note segrete: puoi lasciarla vuota, ma allora chiunque potrà fare il Master. La password dei giocatori tiene fuori dall'avventura chi non è del tuo gruppo: gli altri vedranno solo il titolo con il lucchetto.</p>
           <div id="lobbyCreateError" class="hidden text-xs font-bold text-[var(--danger)]"></div>
           <div class="flex justify-end pt-1">
             <button id="btnConfirmLobbyCreateAdventure" type="button" class="btn btn-felt text-xs font-bold py-2 px-4">Crea ed Entra come Master</button>
@@ -1118,40 +1222,43 @@
         <div class="border-t border-[var(--line)] pt-3 flex flex-col gap-3">
           <div class="flex items-center justify-between">
             <h4 class="font-serif-title font-bold text-lg text-[var(--felt)]">✨ Oppure crea nuovo Personaggio</h4>
-            <button id="btnOnbWizard" type="button" class="btn btn-brass text-xs font-bold">🧭 Creazione guidata</button>
+            <button id="btnOnbWizard" type="button" class="btn btn-brass text-xs font-bold onb-5e">🧭 Creazione guidata</button>
           </div>
-          <p class="text-[11px] text-[var(--muted)] -mt-1">La creazione guidata ti accompagna passo passo (razza, classe, caratteristiche, abilità). Oppure compila al volo qui sotto.</p>
+          <label data-sheet-type-row class="hidden items-center gap-2 text-xs font-bold text-[var(--muted)]">Tipo di scheda
+            <select id="onbSheetType" class="input-field flex-1 font-bold"></select>
+          </label>
+          <p class="text-[11px] text-[var(--muted)] -mt-1 onb-5e">La creazione guidata ti accompagna passo passo (razza, classe, caratteristiche, abilità). Oppure compila al volo qui sotto.</p>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
             <div class="col-span-2">
               <label class="block font-bold text-[var(--muted)] mb-1">Nome Eroe *</label>
               <input id="onbCharName" type="text" placeholder="Nome..." class="input-field w-full font-serif-title font-bold text-base" />
             </div>
-            <div>
+            <div class="onb-5e">
               <label class="block font-bold text-[var(--muted)] mb-1">Razza</label>
               <input id="onbCharRace" type="text" value="Elfo" class="input-field w-full font-bold" />
             </div>
-            <div>
+            <div class="onb-5e">
               <label class="block font-bold text-[var(--muted)] mb-1">Classe</label>
               <input id="onbCharClass" type="text" value="Guerriero" class="input-field w-full font-bold" />
             </div>
-            <div>
+            <div class="onb-5e">
               <label class="block font-bold text-[var(--muted)] mb-1">Livello</label>
               <input id="onbCharLevel" type="number" min="1" max="20" value="1" class="input-field w-full text-center font-bold" />
             </div>
-            <div>
+            <div class="onb-5e">
               <label class="block font-bold text-[var(--muted)] mb-1">Max PF</label>
               <input id="onbCharHp" type="number" min="1" max="999" value="12" class="input-field w-full text-center font-bold" />
             </div>
-            <div>
+            <div class="onb-5e">
               <label class="block font-bold text-[var(--muted)] mb-1">CA</label>
               <input id="onbCharAc" type="number" min="1" max="35" value="16" class="input-field w-full text-center font-bold" />
             </div>
-            <div>
+            <div class="onb-5e">
               <label class="block font-bold text-[var(--muted)] mb-1">Azione Bonus</label>
               <input id="onbCharBonus" type="text" value="Recuperare Energie" class="input-field w-full font-bold" />
             </div>
           </div>
-          <div>
+          <div class="onb-5e">
             <label class="block text-xs font-bold text-[var(--muted)] mb-1">Caratteristiche (FOR, DES, COS, INT, SAG, CAR)</label>
             <div class="grid grid-cols-6 gap-2 text-center text-xs">
               <div class="card-surface2 p-1.5"><span class="font-bold block text-[10px]">FOR</span><input id="onbStatFOR" type="number" value="16" class="input-field w-full text-center font-bold py-0.5 px-1" /></div>
@@ -1162,7 +1269,7 @@
               <div class="card-surface2 p-1.5"><span class="font-bold block text-[10px]">CAR</span><input id="onbStatCAR" type="number" value="10" class="input-field w-full text-center font-bold py-0.5 px-1" /></div>
             </div>
           </div>
-          <div class="text-xs">
+          <div class="text-xs onb-5e">
             <label class="block font-bold text-[var(--muted)] mb-1">Attacco Principale</label>
             <input id="onbCharAttack" type="text" value="Spada lunga | +5 | 1d8+3" class="input-field w-full font-mono text-xs" />
           </div>
@@ -1250,6 +1357,78 @@
         <button id="btnCloseHandoutPopup" type="button" class="btn text-xs">✕</button>
       </div>
       <div id="handoutPopupBody" class="flex flex-col gap-3 text-sm max-h-[70vh] overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <div id="modalTemplateEditor" class="hidden fixed inset-0 z-[61] bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-surface w-full max-w-2xl p-5 flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto text-xs">
+      <div class="border-b border-[var(--line)] pb-2">
+        <h3 class="font-serif-title font-bold text-lg">🧩 Modello di scheda</h3>
+        <span class="text-[11px] text-[var(--muted)]">Nei tiri puoi usare <code>{v}</code> (il valore del campo), <code>{mod}</code> (modificatore alla 5e, per valori come 15) o il nome di un altro valore, es. <code>2d12+{Agilità}</code>.</span>
+      </div>
+      <label class="flex flex-col gap-1 font-bold text-[var(--muted)]">Nome del modello
+        <input id="tplNameInput" type="text" maxlength="60" class="input-field w-full font-serif-title font-bold text-base" placeholder="Es. Daggerheart" />
+      </label>
+      <div id="tplFieldsList" class="flex flex-col gap-1.5 max-h-[55vh] overflow-y-auto pr-1"></div>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <button id="btnTplAddField" type="button" class="btn text-xs">➕ Aggiungi campo</button>
+        <div class="flex gap-2">
+          <button id="btnTplCancel" type="button" class="btn text-xs">Annulla</button>
+          <button id="btnTplSave" type="button" class="btn btn-felt text-xs font-bold">💾 Salva modello</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalLobbyManage" class="hidden fixed inset-0 z-[61] bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-surface w-full max-w-md p-5 flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto text-xs">
+      <div class="flex items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+        <h3 id="lobbyManageTitle" class="font-serif-title font-bold text-lg truncate">🛠️ Gestisci l'avventura</h3>
+        <button id="btnCloseLobbyManage" type="button" class="btn text-xs">✕</button>
+      </div>
+      <label id="lobbyManagePwdRow" class="hidden flex-col gap-1 font-bold text-[var(--muted)]">Password del Master
+        <input id="inputLobbyManagePwd" type="password" autocomplete="current-password" class="input-field w-full" placeholder="Serve per eliminare" />
+      </label>
+      <div class="flex flex-col gap-1.5">
+        <div class="font-bold">👥 Personaggi</div>
+        <span class="text-[11px] text-[var(--muted)]">Togli quelli che non giocano più: spariscono anche le loro pedine e i loro messaggi.</span>
+        <div id="lobbyManageChars" class="flex flex-col gap-1"></div>
+      </div>
+      <div class="flex flex-col gap-1.5 pt-2 border-t border-[var(--line)]">
+        <button id="btnLobbyDeleteCampaign" type="button" class="btn btn-danger text-xs font-bold self-start">🗑️ Elimina l'avventura per tutti</button>
+        <span class="text-[11px] text-[var(--muted)]">Cancella mappa, schede, diario e segreti del Master. Non si può annullare.</span>
+      </div>
+      <div id="lobbyManageError" class="text-xs font-bold text-[var(--danger)] min-h-[1rem]"></div>
+    </div>
+  </div>
+
+  <div id="modalCampaignPassword" class="hidden fixed inset-0 z-[61] bg-black/70 flex items-center justify-center p-4">
+    <form id="campaignPasswordForm" class="card-surface w-full max-w-sm p-5 flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl">
+      <h3 id="campaignPasswordTitle" class="font-serif-title font-bold text-lg">🔒 Avventura protetta</h3>
+      <p class="text-xs text-[var(--muted)]">Questa avventura è riservata al suo gruppo. Chiedi la password al Master (funziona anche la password del Master). Su questo dispositivo te la chiederà una volta sola.</p>
+      <input id="inputCampaignPassword" type="password" autocomplete="off" class="input-field w-full text-center font-bold text-base" placeholder="Password dell'avventura" aria-label="Password dell'avventura" />
+      <div id="campaignPasswordError" class="text-xs font-bold text-[var(--danger)] min-h-[1rem]"></div>
+      <div class="flex justify-end gap-2">
+        <button id="btnCancelCampaignPassword" type="button" class="btn text-xs">Annulla</button>
+        <button id="btnConfirmCampaignPassword" type="submit" class="btn btn-felt text-xs font-bold">🔓 Entra</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="modalPin" class="hidden fixed inset-0 z-[62] bg-black/70 flex items-center justify-center p-4">
+    <div class="card-surface w-full max-w-sm p-5 flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl">
+      <h3 id="pinModalTitle" class="font-serif-title font-bold text-lg">🔐 PIN personale</h3>
+      <p id="pinModalText" class="text-xs text-[var(--muted)]"></p>
+      <input id="inputPin" type="password" autocomplete="off" class="input-field w-full text-center font-bold text-lg tracking-widest" placeholder="PIN" aria-label="PIN" />
+      <div id="pinRepeatRow"><input id="inputPinRepeat" type="password" autocomplete="off" class="input-field w-full text-center font-bold text-lg tracking-widest" placeholder="Ripeti il PIN" aria-label="Ripeti il PIN" /></div>
+      <div id="pinError" class="text-xs font-bold text-[var(--danger)] min-h-[1rem]"></div>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <button id="btnPinForgot" type="button" class="text-[11px] underline text-[var(--muted)]">PIN dimenticato?</button>
+        <div class="flex gap-2 ml-auto">
+          <button id="btnPinCancel" type="button" class="btn text-xs">Annulla</button>
+          <button id="btnPinConfirm" type="button" class="btn btn-felt text-xs font-bold">Conferma</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1392,6 +1571,9 @@
   <script src="js/dm.js"></script>
   <script src="js/messages.js"></script>
   <script src="js/images.js"></script>
+  <script src="js/private.js"></script>
+  <script src="js/links.js"></script>
+  <script src="js/customsheet.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -284,7 +284,7 @@ async function renderHandouts() {
         <span class="text-[10px] text-[var(--muted)]">${h.to === 'all' ? '👥 per tutti' : '🔒 solo per te'} · ${new Date(h.at).toLocaleDateString('it-IT')}</span>
       </div>
       ${h.image ? `<img src="${escapeHtml(h.image)}" alt="" class="max-h-64 w-auto rounded border border-[var(--line)] self-start" />` : ''}
-      ${h.text ? `<p class="whitespace-pre-wrap leading-relaxed">${escapeHtml(h.text)}</p>` : ''}
+      ${h.text ? `<p class="whitespace-pre-wrap leading-relaxed">${linkify(h.text)}</p>` : ''}
     </article>`).join('');
   // Il Master vede le dispense mandate
   const sentList = $('dmHandoutSentList');
@@ -312,7 +312,7 @@ async function announceNewHandouts(keys) {
 
 function showHandoutPopup(h) {
   setText('handoutPopupTitle', h.title || 'Dispensa dal Master');
-  $('handoutPopupBody').innerHTML = `${h.image ? `<img src="${escapeHtml(h.image)}" alt="" class="max-h-[50vh] w-auto rounded border border-[var(--line)] mx-auto" />` : ''}${h.text ? `<p class="whitespace-pre-wrap leading-relaxed">${escapeHtml(h.text)}</p>` : ''}`;
+  $('handoutPopupBody').innerHTML = `${h.image ? `<img src="${escapeHtml(h.image)}" alt="" class="max-h-[50vh] w-auto rounded border border-[var(--line)] mx-auto" />` : ''}${h.text ? `<p class="whitespace-pre-wrap leading-relaxed">${linkify(h.text)}</p>` : ''}`;
   setText('handoutPopupFrom', h.to === 'all' ? '📜 Dal Master, per tutto il gruppo' : '🔒 Dal Master, solo per te');
   showEl('modalHandout', true);
 }
