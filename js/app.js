@@ -789,6 +789,7 @@ async function startApp() {
   initMessageEvents();
   initImageEvents();
   initPrivateEvents();
+  initLinkEvents();
   setAdvMode('normal');
   renderGlossary();
   renderChat();

@@ -3,6 +3,7 @@
 const JOURNAL_CATEGORIES = {
   'Missioni': '🗺️',
   'Personaggi incontrati': '🧙',
+  'Luoghi': '📍',
   'Bottino': '💰',
   'Domande per il DM': '❓',
   'Sessioni': '📜'
@@ -50,11 +51,12 @@ function renderJournal() {
             </div>
             ${canEditJournalEntry(j) ? '<button type="button" class="btn text-[10px] py-0 px-1.5 journal-delete-btn" title="Elimina voce">🗑️</button>' : ''}
           </div>
-          ${j.content ? `<p class="leading-relaxed whitespace-pre-wrap">${escapeHtml(j.content)}</p>` : ''}
+          ${j.content ? `<p class="leading-relaxed whitespace-pre-wrap">${linkify(j.content, { kind: 'journal', id: j.id })}</p>` : ''}
+          ${LINK_CATEGORIES.includes(j.category) ? citedInHtml('journal', j.id, j.title) : ''}
           ${isQuestion ? (dm
             ? `<label class="flex flex-col gap-1 pt-1 border-t border-[var(--line)]"><span class="font-bold text-[var(--brass)]">Risposta del DM</span>
                  <textarea rows="2" class="input-field w-full text-xs journal-answer-input" placeholder="Scrivi la risposta…">${escapeHtml(j.dmAnswer)}</textarea></label>`
-            : j.dmAnswer ? `<div class="pt-1 border-t border-[var(--line)]"><strong class="text-[var(--brass)]">🐉 Risposta del DM:</strong> <span class="whitespace-pre-wrap">${escapeHtml(j.dmAnswer)}</span></div>`
+            : j.dmAnswer ? `<div class="pt-1 border-t border-[var(--line)]"><strong class="text-[var(--brass)]">🐉 Risposta del DM:</strong> <span class="whitespace-pre-wrap">${linkify(j.dmAnswer)}</span></div>`
               : '<div class="text-[11px] italic text-[var(--muted)]">In attesa di risposta dal DM…</div>') : ''}
         </article>`;
     }).join('');

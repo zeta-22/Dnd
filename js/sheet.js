@@ -182,6 +182,7 @@ function renderSheet() {
   setText('sheetPortraitInitials', src ? '' : editable ? '📷' : initialsOf(ch.name));
   showEl('btnRemovePortrait', editable && Boolean(src), '');
   renderStoryCard(ch);
+  $('sheetMentions').innerHTML = citedInHtml('char', ch.id, ch.name);
   setText('sheetCharTypeBadge', ch.isNpc ? 'PNG' : 'PG');
   Object.entries(SHEET_FIELDS).forEach(([id, def]) => setVal($(id), ch[def.field]));
   setText('sheetHitDiceRemainingBadge', `${ch.hitDiceRemaining}/${ch.level}`);

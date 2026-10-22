@@ -252,6 +252,17 @@ textarea.input-field { resize: vertical; }
 .chat-msg.user { align-self: flex-end; background: var(--felt); color: var(--felt-ink); max-width: 90%; }
 .chat-msg.bot { align-self: flex-start; background: var(--surface); border: 1px solid var(--line); max-width: 100%; }
 .chat-msg .src-link { color: var(--brass); text-decoration: underline; cursor: pointer; }
+/* Collegamenti tra le voci del Diario */
+.ref-link { color: var(--felt); font-weight: 700; text-decoration: underline dotted; text-underline-offset: 2px; cursor: pointer; }
+:root[data-theme="dark"] .ref-link { color: var(--brass); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ref-link { color: var(--brass); } }
+.ref-link:hover { text-decoration-style: solid; }
+@keyframes refFlash { 0%, 60% { box-shadow: 0 0 0 3px var(--brass); background: var(--brass-soft); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.ref-flash { animation: refFlash 1.8s ease-out; }
+.mention-menu { position: absolute; left: 0; right: 0; top: 100%; z-index: 70; margin-top: 2px; max-height: 15rem; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--brass); border-radius: 8px; box-shadow: var(--shadow-md); padding: 0.2rem; }
+.mention-item { display: block; width: 100%; text-align: left; padding: 0.35rem 0.5rem; border-radius: 6px; font-size: 12px; }
+.mention-item.active, .mention-item:hover { background: var(--brass-soft); }
 
 .skill-prof-btn { width: 18px; height: 18px; border-radius: 999px; border: 2px solid var(--felt); background: var(--surface); flex-shrink: 0; }
 .skill-prof-btn.prof { background: var(--felt); }

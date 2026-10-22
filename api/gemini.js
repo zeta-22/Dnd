@@ -9,7 +9,7 @@
 // POST /api/gemini { task: 'extract', notes }                     → { entries: [{ category, title, content }] }
 
 const DEFAULT_MODEL = 'gemini-flash-latest';
-const CATEGORIES = ['Missioni', 'Personaggi incontrati', 'Bottino', 'Domande per il DM', 'Sessioni'];
+const CATEGORIES = ['Missioni', 'Personaggi incontrati', 'Luoghi', 'Bottino', 'Domande per il DM', 'Sessioni'];
 const RATE_LIMIT = 20;            // richieste al minuto per indirizzo (per istanza)
 const recentRequests = new Map();
 

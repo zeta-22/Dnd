@@ -241,6 +241,7 @@ async function renderStoryCard(ch) {
     <label class="flex flex-col gap-1"><span class="font-bold text-[var(--muted)]">${label}</span>
       <textarea class="input-field w-full text-xs story-field" data-field="${field}" rows="${rows}" placeholder="${escapeHtml(placeholder)}" ${view.editable ? '' : 'readonly'}>${escapeHtml(data[field] || '')}</textarea>
     </label>`).join('');
+  if (view.editable) body.querySelectorAll('.story-field').forEach(attachMentions);
 }
 
 function readStoryFields() {
@@ -338,7 +339,7 @@ async function renderPersonalNotes() {
         <strong class="font-serif-title text-base">${escapeHtml(n.title || 'Nota')}</strong>
         <span class="text-[10px] text-[var(--muted)] whitespace-nowrap">${new Date(n.at).toLocaleDateString('it-IT')}</span>
       </div>
-      ${n.text ? `<p class="whitespace-pre-wrap leading-relaxed">${escapeHtml(n.text)}</p>` : ''}
+      ${n.text ? `<p class="whitespace-pre-wrap leading-relaxed">${linkify(n.text)}</p>` : ''}
       <div class="flex flex-wrap gap-1.5 justify-end">
         ${n.broken ? '' : '<button type="button" class="btn text-[11px] py-0.5 note-edit-btn">✏️ Modifica</button><button type="button" class="btn text-[11px] py-0.5 note-share-btn" title="Copia la nota nel Diario del gruppo">📤 Condividi nel Diario</button>'}
         <button type="button" class="btn text-[11px] py-0.5 text-[var(--danger)] note-delete-btn">🗑️</button>

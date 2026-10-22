@@ -228,7 +228,8 @@ function heuristicExtract(notes) {
     ['Domande per il DM', /\?\s*$/],
     ['Bottino', /\b(mo|monet|oro|argent|rame|gemm|oggett|pozion|bottino|tesor|anell|amulet|pergamen|ricompens)/i],
     ['Missioni', /\b(mission|quest|incaric|recuper|trovar|salvar|uccider|scortar|consegnar|obiettiv|compito|indaga)/i],
-    ['Personaggi incontrati', /\b(incontr|conosciut|parlat|sindac|mercant|capitan|sacerdot|oste|png|signor|chiamat|di nome|re |regina|principe)/i]
+    ['Personaggi incontrati', /\b(incontr|conosciut|parlat|sindac|mercant|capitan|sacerdot|oste|png|signor|chiamat|di nome|re |regina|principe)/i],
+    ['Luoghi', /\b(citt[aà]|villaggio|paese|taverna|locanda|foresta|bosco|castello|torre|cripta|dungeon|grotta|caverna|porto|tempio|rovine|palude|montagn|fortezza)/i]
   ];
   return chunks.filter(c => c.length > 3).slice(0, 25).map(c => {
     const category = (rules.find(([, re]) => re.test(c)) || ['Sessioni'])[0];
