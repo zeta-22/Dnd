@@ -110,7 +110,8 @@ function longRest(ch) {
   ch.conditions = ch.conditions.filter(c => c !== 'Indebolimento');
   ch.concentration = null;
   touchEnt(`char:${ch.id}`);
-  showToast(`🌙 ${ch.name} si è riposato: PF, Dadi Vita e slot recuperati`);
+  if (spellPrepMode(ch)) showToast(`🌙 ${ch.name} si è riposato: PF, Dadi Vita e slot recuperati. Ora può cambiare gli incantesimi preparati`, 4500);
+  else showToast(`🌙 ${ch.name} si è riposato: PF, Dadi Vita e slot recuperati`);
   scheduleRender();
 }
 

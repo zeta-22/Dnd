@@ -20,6 +20,10 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Scheda personaggio** semplice o completa: PF e PF temporanei, riposi, tiri salvezza contro morte, abilità con competenza e maestria, attacchi, condizioni.
 - **Incantesimi**: si scelgono dall'elenco del regolamento base, si lanciano spendendo gli slot (anche a livello superiore),
   con tiri d'attacco, danni, cure, CD e concentrazione (con il tiro salvezza quando si subiscono danni).
+  Chierico, Druido, Mago e Paladino **preparano** gli incantesimi (caratteristica + livello, metà livello per il Paladino):
+  si spuntano nella scheda, si lanciano solo quelli preparati e quelli del dominio o del giuramento si segnano “sempre
+  preparati”. I **rituali** si lanciano senza slot con 10 minuti in più: il Mago anche quelli non preparati del suo libro,
+  Chierico e Druido quelli preparati, il Bardo quelli che conosce.
 - **Creazione guidata del personaggio** (razza, classe, caratteristiche con serie standard, acquisto a punti o 4d6, abilità)
   e **passaggio di livello** con PF, aumenti di caratteristica e nuovi slot.
 - **Messaggi privati** tra Master e giocatori e **dispense** (testo e immagini) per tutti o per un solo giocatore.
