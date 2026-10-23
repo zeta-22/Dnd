@@ -223,11 +223,16 @@ async function finishCharWizard() {
     featuresText: `${w.race}: ${race.traits}\n${w.cls}: ${cls.features}`
   };
   closeCharWizard();
-  if (w.purpose === 'onboarding') {
-    if (!(await ensureCampaignLoaded(w.campId))) return;
+  await addNewCharacter(w.purpose, w.campId, fields);
+}
+
+// Crea il personaggio (creazione guidata o scheda importata): al primo ingresso si entra con lui
+async function addNewCharacter(purpose, campId, fields) {
+  if (purpose === 'onboarding') {
+    if (!(await ensureCampaignLoaded(campId))) return;
     if (App.dmUnlocked) lockDm();
     const ch = createCharacter(fields);
-    await enterAsPlayer(w.campId, ch.id);
+    await enterAsPlayer(campId, ch.id);
     return;
   }
   const dm = isDM();

@@ -22,6 +22,11 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
   con tiri d'attacco, danni, cure, CD e concentrazione (con il tiro salvezza quando si subiscono danni).
 - **Creazione guidata del personaggio** (razza, classe, caratteristiche con serie standard, acquisto a punti o 4d6, abilità)
   e **passaggio di livello** con PF, aumenti di caratteristica e nuovi slot.
+- **Scheda da PDF o da foto**: al primo ingresso (o con **📄 Da PDF** nella scheda Personaggio) si carica la propria scheda,
+  anche in inglese, e l'app prepara il personaggio già tradotto in italiano: caratteristiche, competenze e maestrie, attacchi,
+  incantesimi lanciabili con i loro slot, equipaggiamento, privilegi e storia. Prima di confermare si vede un'anteprima da correggere.
+  Funziona con le schede compilabili (quella ufficiale, gli export di D&D Beyond), con quelle stampate o scansionate e con le foto.
+  Senza assistente IA si leggono solo le schede compilabili e i testi restano nella lingua originale.
 - **Messaggi privati** tra Master e giocatori e **dispense** (testo e immagini) per tutti o per un solo giocatore.
 - **Diario condiviso** (missioni, PNG, luoghi, bottino, domande per il DM con risposta) e **note personali** che legge solo
   chi le scrive (nemmeno il Master), protette da un PIN personale.
@@ -85,7 +90,8 @@ Su Vercel → progetto → **Settings → Environment Variables** aggiungi:
 | `GEMINI_MODEL` | facoltativo, predefinito `gemini-flash-latest` |
 
 Poi rifai il deploy (Deployments → ⋯ → Redeploy). La chiave resta sul server: i giocatori usano l'assistente senza vederla.
-Senza chiave l'assistente funziona lo stesso, ma risponde solo con il glossario e la ricerca nei PDF.
+Senza chiave l'assistente funziona lo stesso, ma risponde solo con il glossario e la ricerca nei PDF,
+e le schede personaggio si importano solo dai PDF compilabili, senza traduzione.
 
 ### 4. Pubblicazione
 
@@ -108,6 +114,8 @@ Il Master può premere **👁️ Vista** per vedere la mappa esattamente come la
 - **Protetto dalla password del Master**: note segrete, appunti di sessione, nemici preparati. Stanno in una “cassaforte” nel database che si apre solo con la password giusta.
 - **Tiri segreti del Master**: restano solo sul suo dispositivo.
 - **PDF dei manuali**: restano nel browser di chi li carica, non vengono mai inviati online.
+- **Schede personaggio importate**: per la traduzione il contenuto della scheda passa da Gemini (tramite la funzione su Vercel);
+  il file in sé non viene salvato da nessuna parte. Senza IA le schede compilabili si leggono solo sul dispositivo.
 - **Messaggi e dispense per un solo giocatore**: sono cifrati con una chiave che esiste solo sul dispositivo di quel giocatore.
   Se il giocatore cambia telefono, i messaggi vecchi su quello nuovo non si leggono (quelli nuovi sì).
   I messaggi dei giocatori al Master si leggono solo con la password del Master.
@@ -146,6 +154,7 @@ js/images.js        immagini di personaggi e pedine (ritaglio, compressione, pul
 js/private.js       PIN personale, note personali, storia del personaggio
 js/links.js         collegamenti nel Diario e menu "@"
 js/customsheet.js   modelli e schede personalizzate
+js/sheetimport.js   scheda del personaggio importata da PDF o foto (lettura, traduzione con Gemini, anteprima)
 js/bestiary.js      i mostri comuni con le loro icone (generato da tools/build-bestiary.py)
 vendor/             libreria dei dadi 3D (scaricata solo al primo tiro) e i suoi suoni
 js/app.js           avvio, lobby, ingresso nelle avventure

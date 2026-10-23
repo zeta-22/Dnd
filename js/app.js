@@ -763,7 +763,7 @@ function initAppEvents() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     closeTokenPopover();
-    ['modalAddToken', 'modalVerifyDmPassword', 'modalCloudStatus', 'modalSpellPicker', 'modalLevelUp', 'modalMessages', 'modalHandout', 'modalImageCrop', 'modalCampaignPassword', 'modalLobbyManage', 'modalTemplateEditor'].forEach(id => showEl(id, false));
+    ['modalAddToken', 'modalVerifyDmPassword', 'modalCloudStatus', 'modalSpellPicker', 'modalLevelUp', 'modalMessages', 'modalHandout', 'modalImageCrop', 'modalCampaignPassword', 'modalLobbyManage', 'modalTemplateEditor', 'modalSheetImport'].forEach(id => showEl(id, false));
     if (!$('modalPin').classList.contains('hidden')) finishPinRequest(null);
   });
   window.addEventListener('pagehide', () => { if (App.activeId) Sync.saveLocalNow(App.activeId); });
@@ -800,6 +800,7 @@ async function startApp() {
   initPrivateEvents();
   initLinkEvents();
   initCustomSheetEvents();
+  initSheetImportEvents();
   setAdvMode('normal');
   renderGlossary();
   renderChat();

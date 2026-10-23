@@ -306,6 +306,9 @@
           <select id="newSheetType" class="hidden input-field text-xs" aria-label="Tipo di scheda per i nuovi personaggi"></select>
           <button id="btnNewPcSheet" type="button" class="btn btn-felt text-xs font-bold">+ Nuovo PG</button>
           <button id="btnSheetWizard" type="button" class="btn btn-brass text-xs font-bold" title="Creazione guidata passo passo">🧭 Guidata</button>
+          <label class="btn btn-brass text-xs font-bold cursor-pointer" title="Crea il personaggio da una scheda in PDF o da una foto">📄 Da PDF
+            <input type="file" accept="application/pdf,.pdf,image/*" class="hidden sheet-import-input" data-purpose="sheet" />
+          </label>
           <button id="btnNewNpcSheet" type="button" class="btn btn-brass text-xs font-bold dm-only">+ Nuova scheda PNG</button>
           <button id="btnDeleteSheet" type="button" class="btn text-xs text-[var(--danger)]">Elimina scheda</button>
         </div>
@@ -1227,6 +1230,15 @@
           <label data-sheet-type-row class="hidden items-center gap-2 text-xs font-bold text-[var(--muted)]">Tipo di scheda
             <select id="onbSheetType" class="input-field flex-1 font-bold"></select>
           </label>
+          <div class="card-surface2 p-3 flex flex-wrap items-center justify-between gap-2 border-2 border-[var(--brass)] onb-5e">
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-sm">📄 Hai già una scheda?</div>
+              <p class="text-[11px] text-[var(--muted)] leading-relaxed">Carica il PDF (o una foto) della tua scheda, anche in inglese: l'app legge tutti i dati, li traduce in italiano e prepara il personaggio. Prima di entrare puoi controllarli. Per la traduzione la scheda passa dall'assistente IA (Gemini).</p>
+            </div>
+            <label class="btn btn-felt text-xs font-bold cursor-pointer">📄 Carica la scheda
+              <input type="file" accept="application/pdf,.pdf,image/*" class="hidden sheet-import-input" data-purpose="onboarding" />
+            </label>
+          </div>
           <p class="text-[11px] text-[var(--muted)] -mt-1 onb-5e">La creazione guidata ti accompagna passo passo (razza, classe, caratteristiche, abilità). Oppure compila al volo qui sotto.</p>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
             <div class="col-span-2">
@@ -1296,6 +1308,25 @@
         <button id="btnWizardBack" type="button" class="btn text-xs">← Indietro</button>
         <span id="wizardProblem" class="text-[11px] font-bold text-[var(--danger)] text-center"></span>
         <button id="btnWizardNext" type="button" class="btn btn-felt text-sm font-bold px-5">Avanti →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalSheetImport" class="hidden fixed inset-0 z-[55] bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-surface p-5 w-full max-w-3xl flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto">
+      <div class="flex items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+        <div class="min-w-0">
+          <span id="sheetImportFileName" class="block truncate text-[11px] font-bold uppercase tracking-wider text-[var(--brass)]">Scheda</span>
+          <h3 class="font-serif-title font-bold text-2xl">📄 Personaggio dalla scheda</h3>
+        </div>
+        <button id="btnCloseSheetImport" type="button" class="btn text-xs" aria-label="Chiudi">✕</button>
+      </div>
+      <div id="sheetImportBody" class="text-xs flex flex-col gap-3"></div>
+      <div class="flex items-center justify-between gap-2 pt-2 border-t border-[var(--line)]">
+        <label class="btn text-xs cursor-pointer">📄 Un altro file
+          <input type="file" accept="application/pdf,.pdf,image/*" class="hidden sheet-import-input" />
+        </label>
+        <button id="btnConfirmSheetImport" type="button" class="hidden btn btn-felt text-sm font-bold px-5">⚔️ Crea ed entra</button>
       </div>
     </div>
   </div>
@@ -1574,6 +1605,7 @@
   <script src="js/private.js"></script>
   <script src="js/links.js"></script>
   <script src="js/customsheet.js"></script>
+  <script src="js/sheetimport.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

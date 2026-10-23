@@ -20,6 +20,11 @@ function loadPdfJs() {
   return pdfJsPromise;
 }
 
+async function pdfPageText(page) {
+  const tc = await page.getTextContent();
+  return tc.items.map(it => it.str + (it.hasEOL ? '\n' : ' ')).join('').replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').trim();
+}
+
 async function loadBooks() {
   App.books = (await idbGetAll('books')).sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
 }
@@ -51,10 +56,7 @@ async function indexPdfFiles(files) {
       const pdf = await pdfjs.getDocument({ data }).promise;
       const pages = [];
       for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const tc = await page.getTextContent();
-        const text = tc.items.map(it => it.str + (it.hasEOL ? '\n' : ' ')).join('').replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').trim();
-        pages.push(text);
+        pages.push(await pdfPageText(await pdf.getPage(i)));
         if (i % 3 === 0 || i === pdf.numPages) setIndexingStatus(`Indicizzo “${title}”: pagina ${i} di ${pdf.numPages}`, (i / pdf.numPages) * 100);
       }
       const book = { id: uid('book'), title, size: file.size, pageCount: pdf.numPages, addedAt: Date.now(), pages, blob };
@@ -302,9 +304,9 @@ async function checkAiAvailability(force = false) {
   return App.ai.available;
 }
 
-async function callAi(payload) {
+async function callAi(payload, timeoutMs = 45000) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 45000);
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(TAVOLO_CONFIG.aiEndpoint, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: ctrl.signal
