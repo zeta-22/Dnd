@@ -361,11 +361,11 @@
               </div>
               <div class="sheet-5e">
                 <label for="sheetInputRace" class="block font-bold text-[var(--muted)] mb-1">Razza</label>
-                <input id="sheetInputRace" type="text" class="input-field w-full font-bold" />
+                <input id="sheetInputRace" type="text" list="srdRaceList" class="input-field w-full font-bold" />
               </div>
               <div class="sheet-5e">
                 <label for="sheetInputClass" class="block font-bold text-[var(--muted)] mb-1">Classe</label>
-                <input id="sheetInputClass" type="text" class="input-field w-full font-bold" />
+                <input id="sheetInputClass" type="text" list="srdClassList" class="input-field w-full font-bold" />
               </div>
               <div class="sheet-5e">
                 <label for="sheetInputLevel" class="block font-bold text-[var(--muted)] mb-1">Livello (1-20)</label>
@@ -531,15 +531,20 @@
           </div>
 
           <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
-            <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
-              <h3 class="font-serif-title font-bold text-lg">⚔️ Attacchi &amp; Incantesimi d'Offesa</h3>
-              <span class="text-[11px] text-[var(--muted)]">Formato: Nome | +bonus | danno</span>
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+              <h3 class="font-serif-title font-bold text-lg">⚔️ Armi e attacchi</h3>
+              <div class="flex items-center gap-1.5">
+                <select id="sheetWeaponAdd" class="input-field text-xs max-w-[11rem]" aria-label="Arma da aggiungere"></select>
+                <button id="btnAddWeapon" type="button" class="btn btn-felt text-xs">+ Arma</button>
+              </div>
             </div>
+            <p class="text-[11px] text-[var(--muted)] -mt-1">Scegli l'arma dal manuale: tiro per colpire e danni li calcola la scheda da caratteristiche, competenza e livello.</p>
             <div id="sheetGeneratedAttacksList" class="flex flex-col gap-2"></div>
-            <div class="pt-1">
-              <label for="sheetTextareaAttacks" class="block font-bold text-[var(--muted)] mb-1 text-xs">Modifica testo attacchi</label>
-              <textarea id="sheetTextareaAttacks" rows="3" class="input-field w-full text-xs font-mono"></textarea>
-            </div>
+            <details class="text-xs">
+              <summary class="cursor-pointer font-bold text-[var(--muted)]">✍️ Altri attacchi scritti a mano (attacchi naturali, armi speciali…)</summary>
+              <p class="text-[11px] text-[var(--muted)] mt-1">Uno per riga, con il bonus e i danni già calcolati: Nome | +bonus | danno, per esempio “Morso | +4 | 1d6+2”.</p>
+              <textarea id="sheetTextareaAttacks" rows="3" class="input-field w-full text-xs font-mono mt-1" aria-label="Altri attacchi"></textarea>
+            </details>
           </div>
 
           <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
@@ -561,6 +566,7 @@
                 <button id="btnOpenSpellPicker" type="button" class="btn btn-felt text-xs">+ Aggiungi</button>
               </div>
             </div>
+            <div id="sheetSpellLimits" class="hidden text-[11px] leading-relaxed"></div>
             <div id="sheetConcentrationBar" class="hidden flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-lg border-2 border-[var(--brass)] bg-[var(--brass-soft)] text-xs"></div>
             <div id="sheetSpellList" class="flex flex-col gap-2 text-xs"></div>
           </div>
@@ -899,6 +905,14 @@
               <div class="text-xs">
                 <label class="block font-bold text-[var(--muted)] mb-1">Nome campagna</label>
                 <input id="dmInputCampaignName" type="text" class="input-field w-full font-serif-title font-bold text-base" />
+              </div>
+              <div class="text-xs">
+                <label for="dmRulesSelect" class="block font-bold text-[var(--muted)] mb-1">Regole</label>
+                <select id="dmRulesSelect" class="input-field w-full text-xs">
+                  <option value="2014">D&amp;D 5e (Manuale del Giocatore 2014)</option>
+                  <option value="2024">D&amp;D 5e revisione 2024 (Manuale del Giocatore 2024, come D&amp;D Beyond)</option>
+                </select>
+                <p class="text-[10px] text-[var(--muted)] mt-1">Decide quanti incantesimi si scelgono a ogni livello, gli slot di paladino e ranger al 1° livello e le armi in cui sono competenti alcune classi.</p>
               </div>
               <div class="text-xs flex flex-col gap-1">
                 <label class="flex items-center justify-between font-bold text-[var(--muted)]"><span>🕵️ Note segrete del DM</span><span id="dmVaultSaveStatus" class="font-normal text-[10px]"></span></label>
@@ -1247,11 +1261,11 @@
             </div>
             <div class="onb-5e">
               <label class="block font-bold text-[var(--muted)] mb-1">Razza</label>
-              <input id="onbCharRace" type="text" value="Elfo" class="input-field w-full font-bold" />
+              <input id="onbCharRace" type="text" value="Elfo" list="srdRaceList" class="input-field w-full font-bold" />
             </div>
             <div class="onb-5e">
               <label class="block font-bold text-[var(--muted)] mb-1">Classe</label>
-              <input id="onbCharClass" type="text" value="Guerriero" class="input-field w-full font-bold" />
+              <input id="onbCharClass" type="text" value="Guerriero" list="srdClassList" class="input-field w-full font-bold" />
             </div>
             <div class="onb-5e">
               <label class="block font-bold text-[var(--muted)] mb-1">Livello</label>
@@ -1266,8 +1280,8 @@
               <input id="onbCharAc" type="number" min="1" max="35" value="16" class="input-field w-full text-center font-bold" />
             </div>
             <div class="onb-5e">
-              <label class="block font-bold text-[var(--muted)] mb-1">Azione Bonus</label>
-              <input id="onbCharBonus" type="text" value="Recuperare Energie" class="input-field w-full font-bold" />
+              <label class="block font-bold text-[var(--muted)] mb-1">Azione bonus</label>
+              <input id="onbCharBonus" type="text" value="Recuperare energie" placeholder="nessuna" title="L'azione bonus tipica della classe: si riempie da sola" class="input-field w-full font-bold" />
             </div>
           </div>
           <div class="onb-5e">
@@ -1282,8 +1296,9 @@
             </div>
           </div>
           <div class="text-xs onb-5e">
-            <label class="block font-bold text-[var(--muted)] mb-1">Attacco Principale</label>
-            <input id="onbCharAttack" type="text" value="Spada lunga | +5 | 1d8+3" class="input-field w-full font-mono text-xs" />
+            <label for="onbCharWeapon" class="block font-bold text-[var(--muted)] mb-1">Arma principale</label>
+            <select id="onbCharWeapon" class="input-field w-full text-xs"></select>
+            <p class="text-[11px] text-[var(--muted)] mt-1">Tiro per colpire e danni li calcola la scheda; altre armi le aggiungi dopo.</p>
           </div>
           <div class="flex items-center justify-between pt-2 border-t border-[var(--line)]">
             <button id="btnBackToRoleStep" type="button" class="btn text-xs">← Indietro</button>
@@ -1355,6 +1370,11 @@
         <select id="selectSpellClass" class="input-field" aria-label="Classe"></select>
         <select id="selectSpellLevel" class="input-field" aria-label="Livello"></select>
       </div>
+      <div id="spellPickerLimits" class="hidden text-[11px] leading-relaxed"></div>
+      <label id="spellPickerExtraRow" class="hidden items-start gap-2 text-[11px] cursor-pointer">
+        <input id="spellPickerExtra" type="checkbox" class="mt-0.5 accent-[var(--felt)]" />
+        <span><strong>Incantesimi extra</strong>: dati dalla razza, da un talento, da un oggetto o da un'altra classe. Si scelgono da tutto l'elenco e non contano nei limiti.</span>
+      </label>
       <div id="spellPickerResults" class="flex flex-col gap-1.5 overflow-y-auto pr-1 text-xs"></div>
       <p class="text-[10px] text-[var(--muted)]">Nomi in italiano; le descrizioni sono quelle ufficiali del regolamento base (SRD 5.1) in inglese.</p>
     </div>
@@ -1583,6 +1603,10 @@
       </div>
     </div>
   </div>
+
+  <!-- Suggerimenti per classe e razza: si può comunque scrivere altro -->
+  <datalist id="srdClassList"><option value="Barbaro"></option><option value="Bardo"></option><option value="Chierico"></option><option value="Druido"></option><option value="Guerriero"></option><option value="Ladro"></option><option value="Mago"></option><option value="Monaco"></option><option value="Paladino"></option><option value="Ranger"></option><option value="Stregone"></option><option value="Warlock"></option></datalist>
+  <datalist id="srdRaceList"><option value="Dragonide"></option><option value="Elfo (Alto Elfo)"></option><option value="Elfo (dei Boschi)"></option><option value="Elfo (Drow)"></option><option value="Gnomo (delle Rocce)"></option><option value="Halfling (Piedelesto)"></option><option value="Mezzelfo"></option><option value="Mezzorco"></option><option value="Nano (delle Colline)"></option><option value="Nano (delle Montagne)"></option><option value="Tiefling"></option><option value="Umano"></option></datalist>
 
   <script src="js/config.js"></script>
   <script src="js/rules.js"></script>

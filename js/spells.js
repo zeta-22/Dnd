@@ -47,6 +47,10 @@ function recordSpellCast(ch, sp, castLevel, extra) {
 function castSpell(ch, spellIndex, slotLevel) {
   const sp = srdSpell(spellIndex);
   if (!sp || !canEditChar(ch)) return;
+  if (needsPreparing(ch, ch.spells.find(s => Number(s.i) === sp.i), sp)) {
+    showToast(`📕 ${sp.n} è nel libro ma non è preparato: preparalo prima di lanciarlo`, 3500);
+    return;
+  }
   let castLevel = 0;
   if (sp.lv > 0) {
     castLevel = slotLevel || availableSlotLevels(ch, sp.lv)[0];
@@ -116,6 +120,44 @@ function rollConcentrationSave(ch) {
 // Disegno nella scheda
 // ---------------------------------------------------------------------------
 
+// Gli incantesimi "extra" (razza, talenti, oggetti…) non contano nei limiti della classe
+function spellCounts(ch) {
+  const counted = ch.spells.filter(s => !s.x).map(s => ({ s, sp: srdSpell(Number(s.i)) })).filter(x => x.sp);
+  const leveled = counted.filter(x => x.sp.lv > 0);
+  return { cantrips: counted.length - leveled.length, leveled: leveled.length, prepared: leveled.filter(x => x.s.p).length };
+}
+
+// Il mago tiene gli incantesimi nel libro e lancia solo quelli preparati
+function needsPreparing(ch, entry, sp) {
+  return Boolean(entry && !entry.x && !entry.p && sp.lv > 0 && classSpellRules(ch)?.book);
+}
+
+function spellLimitsHtml(ch, rules) {
+  const c = spellCounts(ch);
+  const part = (label, have, max) => `<span class="${have > max ? 'font-bold text-[var(--danger)]' : have === max ? 'font-bold text-[var(--ok)]' : ''}">${label} ${have}/${max}</span>`;
+  const parts = [];
+  if (rules.cantrips) parts.push(part('Trucchetti', c.cantrips, rules.cantrips));
+  if (rules.book) parts.push(part('Nel libro', c.leveled, rules.book), part('Preparati', c.prepared, rules.spells));
+  else parts.push(part(rules.kind === 'known' ? 'Incantesimi conosciuti' : 'Incantesimi preparati', c.leveled, rules.spells));
+  const how = rules.kind === 'prepared' ? ` · preparati: ${rules.how}` : '';
+  const upTo = rules.maxLevel ? `fino al ${rules.maxLevel}° livello` : `il ${rules.cls} non ha ancora incantesimi a questo livello`;
+  const over = c.cantrips > rules.cantrips || c.leveled > (rules.book || rules.spells) || (rules.book && c.prepared > rules.spells);
+  return `${parts.join(' · ')} · ${upTo}${how} <span class="text-[var(--muted)]">(regole ${rules.rules})</span>
+    ${over ? '<div class="font-bold text-[var(--danger)]">Hai più incantesimi di quelli che la classe permette a questo livello: togline qualcuno o segnalo come extra.</div>' : ''}`;
+}
+
+// Si può aggiungere un incantesimo della classe? Restituisce il motivo se no
+function spellAddProblem(ch, rules, sp) {
+  if (sp.lv === 0 && !rules.cantrips) return `Il ${rules.cls} non ha trucchetti`;
+  if (sp.lv > 0 && !rules.maxLevel) return `Al ${ch.level}° livello il ${rules.cls} non ha ancora incantesimi`;
+  if (sp.lv > rules.maxLevel) return `Al ${ch.level}° livello il ${rules.cls} lancia incantesimi fino al ${rules.maxLevel}° livello`;
+  const c = spellCounts(ch);
+  if (sp.lv === 0 && c.cantrips >= rules.cantrips) return `Hai già ${c.cantrips} trucchetti su ${rules.cantrips}`;
+  const max = rules.book || rules.spells;
+  if (sp.lv > 0 && c.leveled >= max) return `Hai già ${c.leveled} incantesimi su ${max}${rules.book ? ' nel libro' : ''}`;
+  return '';
+}
+
 function spellMetaLine(sp) {
   const lvl = sp.lv === 0 ? 'Trucchetto' : `${sp.lv}° livello`;
   return `${lvl} · ${escapeHtml(sp.sc)} · ${escapeHtml(sp.ct)} · ${escapeHtml(sp.rg)} · ${escapeHtml(sp.du)}${sp.rit ? ' · rituale' : ''}`;
@@ -150,6 +192,12 @@ function renderSpellsCard(ch, editable) {
       </span>`;
   }
 
+  const rules = classSpellRules(ch);
+  if (rules && !SRD.spells) loadSrd('spells').then(scheduleRender).catch(() => {});
+  const limits = $('sheetSpellLimits');
+  showEl(limits, Boolean(rules && SRD.spells), '');
+  if (rules && SRD.spells) limits.innerHTML = spellLimitsHtml(ch, rules);
+
   const list = $('sheetSpellList');
   if (!ch.spells.length) {
     list.innerHTML = '<div class="text-[var(--muted)] italic">Nessun incantesimo. Premi “+ Aggiungi” per sceglierli dal regolamento.</div>';
@@ -160,9 +208,14 @@ function renderSpellsCard(ch, editable) {
     loadSrd('spells').then(scheduleRender).catch(() => { list.innerHTML = `<div class="text-[var(--danger)]">${escapeHtml(srdUnavailableMessage())}</div>`; });
     return;
   }
+  const entries = new Map(ch.spells.map(s => [Number(s.i), s]));
   const spells = ch.spells.map(s => srdSpell(Number(s.i))).filter(Boolean).sort((a, b) => a.lv - b.lv || a.n.localeCompare(b.n, 'it'));
   let lastLevel = -1;
   list.innerHTML = spells.map(sp => {
+    const entry = entries.get(sp.i);
+    const unprepared = needsPreparing(ch, entry, sp);
+    const prepBtn = rules?.book && sp.lv > 0 && !entry.x
+      ? `<button type="button" class="btn ${entry.p ? 'btn-brass' : ''} text-[11px] py-0.5 px-2 spell-prep-btn" title="Il mago lancia solo gli incantesimi preparati" ${editable ? '' : 'disabled'}>${entry.p ? '📕 Preparato' : '📖 Prepara'}</button>` : '';
     const header = sp.lv !== lastLevel ? `<div class="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] pt-1">${sp.lv === 0 ? 'Trucchetti' : `${sp.lv}° livello`}</div>` : '';
     lastLevel = sp.lv;
     const slots = sp.lv > 0 ? availableSlotLevels(ch, sp.lv) : [];
@@ -175,11 +228,13 @@ function renderSpellsCard(ch, editable) {
           <div class="min-w-0">
             <strong class="font-serif-title text-sm">${escapeHtml(sp.n)}</strong>
             ${sp.conc ? '<span class="text-[10px] font-bold text-[var(--brass)]">🔮 conc.</span>' : ''}
+            ${entry.x ? '<span class="text-[10px] font-bold text-[var(--muted)]" title="Non conta nei limiti della classe">extra</span>' : ''}
             <div class="text-[10px] text-[var(--muted)]">${spellMetaLine(sp)}</div>
           </div>
           <div class="flex flex-wrap items-center gap-1">
-            ${slotSelect}
-            <button type="button" class="btn btn-felt text-[11px] py-0.5 px-2 spell-cast-btn" ${editable && (sp.lv === 0 || slots.length) ? '' : 'disabled'}>✨ Lancia</button>
+            ${prepBtn}
+            ${unprepared ? '' : slotSelect}
+            <button type="button" class="btn btn-felt text-[11px] py-0.5 px-2 spell-cast-btn" ${editable && !unprepared && (sp.lv === 0 || slots.length) ? '' : 'disabled data-off'}>✨ Lancia</button>
             ${sp.dmg ? `<button type="button" class="btn btn-brass text-[11px] py-0.5 px-2 spell-dmg-btn" ${editable ? '' : 'disabled'}>💥 ${escapeHtml(scaledSpellFormula(sp.dmg.f, sp, sp.lv, ch.level))}</button>` : ''}
             ${editable ? '<button type="button" class="btn text-[11px] py-0.5 px-1.5 spell-remove-btn" title="Togli dalla scheda">✕</button>' : ''}
           </div>
@@ -201,9 +256,12 @@ function openSpellPicker() {
     classSel.innerHTML = '<option value="">Tutte le classi</option>' + ['Bardo', 'Chierico', 'Druido', 'Mago', 'Paladino', 'Ranger', 'Stregone', 'Warlock'].map(c => `<option value="${c}">${c}</option>`).join('');
     $('selectSpellLevel').innerHTML = '<option value="">Tutti i livelli</option><option value="0">Trucchetti</option>' + [1, 2, 3, 4, 5, 6, 7, 8, 9].map(l => `<option value="${l}">${l}° livello</option>`).join('');
   }
-  classSel.value = SRD_CLASSES[ch.className]?.casting ? ch.className : '';
+  const rules = classSpellRules(ch);
+  classSel.value = rules ? rules.cls : '';
   $('selectSpellLevel').value = '';
   $('inputSpellSearch').value = '';
+  $('spellPickerExtra').checked = false;
+  showEl('spellPickerExtraRow', Boolean(rules));
   showEl('modalSpellPicker', true);
   $('spellPickerResults').innerHTML = '<div class="text-[var(--muted)]">Carico gli incantesimi…</div>';
   loadSrd('spells').then(renderSpellPicker).catch(() => { $('spellPickerResults').innerHTML = `<div class="text-[var(--danger)]">${escapeHtml(srdUnavailableMessage())}</div>`; });
@@ -213,19 +271,33 @@ function openSpellPicker() {
 function renderSpellPicker() {
   const ch = currentSheetChar();
   if (!ch || !SRD.spells) return;
+  // Con una classe del regolamento si sceglie dal suo elenco, fino al livello che può lanciare
+  const rules = classSpellRules(ch);
+  const limited = rules && !$('spellPickerExtra').checked;
+  if (limited) $('selectSpellClass').value = rules.cls;
+  $('selectSpellClass').disabled = Boolean(limited);
+  const limits = $('spellPickerLimits');
+  showEl(limits, Boolean(rules), '');
+  if (rules) limits.innerHTML = spellLimitsHtml(ch, rules);
   const cls = $('selectSpellClass').value;
   const lv = $('selectSpellLevel').value;
   const known = new Set(ch.spells.map(s => Number(s.i)));
-  const res = searchSrdList(SRD.spells, $('inputSpellSearch').value, 60, sp => (!cls || sp.cl.includes(cls)) && (lv === '' || sp.lv === Number(lv)));
+  const res = searchSrdList(SRD.spells, $('inputSpellSearch').value, 60, sp => (!cls || sp.cl.includes(cls)) && (lv === '' || sp.lv === Number(lv)) && (!limited || sp.lv <= rules.maxLevel));
+  const addButton = sp => {
+    const problem = limited ? spellAddProblem(ch, rules, sp) : '';
+    return problem
+      ? `<span class="text-[10px] font-bold text-[var(--muted)] text-right max-w-[9rem]">${escapeHtml(problem)}</span>`
+      : `<button type="button" class="btn btn-felt text-[11px] py-0.5 px-2 spell-add-btn">+ ${limited || !rules ? 'Aggiungi' : 'Aggiungi extra'}</button>`;
+  };
   $('spellPickerResults').innerHTML = res.length ? res.map(sp => `
     <div class="card-surface2 p-2 flex flex-col gap-1" data-spell="${sp.i}">
       <div class="flex items-center justify-between gap-2">
         <div class="min-w-0"><strong class="font-serif-title text-sm">${escapeHtml(sp.n)}</strong> <span class="text-[10px] text-[var(--muted)]">${escapeHtml(sp.e)}</span>
           <div class="text-[10px] text-[var(--muted)]">${spellMetaLine(sp)}</div></div>
-        ${known.has(sp.i) ? '<span class="text-[11px] font-bold text-[var(--ok)]">✓ nella scheda</span>' : '<button type="button" class="btn btn-felt text-[11px] py-0.5 px-2 spell-add-btn">+ Aggiungi</button>'}
+        ${known.has(sp.i) ? '<span class="text-[11px] font-bold text-[var(--ok)]">✓ nella scheda</span>' : addButton(sp)}
       </div>
       ${spellDetailsHtml(sp)}
-    </div>`).join('') : '<div class="text-[var(--muted)]">Nessun incantesimo trovato.</div>';
+    </div>`).join('') : `<div class="text-[var(--muted)]">${limited && !rules.maxLevel && !rules.cantrips ? `Al ${ch.level}° livello il ${escapeHtml(rules.cls)} non ha ancora incantesimi.` : 'Nessun incantesimo trovato.'}</div>`;
 }
 
 function initSpellEvents() {
@@ -235,12 +307,27 @@ function initSpellEvents() {
   $('inputSpellSearch').addEventListener('input', debounce(renderSpellPicker, 120));
   $('selectSpellClass').addEventListener('change', renderSpellPicker);
   $('selectSpellLevel').addEventListener('change', renderSpellPicker);
+  $('spellPickerExtra').addEventListener('change', () => {
+    if ($('spellPickerExtra').checked) $('selectSpellClass').value = '';
+    renderSpellPicker();
+  });
   $('spellPickerResults').addEventListener('click', (e) => {
     const btn = e.target.closest('.spell-add-btn');
     const row = btn && e.target.closest('[data-spell]');
     const ch = currentSheetChar();
     if (!row || !ch || !canEditChar(ch)) return;
-    ch.spells.push({ i: Number(row.dataset.spell) });
+    const sp = srdSpell(Number(row.dataset.spell));
+    const rules = classSpellRules(ch);
+    if (!sp) return;
+    const entry = { i: sp.i };
+    if (rules && $('spellPickerExtra').checked) entry.x = true;
+    else if (rules) {
+      const problem = spellAddProblem(ch, rules, sp);
+      if (problem) { showToast(problem); return; }
+      // Il mago lo scrive nel libro e, se c'è posto, lo prepara subito
+      if (rules.book && sp.lv > 0) entry.p = spellCounts(ch).prepared < rules.spells;
+    }
+    ch.spells.push(entry);
     touchEnt(`char:${ch.id}`);
     renderSpellPicker();
     scheduleRender();
@@ -260,6 +347,18 @@ function initSpellEvents() {
     const i = Number(row.dataset.spell);
     if (e.target.closest('.spell-cast-btn')) castSpell(ch, i, parseInt(row.querySelector('.spell-slot-select')?.value, 10) || null);
     if (e.target.closest('.spell-dmg-btn')) rollSpellDamage(ch, i);
+    if (e.target.closest('.spell-prep-btn')) {
+      const entry = ch.spells.find(s => Number(s.i) === i);
+      const rules = classSpellRules(ch);
+      if (!entry || !rules) return;
+      if (!entry.p && spellCounts(ch).prepared >= rules.spells) {
+        showToast(`Hai già ${rules.spells} incantesimi preparati: togline uno per prepararne un altro`, 3500);
+        return;
+      }
+      entry.p = !entry.p;
+      touchEnt(`char:${ch.id}`);
+      scheduleRender();
+    }
     if (e.target.closest('.spell-remove-btn')) {
       ch.spells = ch.spells.filter(s => Number(s.i) !== i);
       touchEnt(`char:${ch.id}`);

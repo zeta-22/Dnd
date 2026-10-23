@@ -27,6 +27,8 @@ const SHEET_ABILITY_FIELDS = {
   wis: 'SAG', wisdom: 'SAG', sag: 'SAG', saggezza: 'SAG', cha: 'CAR', charisma: 'CAR', car: 'CAR', carisma: 'CAR'
 };
 const SHEET_SAVE_FIELDS = { ststrength: 'FOR', stdexterity: 'DES', stconstitution: 'COS', stintelligence: 'INT', stwisdom: 'SAG', stcharisma: 'CAR' };
+// D&D Beyond segna le competenze in campi a parte: "•" nei tiri salvezza, "P" competente, "E" maestria
+const SHEET_SAVE_PROF_FIELDS = { ststrength: 'strprof', stdexterity: 'dexprof', stconstitution: 'conprof', stintelligence: 'intprof', stwisdom: 'wisprof', stcharisma: 'chaprof' };
 const SHEET_SKILL_FIELDS = {
   acrobatics: 'Acrobazia', animal: 'Addestrare Animali', animalhandling: 'Addestrare Animali', arcana: 'Arcano', athletics: 'Atletica',
   deception: 'Inganno', history: 'Storia', insight: 'Intuizione', intimidation: 'Intimidire', investigation: 'Indagare',
@@ -54,37 +56,41 @@ const SHEET_COINS = [['cp', 'mr'], ['sp', 'ma'], ['ep', 'me'], ['gp', 'mo'], ['p
 // Lettura del file
 // ---------------------------------------------------------------------------
 
+// I valori dei campi si leggono pagina per pagina: gli export di D&D Beyond hanno i campi
+// sulle pagine ma non nell'elenco del modulo, quindi getFieldObjects() non li vede
 async function readPdfFormFields(pdf) {
-  const objs = await pdf.getFieldObjects().catch(() => null);
-  if (!objs) return [];
-  const official = Boolean(objs['ST Strength'] && objs.Acrobatics);
+  const widgets = [];
+  for (let i = 1; i <= Math.min(pdf.numPages, SHEET_MAX_PAGES); i++) {
+    const annots = await (await pdf.getPage(i)).getAnnotations().catch(() => []);
+    widgets.push(...annots.filter(a => a.subtype === 'Widget' && a.fieldName));
+  }
+  const names = new Set(widgets.map(a => a.fieldName.trim()));
+  const official = names.has('ST Strength') && names.has('Check Box 23');
   const out = [];
   const seen = new Set();
-  Object.entries(objs).forEach(([rawName, list]) => {
-    (list || []).forEach(o => {
-      let name = rawName.replace(/\s+/g, ' ').trim();
-      let value;
-      if (o.type === 'checkbox' || o.type === 'radiobutton') {
-        if (!o.value || o.value === 'Off') return;
-        const box = name.match(/^Check Box (\d+)$/i);
-        if (box) {
-          if (!official || !OFFICIAL_SHEET_CHECKS[box[1]]) return;
-          name = `${OFFICIAL_SHEET_CHECKS[box[1]]} proficiency`;
-        }
-        value = o.type === 'radiobutton' ? String(o.value) : '✓';
-      } else if (['text', 'combobox', 'listbox'].includes(o.type)) {
-        value = String(Array.isArray(o.value) ? o.value.join(', ') : o.value ?? '').trim();
+  widgets.forEach(a => {
+    let name = a.fieldName.replace(/\s+/g, ' ').trim();
+    let value;
+    if (a.checkBox || a.radioButton) {
+      if (!a.fieldValue || a.fieldValue === 'Off' || (a.radioButton && a.fieldValue !== a.buttonValue)) return;
+      const box = name.match(/^Check Box (\d+)$/i);
+      if (box) {
+        if (!official || !OFFICIAL_SHEET_CHECKS[box[1]]) return;
+        name = `${OFFICIAL_SHEET_CHECKS[box[1]]} proficiency`;
       }
-      if (!value) return;
-      if (official) {
-        if (/^SlotsRemaining/i.test(name)) return;
-        const slots = name.match(/^SlotsTotal (\d+)$/i);
-        if (slots) name = `Spell slots level ${parseInt(slots[1], 10) - 18}`;
-      }
-      if (seen.has(`${name}\n${value}`)) return;
-      seen.add(`${name}\n${value}`);
-      out.push({ name, value });
-    });
+      value = a.radioButton ? String(a.fieldValue) : '✓';
+    } else if (a.fieldType === 'Tx' || a.fieldType === 'Ch') {
+      value = String(Array.isArray(a.fieldValue) ? a.fieldValue.join(', ') : a.fieldValue ?? '').trim();
+    }
+    if (!value || value === '--') return;
+    if (official) {
+      if (/^SlotsRemaining/i.test(name)) return;
+      const slots = name.match(/^SlotsTotal (\d+)$/i);
+      if (slots) name = `Spell slots level ${parseInt(slots[1], 10) - 18}`;
+    }
+    if (seen.has(`${name}\n${value}`)) return;
+    seen.add(`${name}\n${value}`);
+    out.push({ name, value });
   });
   return out;
 }
@@ -209,6 +215,11 @@ function splitDamage(text) {
   return { formula: valid, type: rest.replace(/[A-Za-z]+/g, w => SHEET_DAMAGE_EN[w.toLowerCase()] || w) };
 }
 
+function profMark(value) {
+  const v = String(value || '').trim().toUpperCase();
+  return !v || v === 'H' ? 0 : v === 'E' ? 2 : 1;
+}
+
 function parseSpeed(text) {
   const n = parseFloat(String(text || '').replace(',', '.'));
   if (isNaN(n)) return null;
@@ -229,14 +240,16 @@ function parseSheetFields(list) {
     const n = sheetNumber(f.get(k));
     if (abilities[ab] === undefined && n !== null) abilities[ab] = n;
   });
-  const savingThrows = Object.entries(SHEET_SAVE_FIELDS).map(([k, ab]) => ({ ability: ab, bonus: sheetNumber(f.get(k)), proficiency: f.get(`${k}proficiency`) ? 1 : 0 }));
+  const savingThrows = Object.entries(SHEET_SAVE_FIELDS).map(([k, ab]) => ({
+    ability: ab, bonus: sheetNumber(f.get(k)), proficiency: profMark(f.get(`${k}proficiency`) || f.get(SHEET_SAVE_PROF_FIELDS[k])) ? 1 : 0
+  }));
   const skills = Object.entries(SHEET_SKILL_FIELDS)
-    .filter(([k]) => f.has(k) || f.has(`${k}proficiency`))
-    .map(([k, skill]) => ({ skill, bonus: sheetNumber(f.get(k)), proficiency: f.get(`${k}proficiency`) ? 1 : 0 }));
-  const attacks = [1, 2, 3].map(n => {
+    .filter(([k]) => f.has(k) || f.has(`${k}proficiency`) || f.has(`${k}prof`))
+    .map(([k, skill]) => ({ skill, bonus: sheetNumber(f.get(k)), proficiency: profMark(f.get(`${k}proficiency`) || f.get(`${k}prof`)) }));
+  const attacks = [1, 2, 3, 4, 5, 6, 7, 8].map(n => {
     const name = pick(n === 1 ? 'wpnname' : `wpnname${n}`, `wpn${n}name`);
     const dmg = splitDamage(pick(`wpn${n}damage`));
-    return name ? { name, bonus: sheetNumber(pick(`wpn${n}atkbonus`)), damage: dmg.formula, damageType: dmg.type } : null;
+    return name ? { name, englishName: name, bonus: sheetNumber(pick(`wpn${n}atkbonus`)), damage: dmg.formula, damageType: dmg.type } : null;
   }).filter(Boolean);
   const spellAbility = SHEET_ABILITY_FIELDS[fieldKey(all(/^spellcastingability\d*$/)[0] || '')] || null;
   const spellSlots = [...f].map(([k, v]) => [k.match(/^spellslotslevel(\d)$/), v]).filter(([m]) => m).map(([m, v]) => ({ level: parseInt(m[1], 10), max: sheetNumber(v) || 0 }));
@@ -244,7 +257,9 @@ function parseSheetFields(list) {
   const coins = SHEET_COINS.map(([k, it]) => (sheetNumber(f.get(k)) ? `${sheetNumber(f.get(k))} ${it}` : '')).filter(Boolean);
   const look = [['age', 'Età'], ['height', 'Altezza'], ['weight', 'Peso'], ['eyes', 'Occhi'], ['skin', 'Carnagione'], ['hair', 'Capelli']]
     .filter(([k]) => f.get(k)).map(([k, label]) => `${label}: ${f.get(k)}`).join(' · ');
-  const hd = `${pick('hd')} ${pick('hdtotal', 'hitdice', 'dadivita')}`.match(/d\s*(\d+)/i);
+  const hd = `${pick('hd')} ${pick('hdtotal', 'hitdice', 'dadivita')} ${pick('total')}`.match(/d\s*(\d+)/i);
+  const equipment = [...f].map(([k, v]) => [k.match(/^eqname(\d+)$/), v]).filter(([m]) => m)
+    .map(([m, v]) => { const qty = parseInt(String(f.get(`eqqty${m[1]}`) || '').replace(/[.,\s]/g, ''), 10); return qty > 1 ? `${v} (×${qty})` : v; });
   const xp = pick('xp', 'experiencepoints');
 
   return {
@@ -261,14 +276,16 @@ function parseSheetFields(list) {
     speedMeters: parseSpeed(pick('speed', 'velocita')),
     hitDie: hd ? `d${hd[1]}` : '',
     spellcastingAbility: spellAbility,
-    equipment: [pick('equipment', 'equipaggiamento'), ...all(/^eqname\d+$/), coins.length ? `Monete: ${coins.join(', ')}` : ''].filter(Boolean).join('\n'),
-    features: [pick('featuresandtraits', 'features'), ...all(/^featurestraits\d+$/), pick('feattraits')].filter(Boolean).join('\n\n'),
+    equipment: [pick('equipment', 'equipaggiamento'), ...equipment, coins.length ? `Monete: ${coins.join(', ')}` : ''].filter(Boolean).join('\n'),
+    features: [pick('featuresandtraits', 'features'), ...all(/^featurestraits\d+$/), pick('feattraits'),
+      pick('defenses') && `Difese: ${pick('defenses')}`, pick('savemodifiers') && `Tiri salvezza: ${pick('savemodifiers')}`,
+      pick('additionalsenses') && `Sensi: ${pick('additionalsenses')}`].filter(Boolean).join('\n\n'),
     proficiencies: pick('proficiencieslang', 'proficiencies'),
     story: {
       text: pick('backstory', 'storia'), look, traits: pick('personalitytraits', 'tratti'),
       ideals: pick('ideals', 'ideali'), bonds: pick('bonds', 'legami'), flaws: pick('flaws', 'difetti')
     },
-    notes: [xp && `Punti esperienza: ${xp}`, pick('allies') && `Alleati: ${pick('allies')}`, pick('factionname') && `Fazione: ${pick('factionname')}`, pick('treasure') && `Tesoro: ${pick('treasure')}`].filter(Boolean).join('\n'),
+    notes: [...all(/^additionalnotes\d*$/), xp && `Punti esperienza: ${xp}`, pick('allies') && `Alleati: ${pick('allies')}`, pick('factionname') && `Fazione: ${pick('factionname')}`, pick('treasure') && `Tesoro: ${pick('treasure')}`].filter(Boolean).join('\n'),
     warnings: []
   };
 }
@@ -295,7 +312,7 @@ function importedProficiencies(entries, keyOf, modOf, prof) {
   return out;
 }
 
-async function buildImportedCharacter(raw) {
+async function buildImportedCharacter(raw, rules = campaignRules()) {
   raw = raw && typeof raw === 'object' ? raw : {};
   const str = (v, max = 4000) => String(v ?? '').trim().slice(0, max);
   const list = v => (Array.isArray(v) ? v : []);
@@ -309,11 +326,11 @@ async function buildImportedCharacter(raw) {
   const modOf = ab => getAbilityMod(abilities[ab]);
 
   let className = str(raw.className, 80) || 'Avventuriero';
-  const baseClass = className.includes('/') ? null
-    : Object.keys(SRD_CLASSES).find(c => normalizeSearchText(className).startsWith(normalizeSearchText(c)));
-  // Con la sola classe base funzionano slot e passaggio di livello; il resto finisce nei privilegi
-  const classExtra = baseClass && normalizeSearchText(className) !== normalizeSearchText(baseClass) ? `Classe: ${className}` : '';
+  const baseClass = className.includes('/') ? null : srdClassKey(className);
+  // Con la sola classe base funzionano slot, armi e passaggio di livello; il resto finisce nei privilegi
+  const classExtra = baseClass && className.replace(/^\S+\s*/, '') ? `Classe: ${className}` : '';
   if (baseClass) className = baseClass;
+  const race = str(raw.race, 80);
 
   const savingThrowsProf = {};
   Object.keys(importedProficiencies(list(raw.savingThrows), e => (ABILITY_KEYS.includes(e.ability) ? e.ability : null), modOf, prof))
@@ -321,33 +338,67 @@ async function buildImportedCharacter(raw) {
   const skillsProf = importedProficiencies(list(raw.skills), e => (ALL_SKILL_KEYS.includes(e.skill) ? e.skill : null),
     key => modOf(DND5E_SKILLS.find(s => s.key === key).ability), prof);
 
-  const attacksText = list(raw.attacks).slice(0, 12).map(a => {
-    const name = str(a?.name, 80).replace(/\|/g, '/');
-    if (!name) return '';
-    const dmg = splitDamage(a.damage);
-    const type = str(a.damageType, 40) || dmg.type;
-    const bonus = parseInt(a.bonus, 10);
-    return `${name}${type ? ` (${type})` : ''} | ${isNaN(bonus) ? '' : formatSignedMod(bonus)} | ${dmg.formula}`;
-  }).filter(Boolean).join('\n');
-
   // Incantesimi: quelli del regolamento base diventano lanciabili, gli altri restano nel testo
   const wanted = list(raw.spells).filter(s => s && (s.name || s.englishName)).slice(0, 80);
   const srd = wanted.length ? await loadSrd('spells').catch(() => null) : null;
   const byName = new Map();
   (srd || []).forEach(s => { byName.set(spellKey(s.e), s); byName.set(spellKey(s.n), s); });
+  const spellRules = classSpellRules({ className, level, abilities }, rules);
+  const flagged = wanted.some(s => typeof s.prepared === 'boolean');
   const spells = [];
   const matchedSpells = [];
   const otherSpells = [];
   wanted.forEach(s => {
     const hit = byName.get(spellKey(s.englishName)) || byName.get(spellKey(s.name));
-    if (hit) {
-      if (!spells.some(x => x.i === hit.i)) { spells.push({ i: hit.i }); matchedSpells.push(hit.n); }
-    } else {
+    if (!hit) {
       const lv = parseInt(s.level, 10);
       otherSpells.push(`${str(s.name || s.englishName, 80)}${lv === 0 ? ' (trucchetto)' : lv > 0 ? ` (${lv}° livello)` : ''}`);
+      return;
     }
+    if (spells.some(x => x.i === hit.i)) return;
+    const entry = { i: hit.i };
+    // Fuori dall'elenco della classe (razza, talenti…): non conta nei limiti
+    if (spellRules && !hit.cl.includes(spellRules.cls)) entry.x = true;
+    if (spellRules?.book && hit.lv > 0 && !entry.x) {
+      entry.p = flagged ? s.prepared === true : spells.filter(x => x.p).length < spellRules.spells;
+    }
+    spells.push(entry);
+    matchedSpells.push(`${hit.n}${entry.x ? ' (extra)' : ''}`);
   });
   if (wanted.length && !srd) warnings.push('Non sono riuscito a caricare l\'elenco degli incantesimi: li trovi scritti nella scheda, aggiungili da “📖 Incantesimi”.');
+
+  // Armi del manuale: tiro e danni li calcola la scheda; la competenza segue quella scritta sulla scheda
+  const spellNames = new Set(wanted.flatMap(s => [spellKey(s.name), spellKey(s.englishName)]).filter(Boolean));
+  const who = { abilities, level, className, race };
+  const weapons = [];
+  const otherAttacks = [];
+  list(raw.attacks).slice(0, 12).forEach(a => {
+    const name = str(a?.name, 80).replace(/\|/g, '/');
+    if (!name) return;
+    const dmg = splitDamage(a.damage);
+    const w = findSrdWeapon(a.englishName, name);
+    if (w) {
+      const entry = { k: w.k, magic: clampInt((`${a.englishName || ''} ${name}`.match(/\+([1-3])\b/) || [])[1], 0, 3, 0), prof: null, name: '' };
+      const auto = weaponStats(who, entry, rules);
+      const bonus = parseInt(a.bonus, 10);
+      if (!isNaN(bonus) && bonus !== auto.hit) {
+        const flip = weaponStats(who, Object.assign({}, entry, { prof: !auto.proficient }), rules);
+        if (flip.hit === bonus) entry.prof = flip.proficient;
+      }
+      const st = weaponStats(who, entry, rules);
+      const diff = [];
+      if (!isNaN(bonus) && bonus !== st.hit) diff.push(`colpire ${formatSignedMod(bonus)} sulla scheda, ${formatSignedMod(st.hit)} calcolato`);
+      if (dmg.formula && dmg.formula !== st.damage && dmg.formula !== st.damage2) diff.push(`danni ${dmg.formula} sulla scheda, ${st.damage} calcolati`);
+      if (diff.length) warnings.push(`${st.name}: ${diff.join('; ')}. Controlla l'arma nella scheda (magica? competenza? stile di combattimento?).`);
+      weapons.push(entry);
+      return;
+    }
+    // I trucchetti d'attacco (es. Dardo di Fuoco) stanno già negli incantesimi
+    if (spellNames.has(spellKey(name)) || spellNames.has(spellKey(a.englishName))) return;
+    const type = str(a.damageType, 40) || dmg.type;
+    const bonus = parseInt(a.bonus, 10);
+    otherAttacks.push(`${name}${type ? ` (${type})` : ''} | ${isNaN(bonus) ? '' : formatSignedMod(bonus)} | ${dmg.formula}`);
+  });
 
   const spellSlots = createEmptySpellSlots();
   list(raw.spellSlots).forEach(s => {
@@ -355,7 +406,7 @@ async function buildImportedCharacter(raw) {
     if (lvl >= 1 && lvl <= 9) spellSlots[lvl] = { max: clampInt(s.max, 0, 9, 0), used: 0 };
   });
   if (!Object.values(spellSlots).some(s => s.max) && baseClass) {
-    classSpellSlots(baseClass, level).forEach((n, i) => { spellSlots[i + 1] = { max: n, used: 0 }; });
+    classSpellSlots(baseClass, level, rules).forEach((n, i) => { spellSlots[i + 1] = { max: n, used: 0 }; });
   }
 
   const die = str(raw.hitDie, 20).match(/d\s*(\d+)/i);
@@ -370,12 +421,12 @@ async function buildImportedCharacter(raw) {
   return {
     warnings, matchedSpells, otherSpells, hasStory: Object.keys(story).length > 0,
     fields: {
-      name: str(raw.name, 80), race: str(raw.race, 80), className, level, background: str(raw.background, 80),
+      name: str(raw.name, 80), race, className, level, background: str(raw.background, 80),
       bonusAction: str(raw.bonusAction, 120),
       maxHp: maxHp || 10, hp: maxHp || 10, ac: ac || 10,
       speed: speed > 0 && speed <= 60 ? Math.round(speed * 2) / 2 : (SRD_RACES[str(raw.race)]?.speed || 9),
       hitDie: die ? `d${die[1]}` : `d${SRD_CLASSES[baseClass]?.die || 8}`, hitDiceRemaining: level,
-      abilities, savingThrowsProf, skillsProf, attacksText, spells, spellSlots,
+      abilities, savingThrowsProf, skillsProf, weapons, attacksText: otherAttacks.join('\n'), spells, spellSlots,
       spellAbility: ABILITY_KEYS.includes(raw.spellcastingAbility) ? raw.spellcastingAbility : null,
       spellsText: otherSpells.map(s => `• ${s}`).join('\n'),
       equipmentText: str(raw.equipment, 6000),
@@ -410,7 +461,7 @@ async function runSheetImport(file, token) {
     const conv = await convertSheetSource(src);
     if (!live()) return;
     status('Preparo il personaggio…');
-    const built = await buildImportedCharacter(conv.raw);
+    const built = await buildImportedCharacter(conv.raw, campaignRules(App.sheetImport.campId));
     if (!live()) return;
     Object.assign(App.sheetImport, built, { viaAi: conv.viaAi, reason: conv.reason || '' });
     renderSheetImportPreview();
@@ -467,7 +518,9 @@ function renderSheetImportPreview() {
     <div class="card-surface2 p-3 flex flex-col gap-1.5 leading-relaxed">
       <div><strong>Tiri salvezza competenti:</strong> ${escapeHtml(ABILITY_KEYS.filter(k => f.savingThrowsProf[k]).join(', ') || '—')}</div>
       <div><strong>Abilità:</strong> ${escapeHtml(skills.join(', ') || '—')}${skills.some(s => s.endsWith('★')) ? ' <span class="text-[var(--muted)]">(★ maestria)</span>' : ''}</div>
-      <div><strong>Attacchi:</strong> ${f.attacksText ? `<span class="font-mono whitespace-pre-wrap">${escapeHtml(f.attacksText)}</span>` : '—'}</div>
+      <div><strong>Armi:</strong> ${escapeHtml(f.weapons.map(e => weaponStats(f, e, campaignRules(st.campId))).map(w => `${w.name} ${formatSignedMod(w.hit)} (${w.damage || '—'})`).join(' · ') || '—')}
+        <span class="text-[var(--muted)]">· tiro e danni li calcola la scheda</span></div>
+      ${f.attacksText ? `<div><strong>Altri attacchi:</strong> <span class="font-mono whitespace-pre-wrap">${escapeHtml(f.attacksText)}</span></div>` : ''}
       ${st.matchedSpells.length ? `<div><strong>Incantesimi (${st.matchedSpells.length}):</strong> ${escapeHtml(st.matchedSpells.join(', '))}</div>` : ''}
       ${st.otherSpells.length ? `<div><strong>Altri incantesimi</strong> <span class="text-[var(--muted)]">(non sono nel regolamento base: restano scritti nella scheda)</span>: ${escapeHtml(st.otherSpells.join(', '))}</div>` : ''}
       ${slots.length ? `<div><strong>Slot incantesimo:</strong> ${slots.join(' · ')}</div>` : ''}

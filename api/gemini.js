@@ -41,11 +41,11 @@ const SHEET_PROMPT = [
   'Traduci con i nomi ufficiali italiani della 5e: classi (Fighter = Guerriero, Rogue = Ladro, Wizard = Mago, Cleric = Chierico, Sorcerer = Stregone…), razze, background, incantesimi, privilegi, oggetti e tipi di danno. Il nome del personaggio e gli altri nomi propri restano come sono.',
   'Abilità: Acrobatics = Acrobazia, Animal Handling = Addestrare Animali, Arcana = Arcano, Athletics = Atletica, Deception = Inganno, History = Storia, Insight = Intuizione, Intimidation = Intimidire, Investigation = Indagare, Medicine = Medicina, Nature = Natura, Perception = Percezione, Performance = Intrattenere, Persuasion = Persuasione, Religion = Religione, Sleight of Hand = Rapidità di Mano, Stealth = Furtività, Survival = Sopravvivenza.',
   'Caratteristiche: STR = FOR, DEX = DES, CON = COS, INT = INT, WIS = SAG, CHA = CAR. Riporta i punteggi (es. 16), non i modificatori.',
-  'Per tiri salvezza e abilità riporta il bonus totale scritto sulla scheda (null se non c\'è) e la competenza segnata: 0 nessuna, 1 competente, 2 maestria.',
+  'Per tiri salvezza e abilità riporta il bonus totale scritto sulla scheda (null se non c\'è) e la competenza segnata: 0 nessuna, 1 competente, 2 maestria. Nelle schede di D&D Beyond i campi "…Prof" valgono "P" competente, "E" maestria, "•" competente nel tiro salvezza.',
   'className è solo il nome della classe, senza sottoclasse (la sottoclasse va nei privilegi); con più classi scrivi "Guerriero 3 / Ladro 2". level è la somma dei livelli.',
   'Velocità in metri: piedi × 0,3 (30 ft = 9 m). Dado vita nella forma "d8".',
-  'Attacchi: il danno solo come formula di dadi (es. "1d8+3"), il tipo di danno a parte.',
-  'Incantesimi: tutti quelli conosciuti o preparati, con il nome italiano ufficiale, il nome inglese originale e il livello (0 per i trucchetti). Slot: il numero massimo per livello.',
+  'Attacchi: nome italiano, nome inglese dell\'arma del manuale (es. "Longsword", anche se la scheda è in italiano), bonus, danno solo come formula di dadi (es. "1d8+3") e tipo di danno a parte.',
+  'Incantesimi: tutti quelli conosciuti o preparati, con il nome italiano ufficiale, il nome inglese originale, il livello (0 per i trucchetti) e se è segnato come preparato. Slot: il numero massimo per livello.',
   'Traduci anche i testi (equipaggiamento e monete, privilegi e tratti, competenze e linguaggi, storia, aspetto, tratti caratteriali, ideali, legami, difetti) in un italiano naturale, senza togliere informazioni utili e senza aggiungerne.',
   'Non inventare: se un dato manca lascia una stringa vuota, 0 o null. In "warnings" elenca brevemente, in italiano, le parti illeggibili o dubbie.'
 ].join(' ');
@@ -69,12 +69,12 @@ const SHEET_SCHEMA = {
     },
     attacks: {
       type: 'ARRAY',
-      items: { type: 'OBJECT', properties: { name: STRING, bonus: NULLABLE_INTEGER, damage: STRING, damageType: STRING }, required: ['name'] }
+      items: { type: 'OBJECT', properties: { name: STRING, englishName: STRING, bonus: NULLABLE_INTEGER, damage: STRING, damageType: STRING }, required: ['name'] }
     },
     bonusAction: STRING,
     spellcastingAbility: { type: 'STRING', enum: ABILITIES, nullable: true },
     spellSlots: { type: 'ARRAY', items: { type: 'OBJECT', properties: { level: INTEGER, max: INTEGER }, required: ['level', 'max'] } },
-    spells: { type: 'ARRAY', items: { type: 'OBJECT', properties: { name: STRING, englishName: STRING, level: INTEGER }, required: ['name', 'level'] } },
+    spells: { type: 'ARRAY', items: { type: 'OBJECT', properties: { name: STRING, englishName: STRING, level: INTEGER, prepared: { type: 'BOOLEAN', nullable: true } }, required: ['name', 'level'] } },
     equipment: STRING, features: STRING, proficiencies: STRING,
     story: { type: 'OBJECT', properties: { text: STRING, look: STRING, traits: STRING, ideals: STRING, bonds: STRING, flaws: STRING } },
     notes: STRING,

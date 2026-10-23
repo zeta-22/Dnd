@@ -123,6 +123,7 @@ function renderDmView() {
   showEl('dmLocalOnlyCard', !camp()?.synced && Sync.isCloud());
 
   setVal($('dmInputCampaignName'), meta.title);
+  setVal($('dmRulesSelect'), meta.rules);
   setVal($('dmTextareaSecretNotes'), App.vault.secretNotes);
   setVal($('dmTextareaSessionNotes'), App.vault.sessionNotes);
   renderExtractedEntries();
@@ -425,6 +426,14 @@ function initDmEvents() {
     setVal($('dmInputCampaignName'), meta.title);
   };
   $('dmInputCampaignName').addEventListener('input', onTitle);
+  $('dmRulesSelect').addEventListener('change', (e) => {
+    if (!isDM()) return;
+    getMeta().rules = e.target.value === '2024' ? '2024' : '2014';
+    touchEnt('meta');
+    e.target.blur();
+    showToast(`📘 Regole ${getMeta().rules}: limiti degli incantesimi e competenze nelle armi aggiornati`);
+    scheduleRender();
+  });
   $('campaignTitleInput').addEventListener('input', onTitle);
 
   $('dmTextareaSecretNotes').addEventListener('input', (e) => {

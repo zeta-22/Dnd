@@ -236,8 +236,8 @@ function renderSheet() {
     renderSkills(ch, editable);
   }
 
-  // Sola lettura per le schede degli altri
-  $('sheetBody').querySelectorAll('input, textarea, select, button').forEach(el => { el.disabled = !editable; });
+  // Sola lettura per le schede degli altri; data-off tiene spenti i pulsanti che non si possono usare ora
+  $('sheetBody').querySelectorAll('input, textarea, select, button').forEach(el => { el.disabled = !editable || el.hasAttribute('data-off'); });
   $('btnSwitchToCompleteFromGuide').disabled = false;
   $('btnLevelUp').classList.toggle('hidden', !editable || ch.level >= 20 || isCustomChar(ch));
   renderCustomSheet(ch, editable);
@@ -245,17 +245,81 @@ function renderSheet() {
   ['btnShortRest', 'btnLongRest'].forEach(id => { $(id).disabled = !editable; });
 }
 
+function weaponDetailLine(st) {
+  const w = st.w;
+  const parts = [w.c === 'unarmed' ? 'Senz\'armi' : w.ranged ? `A distanza ${w.r} m` : `Mischia${w.r ? `, da lancio ${w.r} m` : ''}`];
+  if (w.t) parts.push(w.t);
+  const props = w.p.filter(p => p !== 'thrown').map(p => WEAPON_PROPERTY_LABELS[p]);
+  if (props.length) parts.push(props.join(', '));
+  parts.push([st.ability, st.proficient && 'competenza', st.magic && `${st.magic} magico`].filter(Boolean).join(' + ') + (st.proficient ? '' : ' (non competente)'));
+  return parts.join(' · ');
+}
+
 function renderSheetAttacks(ch, editable) {
   const list = $('sheetGeneratedAttacksList');
-  const attacks = parseAttacks(ch.attacksText);
-  list.innerHTML = attacks.length ? attacks.map((a, i) => `
+  // Non ridisegnare mentre si scrive il nome di un'arma
+  if (list.contains(document.activeElement) && document.activeElement.classList.contains('weapon-name')) return;
+  const addSel = $('sheetWeaponAdd');
+  if (!addSel.options.length) addSel.innerHTML = weaponOptionsHtml('longsword');
+  addSel.disabled = !editable;
+  $('btnAddWeapon').disabled = !editable;
+  const rules = campaignRules();
+  const dis = editable ? '' : 'disabled';
+  const weapons = ch.weapons.map(entry => ({ entry, st: weaponStats(ch, entry, rules) })).filter(x => x.st).map(({ entry, st }) => `
+    <div class="card-surface2 p-2 flex flex-col gap-1.5 text-xs" data-weapon-id="${escapeHtml(entry.id)}">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="min-w-0">
+          <strong class="font-serif-title text-sm">${escapeHtml(st.name)}</strong>
+          <div class="text-[10px] text-[var(--muted)]">${escapeHtml(weaponDetailLine(st))}</div>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5">
+          ${st.w.k === 'net' ? '' : `<button type="button" class="btn btn-felt text-xs py-0.5 px-2 weapon-hit-btn" ${dis}>🎯 ${formatSignedMod(st.hit)}</button>`}
+          ${st.damage ? `<button type="button" class="btn btn-brass text-xs py-0.5 px-2 weapon-dmg-btn" ${dis}>💥 ${escapeHtml(st.damage)}</button>` : ''}
+          ${st.damage2 ? `<button type="button" class="btn btn-brass text-xs py-0.5 px-2 weapon-dmg-btn" data-two="1" title="Impugnata a due mani" ${dis}>💥 2 mani ${escapeHtml(st.damage2)}</button>` : ''}
+        </div>
+      </div>
+      ${editable ? `<details class="text-[11px] weapon-edit" ${App.weaponEditOpen === entry.id ? 'open' : ''}><summary class="cursor-pointer text-[var(--muted)]">Modifica</summary>
+        <div class="mt-1.5 flex flex-wrap items-end gap-2">
+          <label class="flex flex-col gap-0.5 text-[var(--muted)] font-bold">Nome (facoltativo)
+            <input type="text" maxlength="60" class="input-field text-xs py-0.5 weapon-name" value="${escapeHtml(entry.name)}" placeholder="${escapeHtml(st.w.n)}" /></label>
+          <label class="flex flex-col gap-0.5 text-[var(--muted)] font-bold">Arma magica
+            <select class="input-field text-xs py-0.5 weapon-magic">${[0, 1, 2, 3].map(n => `<option value="${n}" ${entry.magic === n ? 'selected' : ''}>${n ? `+${n}` : 'no'}</option>`).join('')}</select></label>
+          <label class="flex flex-col gap-0.5 text-[var(--muted)] font-bold">Competenza
+            <select class="input-field text-xs py-0.5 weapon-prof">
+              <option value="" ${entry.prof === null ? 'selected' : ''}>dalla classe (${weaponProficient(ch, st.w, rules) ? 'sì' : 'no'})</option>
+              <option value="1" ${entry.prof === true ? 'selected' : ''}>sì</option>
+              <option value="0" ${entry.prof === false ? 'selected' : ''}>no</option>
+            </select></label>
+          <button type="button" class="btn text-xs py-0.5 px-2 text-[var(--danger)] weapon-remove-btn">✕ Togli</button>
+        </div></details>` : ''}
+    </div>`);
+  const attacks = parseAttacks(ch.attacksText).map((a, i) => `
     <div class="card-surface2 p-2 flex flex-wrap items-center justify-between gap-2 text-xs">
       <strong class="font-serif-title text-sm">${escapeHtml(a.name)}</strong>
       <div class="flex items-center gap-1.5">
-        ${a.bonus !== null ? `<button type="button" class="btn btn-felt text-xs py-0.5 px-2 attack-roll-btn" data-attack-index="${i}" ${editable ? '' : 'disabled'}>🎯 ${formatSignedMod(a.bonus)}</button>` : ''}
-        ${a.damage ? `<button type="button" class="btn btn-brass text-xs py-0.5 px-2 damage-roll-btn" data-attack-index="${i}" ${editable ? '' : 'disabled'}>💥 ${escapeHtml(a.damage)}</button>` : ''}
+        ${a.bonus !== null ? `<button type="button" class="btn btn-felt text-xs py-0.5 px-2 attack-roll-btn" data-attack-index="${i}" ${dis}>🎯 ${formatSignedMod(a.bonus)}</button>` : ''}
+        ${a.damage ? `<button type="button" class="btn btn-brass text-xs py-0.5 px-2 damage-roll-btn" data-attack-index="${i}" ${dis}>💥 ${escapeHtml(a.damage)}</button>` : ''}
       </div>
-    </div>`).join('') : '<div class="text-xs text-[var(--muted)] italic">Nessun attacco. Scrivine uno per riga qui sotto, es. “Spada lunga | +5 | 1d8+3”.</div>';
+    </div>`);
+  list.innerHTML = weapons.concat(attacks).join('') || '<div class="text-xs text-[var(--muted)] italic">Nessuna arma. Scegline una qui sopra: tiro per colpire e danni li calcola la scheda.</div>';
+}
+
+function weaponEntry(ch, el) {
+  const id = el.closest('[data-weapon-id]')?.dataset.weaponId;
+  return id ? ch.weapons.find(w => w.id === id) : null;
+}
+
+function onWeaponChange(e) {
+  const ch = currentSheetChar();
+  const entry = ch && canEditChar(ch) && weaponEntry(ch, e.target);
+  if (!entry) return;
+  if (e.target.classList.contains('weapon-magic')) entry.magic = clampInt(e.target.value, 0, 3, 0);
+  if (e.target.classList.contains('weapon-prof')) entry.prof = e.target.value === '' ? null : e.target.value === '1';
+  if (e.target.classList.contains('weapon-name')) entry.name = e.target.value.trim().slice(0, 60);
+  App.weaponEditOpen = entry.id;
+  touchEnt(`char:${ch.id}`);
+  e.target.blur();
+  scheduleRender();
 }
 
 function renderSpellSlots(ch, editable, complete) {
@@ -389,6 +453,30 @@ function onSheetClick(e) {
     performD20Roll({ label: `Prova di ${ABILITY_LABELS[ab]}`, bonus: getAbilityMod(ch.abilities[ab]), by: isDM() ? `DM (${ch.name})` : ch.name });
     return;
   }
+  const by = isDM() ? `DM (${ch.name})` : ch.name;
+  const weaponBtn = t.closest('.weapon-hit-btn, .weapon-dmg-btn, .weapon-remove-btn');
+  const entry = weaponBtn && weaponEntry(ch, weaponBtn);
+  if (entry) {
+    if (weaponBtn.classList.contains('weapon-remove-btn')) {
+      ch.weapons = ch.weapons.filter(w => w !== entry);
+      touchEnt(`char:${ch.id}`);
+      scheduleRender();
+      return;
+    }
+    const st = weaponStats(ch, entry);
+    if (!st) return;
+    if (weaponBtn.classList.contains('weapon-hit-btn')) {
+      const roll = performD20Roll({ label: st.name, bonus: st.hit, vsAc: parseInt($('inputTargetAc').value, 10) || null, by });
+      App.lastAttack = { charId: ch.id, name: st.name, crit: roll.crit, at: Date.now() };
+      return;
+    }
+    const two = weaponBtn.dataset.two === '1';
+    const last = App.lastAttack;
+    const crit = Boolean(last && last.crit && last.charId === ch.id && last.name === st.name && Date.now() - last.at < 120000);
+    performDamageRoll({ label: `Danni ${st.name}${two ? ' (a due mani)' : ''}${st.w.t ? ` · ${st.w.t}` : ''}`, formula: two ? st.damage2 : st.damage, crit });
+    if (crit) App.lastAttack = null;
+    return;
+  }
   const attackBtn = t.closest('.attack-roll-btn');
   if (attackBtn) {
     const a = parseAttacks(ch.attacksText)[parseInt(attackBtn.dataset.attackIndex, 10)];
@@ -481,6 +569,22 @@ function initSheetEvents() {
     scheduleRender();
   }));
   $('tab-personaggio').addEventListener('click', onSheetClick);
+  $('sheetGeneratedAttacksList').addEventListener('change', onWeaponChange);
+  // "toggle" non risale: si ascolta in cattura, così il pannello resta aperto quando la scheda si ridisegna
+  $('sheetGeneratedAttacksList').addEventListener('toggle', (e) => {
+    if (!e.target.classList?.contains('weapon-edit')) return;
+    const id = e.target.closest('[data-weapon-id]')?.dataset.weaponId;
+    if (e.target.open) App.weaponEditOpen = id;
+    else if (App.weaponEditOpen === id) App.weaponEditOpen = null;
+  }, true);
+  $('btnAddWeapon').addEventListener('click', () => {
+    const ch = currentSheetChar();
+    const key = $('sheetWeaponAdd').value;
+    if (!ch || !canEditChar(ch) || !srdWeapon(key)) return;
+    ch.weapons.push({ id: uid('w'), k: key, magic: 0, prof: null, name: '' });
+    touchEnt(`char:${ch.id}`);
+    scheduleRender();
+  });
   $('sheetSpellSlotsGrid').addEventListener('change', (e) => {
     if (!e.target.classList.contains('slot-max-input')) return;
     const ch = currentSheetChar();

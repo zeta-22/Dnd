@@ -76,11 +76,11 @@ function wizardAc(w, scores) {
   return 10 + dex;
 }
 
-function wizardAttackText(w, scores) {
-  const tpl = SRD_CLASSES[w.cls].attack || '';
-  const prof = getProficiencyBonus(w.level);
-  return tpl.replace(/\{(FOR|DES)\}/g, (_, ab) => String(prof + getAbilityMod(scores[ab])))
-    .replace(/\{(FOR|DES)mod\}/g, (_, ab) => { const m = getAbilityMod(scores[ab]); return m ? formatSignedMod(m) : ''; });
+// Armi iniziali della classe, già calcolate sul personaggio che si sta creando
+function wizardWeaponsText(w, scores) {
+  const ch = { abilities: scores, level: w.level, className: w.cls, race: w.race };
+  return SRD_CLASSES[w.cls].weapons.map(k => weaponStats(ch, { k }, campaignRules(w.campId)))
+    .map(st => `${st.name} ${formatSignedMod(st.hit)} (${st.damage})`).join(' · ');
 }
 
 // Controlla il passo corrente: restituisce un messaggio se manca qualcosa
@@ -174,7 +174,7 @@ function renderWizard() {
         <div class="flex flex-wrap gap-1.5">${ALL_SKILL_KEYS.filter(s => !fixed.includes(s) && !w.classSkills.includes(s)).map(s => `<label class="condition-btn ${w.freeSkills.includes(s) ? 'active' : ''} cursor-pointer"><input type="checkbox" class="hidden wiz-free-skill" data-skill="${escapeHtml(s)}" ${w.freeSkills.includes(s) ? 'checked' : ''}/>${escapeHtml(s)}</label>`).join('')}</div></div>` : ''}`;
   } else {
     const cls = SRD_CLASSES[w.cls];
-    const slots = classSpellSlots(w.cls, w.level).map((n, i) => n ? `${i + 1}°: ${n}` : '').filter(Boolean).join(' · ');
+    const slots = classSpellSlots(w.cls, w.level, campaignRules(w.campId)).map((n, i) => n ? `${i + 1}°: ${n}` : '').filter(Boolean).join(' · ');
     const skills = [...wizardFixedSkills(w), ...w.classSkills, ...w.freeSkills];
     body.innerHTML = `
       <div class="card-surface2 p-3 flex flex-col gap-1.5">
@@ -185,7 +185,7 @@ function renderWizard() {
         <div><strong>Tiri salvezza:</strong> ${cls.saves.join(', ')}</div>
         <div><strong>Abilità:</strong> ${escapeHtml(skills.join(', '))}</div>
         ${slots ? `<div><strong>Slot incantesimo:</strong> ${slots} · aggiungi gli incantesimi dalla scheda (“📖 Incantesimi”)</div>` : ''}
-        <div><strong>Attacco:</strong> <span class="font-mono">${escapeHtml(wizardAttackText(w, scores))}</span></div>
+        <div><strong>Armi:</strong> ${escapeHtml(wizardWeaponsText(w, scores))} <span class="text-[var(--muted)]">(altre le aggiungi dalla scheda)</span></div>
       </div>`;
   }
   const problem = wizardProblem(w);
@@ -211,7 +211,7 @@ async function finishCharWizard() {
   [...wizardFixedSkills(w), ...w.classSkills, ...w.freeSkills].forEach(s => { skillsProf[s] = 1; });
   const savingThrowsProf = {};
   cls.saves.forEach(s => { savingThrowsProf[s] = true; });
-  const slots = classSpellSlots(w.cls, w.level);
+  const slots = classSpellSlots(w.cls, w.level, campaignRules(w.campId));
   const spellSlots = {};
   slots.forEach((n, i) => { spellSlots[i + 1] = { max: n, used: 0 }; });
   const maxHp = wizardHp(w, scores);
@@ -219,7 +219,7 @@ async function finishCharWizard() {
     name: w.name.trim(), race: w.race, className: w.cls, level: w.level, background: w.background, bonusAction: cls.bonus,
     maxHp, hp: maxHp, ac: wizardAc(w, scores), speed: race.speed, hitDie: `d${cls.die}`, hitDiceRemaining: w.level,
     abilities: scores, savingThrowsProf, skillsProf, spellSlots, spellAbility: cls.casting?.ability || null,
-    attacksText: wizardAttackText(w, scores),
+    weapons: cls.weapons.map(k => ({ k })),
     featuresText: `${w.race}: ${race.traits}\n${w.cls}: ${cls.features}`
   };
   closeCharWizard();
@@ -338,7 +338,9 @@ function renderLevelUp() {
   const asi = classAsiLevels(ch.className).includes(next);
   const slotsNow = classSpellSlots(ch.className, ch.level);
   const slotsNext = classSpellSlots(ch.className, next);
-  const slotChange = SRD_CLASSES[ch.className]?.casting && slotsNext.join() !== slotsNow.join();
+  const slotChange = SRD_CLASSES[srdClassKey(ch.className)]?.casting && slotsNext.join() !== slotsNow.join();
+  const spellsNow = classSpellRules(ch);
+  const spellsNext = classSpellRules(Object.assign({}, ch, { level: next }));
   $('levelUpBody').innerHTML = `
     <div class="font-serif-title text-lg font-bold">${escapeHtml(ch.name)}: livello ${ch.level} → ${next}</div>
     <div class="card-surface2 p-3 flex flex-col gap-2">
@@ -351,7 +353,18 @@ function renderLevelUp() {
       <div class="text-[11px] text-[var(--muted)]">Due volte +1 (anche alla stessa caratteristica per fare +2). Massimo 20.</div>
       <div class="flex gap-2">${[0, 1].map(i => `<select class="input-field lu-asi" data-i="${i}"><option value="">—</option>${ABILITY_KEYS.map(k => `<option value="${k}" ${lu.asi[i] === k ? 'selected' : ''}>+1 ${k} (${ch.abilities[k]})</option>`).join('')}</select>`).join('')}</div></div>` : ''}
     ${slotChange ? `<div class="card-surface2 p-3"><strong>Nuovi slot incantesimo:</strong> ${slotsNext.map((n, i) => n ? `${i + 1}°: ${n}` : '').filter(Boolean).join(' · ')}</div>` : ''}
+    ${spellsNext ? `<div class="card-surface2 p-3"><strong>Incantesimi:</strong> ${escapeHtml(spellChangeText(spellsNow, spellsNext))}</div>` : ''}
     <div class="text-[11px] text-[var(--muted)]">Bonus di competenza al ${next}° livello: ${formatSignedMod(getProficiencyBonus(next))}. Controlla sul manuale i nuovi privilegi della tua classe.</div>`;
+}
+
+function spellChangeText(now, next) {
+  const step = (label, a, b) => (a === b ? `${label} ${b}` : `${label} ${a} → ${b}`);
+  const parts = [];
+  if (next.cantrips) parts.push(step('trucchetti', now.cantrips, next.cantrips));
+  if (next.book) parts.push(step('nel libro', now.book, next.book));
+  parts.push(step(next.kind === 'known' ? 'conosciuti' : 'preparati', now.spells, next.spells));
+  if (next.maxLevel > now.maxLevel) parts.push(`ora anche di ${next.maxLevel}° livello`);
+  return `${parts.join(' · ')}. Sceglili da “📖 Incantesimi”.`;
 }
 
 function applyLevelUp() {
@@ -365,7 +378,7 @@ function applyLevelUp() {
   ch.hp = Math.min(ch.maxHp, ch.hp + gain);
   ch.hitDiceRemaining = Math.min(ch.level, ch.hitDiceRemaining + 1);
   lu.asi.filter(Boolean).forEach(k => { ch.abilities[k] = Math.min(20, ch.abilities[k] + 1); });
-  if (SRD_CLASSES[ch.className]?.casting) {
+  if (SRD_CLASSES[srdClassKey(ch.className)]?.casting) {
     classSpellSlots(ch.className, ch.level).forEach((n, i) => {
       const s = ch.spellSlots[i + 1];
       s.max = Math.max(s.max, n);

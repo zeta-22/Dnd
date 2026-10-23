@@ -84,6 +84,10 @@ function ensureCharacterDefaults(char) {
   if (!char.savingThrowsProf || typeof char.savingThrowsProf !== 'object') char.savingThrowsProf = {};
   if (!char.skillsProf || typeof char.skillsProf !== 'object') char.skillsProf = {};
   if (char.attacksText === undefined || char.attacksText === null) char.attacksText = '';
+  // Armi del regolamento: { id, k (chiave dell'arma), magic (+0…+3), prof (true/false, null = dalla classe), name }
+  char.weapons = (Array.isArray(char.weapons) ? char.weapons : []).filter(w => w && typeof w.k === 'string').map(w => ({
+    id: w.id || uid('w'), k: w.k, magic: clampInt(w.magic, 0, 3, 0), prof: typeof w.prof === 'boolean' ? w.prof : null, name: String(w.name || '').slice(0, 60)
+  }));
   if (!char.spellSlots || typeof char.spellSlots !== 'object') char.spellSlots = createEmptySpellSlots();
   for (let lvl = 1; lvl <= 9; lvl++) {
     const s = char.spellSlots[lvl] || {};
@@ -184,6 +188,7 @@ function normalizeMeta(meta) {
   meta.title = String(meta.title || 'Avventura senza nome').slice(0, 120);
   meta.createdAt = Number(meta.createdAt) || Date.now();
   meta.hasPassword = Boolean(meta.hasPassword);
+  meta.rules = meta.rules === '2024' ? '2024' : '2014';
   return meta;
 }
 
@@ -285,7 +290,7 @@ function buildNewCampaignEntities(title, options = {}) {
     abilities: { FOR: 10, DES: 18, COS: 14, INT: 14, SAG: 12, CAR: 10 },
     savingThrowsProf: { DES: true, INT: true },
     skillsProf: { 'Furtività': 2, 'Acrobazia': 1, 'Percezione': 1, 'Rapidità di Mano': 2, 'Indagare': 1 },
-    attacksText: 'Spada corta | +6 | 1d6+4\nArco corto | +6 | 1d6+4',
+    weapons: [{ k: 'shortsword' }, { k: 'shortbow' }],
     equipmentText: 'Zaino, attrezzi da scasso, corda (15 m), 2 torce, 15 mo.',
     featuresText: 'Attacco furtivo (1d6), Azione scaltra, Gergo ladresco.'
   });

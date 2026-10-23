@@ -49,6 +49,12 @@ function getMeta() {
   if (!c.ents.meta) c.ents.meta = normalizeMeta({});
   return c.ents.meta;
 }
+
+// Edizione delle regole scelta dal Master ('2014' o '2024'), anche per un'avventura non ancora aperta
+function campaignRules(campId = App.activeId) {
+  const meta = Campaigns[campId]?.ents?.meta || App.lobby?.find(c => c.id === campId)?.meta;
+  return meta?.rules === '2024' ? '2024' : '2014';
+}
 // ---------------------------------------------------------------------------
 // Mappe (scene): la "principale" usa le chiavi storiche scene/map, le altre scene:<id>/map:<id>.
 // I giocatori vedono la scena indicata in stage; il Master può prepararne un'altra intanto.

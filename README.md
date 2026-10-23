@@ -18,15 +18,24 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
   anche se usate da più pedine; un'immagine può valere per tutti i mostri dello stesso tipo.
 - **Condizioni con durata** in round, che finiscono da sole al momento giusto del turno.
 - **Scheda personaggio** semplice o completa: PF e PF temporanei, riposi, tiri salvezza contro morte, abilità con competenza e maestria, attacchi, condizioni.
+- **Armi dal manuale**: si sceglie l'arma (pugnale, spada lunga, arco corto…) e la scheda calcola da sola tiro per colpire e danni
+  da caratteristiche, competenza della classe e della razza, livello, armi accurate e versatili, arti marziali del monaco e bonus magico.
+  Gli attacchi speciali (morsi, armi homebrew) si possono ancora scrivere a mano.
 - **Incantesimi**: si scelgono dall'elenco del regolamento base, si lanciano spendendo gli slot (anche a livello superiore),
   con tiri d'attacco, danni, cure, CD e concentrazione (con il tiro salvezza quando si subiscono danni).
+  La scheda propone solo gli incantesimi della classe fino al livello che si può lanciare e tiene il conto di trucchetti,
+  incantesimi conosciuti o preparati (il mago ha il libro e prepara quelli da lanciare); quelli dati da razza o talenti si
+  aggiungono come "extra" e non contano nei limiti.
+- **Regole 2014 o 2024**: il Master sceglie l'edizione nello schermo del Master; cambia quanti incantesimi si scelgono a ogni
+  livello, gli slot di paladino e ranger al 1° livello e le competenze nelle armi di alcune classi.
 - **Creazione guidata del personaggio** (razza, classe, caratteristiche con serie standard, acquisto a punti o 4d6, abilità)
   e **passaggio di livello** con PF, aumenti di caratteristica e nuovi slot.
 - **Scheda da PDF o da foto**: al primo ingresso (o con **📄 Da PDF** nella scheda Personaggio) si carica la propria scheda,
   anche in inglese, e l'app prepara il personaggio già tradotto in italiano: caratteristiche, competenze e maestrie, attacchi,
   incantesimi lanciabili con i loro slot, equipaggiamento, privilegi e storia. Prima di confermare si vede un'anteprima da correggere.
   Funziona con le schede compilabili (quella ufficiale, gli export di D&D Beyond), con quelle stampate o scansionate e con le foto.
-  Senza assistente IA si leggono solo le schede compilabili e i testi restano nella lingua originale.
+  Le armi diventano armi del manuale, con la competenza presa dalla scheda; se un numero non torna, l'anteprima lo segnala.
+  Senza assistente IA si leggono solo le schede compilabili e gli export di D&D Beyond, e i testi restano nella lingua originale.
 - **Messaggi privati** tra Master e giocatori e **dispense** (testo e immagini) per tutti o per un solo giocatore.
 - **Diario condiviso** (missioni, PNG, luoghi, bottino, domande per il DM con risposta) e **note personali** che legge solo
   chi le scrive (nemmeno il Master), protette da un PIN personale.
@@ -91,7 +100,7 @@ Su Vercel → progetto → **Settings → Environment Variables** aggiungi:
 
 Poi rifai il deploy (Deployments → ⋯ → Redeploy). La chiave resta sul server: i giocatori usano l'assistente senza vederla.
 Senza chiave l'assistente funziona lo stesso, ma risponde solo con il glossario e la ricerca nei PDF,
-e le schede personaggio si importano solo dai PDF compilabili, senza traduzione.
+e le schede personaggio si importano solo dai PDF compilabili e da D&D Beyond, senza traduzione.
 
 ### 4. Pubblicazione
 

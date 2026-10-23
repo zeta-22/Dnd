@@ -85,18 +85,18 @@ function monsterStatBlockHtml(m, { actions = true } = {}) {
 const ALL_SKILL_KEYS = DND5E_SKILLS.map(s => s.key);
 
 const SRD_CLASSES = {
-  Barbaro: { die: 12, saves: ['FOR', 'COS'], skills: { n: 2, from: ['Addestrare Animali', 'Atletica', 'Intimidire', 'Natura', 'Percezione', 'Sopravvivenza'] }, ac: 'barbarian', bonus: 'Ira', features: 'Ira (2 al giorno, +2 ai danni), Difesa senza armatura (CA 10 + DES + COS).', attack: 'Ascia bipenne | +{FOR} | 1d12{FORmod}' },
-  Bardo: { die: 8, saves: ['DES', 'CAR'], skills: { n: 3, from: ALL_SKILL_KEYS }, casting: { ability: 'CAR', type: 'full' }, bonus: 'Ispirazione bardica', features: 'Incantesimi, Ispirazione bardica (d6).', attack: 'Stocco | +{DES} | 1d8{DESmod}' },
-  Chierico: { die: 8, saves: ['SAG', 'CAR'], skills: { n: 2, from: ['Intuizione', 'Medicina', 'Persuasione', 'Religione', 'Storia'] }, casting: { ability: 'SAG', type: 'full' }, bonus: '', features: 'Incantesimi, Dominio divino.', attack: 'Mazza | +{FOR} | 1d6{FORmod}' },
-  Druido: { die: 8, saves: ['INT', 'SAG'], skills: { n: 2, from: ['Addestrare Animali', 'Arcano', 'Intuizione', 'Medicina', 'Natura', 'Percezione', 'Religione', 'Sopravvivenza'] }, casting: { ability: 'SAG', type: 'full' }, bonus: '', features: 'Druidico, Incantesimi.', attack: 'Scimitarra | +{DES} | 1d6{DESmod}' },
-  Guerriero: { die: 10, saves: ['FOR', 'COS'], skills: { n: 2, from: ['Acrobazia', 'Addestrare Animali', 'Atletica', 'Intimidire', 'Intuizione', 'Percezione', 'Sopravvivenza', 'Storia'] }, bonus: 'Recuperare energie', features: 'Stile di combattimento, Recuperare energie (1d10 + livello PF, azione bonus).', attack: 'Spada lunga | +{FOR} | 1d8{FORmod}' },
-  Ladro: { die: 8, saves: ['DES', 'INT'], skills: { n: 4, from: ['Acrobazia', 'Atletica', 'Furtività', 'Indagare', 'Inganno', 'Intimidire', 'Intrattenere', 'Intuizione', 'Percezione', 'Persuasione', 'Rapidità di Mano'] }, bonus: 'Azione scaltra (dal 2° livello)', features: 'Maestria (2 abilità: segnale nella vista Completa), Attacco furtivo (1d6), Gergo ladresco.', attack: 'Spada corta | +{DES} | 1d6{DESmod}' },
-  Mago: { die: 6, saves: ['INT', 'SAG'], skills: { n: 2, from: ['Arcano', 'Indagare', 'Intuizione', 'Medicina', 'Religione', 'Storia'] }, casting: { ability: 'INT', type: 'full' }, bonus: '', features: 'Incantesimi (libro degli incantesimi), Recupero arcano.', attack: 'Pugnale | +{DES} | 1d4{DESmod}' },
-  Monaco: { die: 8, saves: ['FOR', 'DES'], skills: { n: 2, from: ['Acrobazia', 'Atletica', 'Furtività', 'Intuizione', 'Religione', 'Storia'] }, ac: 'monk', bonus: 'Colpo senz\'armi (Arti marziali)', features: 'Difesa senza armatura (CA 10 + DES + SAG), Arti marziali (d4).', attack: 'Colpo senz\'armi | +{DES} | 1d4{DESmod}' },
-  Paladino: { die: 10, saves: ['SAG', 'CAR'], skills: { n: 2, from: ['Atletica', 'Intimidire', 'Intuizione', 'Medicina', 'Persuasione', 'Religione'] }, casting: { ability: 'CAR', type: 'half' }, bonus: '', features: 'Percezione del divino, Imposizione delle mani (5 × livello PF).', attack: 'Spada lunga | +{FOR} | 1d8{FORmod}' },
-  Ranger: { die: 10, saves: ['FOR', 'DES'], skills: { n: 3, from: ['Addestrare Animali', 'Atletica', 'Furtività', 'Indagare', 'Intuizione', 'Natura', 'Percezione', 'Sopravvivenza'] }, casting: { ability: 'SAG', type: 'half' }, bonus: '', features: 'Nemico prescelto, Esploratore nato.', attack: 'Arco lungo | +{DES} | 1d8{DESmod}' },
-  Stregone: { die: 6, saves: ['COS', 'CAR'], skills: { n: 2, from: ['Arcano', 'Inganno', 'Intimidire', 'Intuizione', 'Persuasione', 'Religione'] }, casting: { ability: 'CAR', type: 'full' }, bonus: '', features: 'Incantesimi, Origine stregonesca.', attack: 'Pugnale | +{DES} | 1d4{DESmod}' },
-  Warlock: { die: 8, saves: ['SAG', 'CAR'], skills: { n: 2, from: ['Arcano', 'Indagare', 'Inganno', 'Intimidire', 'Natura', 'Religione', 'Storia'] }, casting: { ability: 'CAR', type: 'pact' }, bonus: '', features: 'Patrono ultraterreno, Magia del patto (gli slot si recuperano col riposo breve).', attack: 'Pugnale | +{DES} | 1d4{DESmod}' }
+  Barbaro: { die: 12, saves: ['FOR', 'COS'], skills: { n: 2, from: ['Addestrare Animali', 'Atletica', 'Intimidire', 'Natura', 'Percezione', 'Sopravvivenza'] }, ac: 'barbarian', bonus: 'Ira', features: 'Ira (2 al giorno, +2 ai danni), Difesa senza armatura (CA 10 + DES + COS).', weapons: ['greataxe', 'handaxe'] },
+  Bardo: { die: 8, saves: ['DES', 'CAR'], skills: { n: 3, from: ALL_SKILL_KEYS }, casting: { ability: 'CAR', type: 'full' }, bonus: 'Ispirazione bardica', features: 'Incantesimi, Ispirazione bardica (d6).', weapons: ['rapier', 'dagger'] },
+  Chierico: { die: 8, saves: ['SAG', 'CAR'], skills: { n: 2, from: ['Intuizione', 'Medicina', 'Persuasione', 'Religione', 'Storia'] }, casting: { ability: 'SAG', type: 'full' }, bonus: '', features: 'Incantesimi, Dominio divino.', weapons: ['mace', 'lightcrossbow'] },
+  Druido: { die: 8, saves: ['INT', 'SAG'], skills: { n: 2, from: ['Addestrare Animali', 'Arcano', 'Intuizione', 'Medicina', 'Natura', 'Percezione', 'Religione', 'Sopravvivenza'] }, casting: { ability: 'SAG', type: 'full' }, bonus: '', features: 'Druidico, Incantesimi.', weapons: ['scimitar'] },
+  Guerriero: { die: 10, saves: ['FOR', 'COS'], skills: { n: 2, from: ['Acrobazia', 'Addestrare Animali', 'Atletica', 'Intimidire', 'Intuizione', 'Percezione', 'Sopravvivenza', 'Storia'] }, bonus: 'Recuperare energie', features: 'Stile di combattimento, Recuperare energie (1d10 + livello PF, azione bonus).', weapons: ['longsword', 'lightcrossbow'] },
+  Ladro: { die: 8, saves: ['DES', 'INT'], skills: { n: 4, from: ['Acrobazia', 'Atletica', 'Furtività', 'Indagare', 'Inganno', 'Intimidire', 'Intrattenere', 'Intuizione', 'Percezione', 'Persuasione', 'Rapidità di Mano'] }, bonus: 'Azione scaltra (dal 2° livello)', features: 'Maestria (2 abilità: segnale nella vista Completa), Attacco furtivo (1d6), Gergo ladresco.', weapons: ['shortsword', 'shortbow'] },
+  Mago: { die: 6, saves: ['INT', 'SAG'], skills: { n: 2, from: ['Arcano', 'Indagare', 'Intuizione', 'Medicina', 'Religione', 'Storia'] }, casting: { ability: 'INT', type: 'full' }, bonus: '', features: 'Incantesimi (libro degli incantesimi), Recupero arcano.', weapons: ['dagger'] },
+  Monaco: { die: 8, saves: ['FOR', 'DES'], skills: { n: 2, from: ['Acrobazia', 'Atletica', 'Furtività', 'Intuizione', 'Religione', 'Storia'] }, ac: 'monk', bonus: 'Colpo senz\'armi (Arti marziali)', features: 'Difesa senza armatura (CA 10 + DES + SAG), Arti marziali (d4).', weapons: ['unarmed', 'shortsword'] },
+  Paladino: { die: 10, saves: ['SAG', 'CAR'], skills: { n: 2, from: ['Atletica', 'Intimidire', 'Intuizione', 'Medicina', 'Persuasione', 'Religione'] }, casting: { ability: 'CAR', type: 'half' }, bonus: '', features: 'Percezione del divino, Imposizione delle mani (5 × livello PF).', weapons: ['longsword', 'javelin'] },
+  Ranger: { die: 10, saves: ['FOR', 'DES'], skills: { n: 3, from: ['Addestrare Animali', 'Atletica', 'Furtività', 'Indagare', 'Intuizione', 'Natura', 'Percezione', 'Sopravvivenza'] }, casting: { ability: 'SAG', type: 'half' }, bonus: '', features: 'Nemico prescelto, Esploratore nato.', weapons: ['longbow', 'shortsword'] },
+  Stregone: { die: 6, saves: ['COS', 'CAR'], skills: { n: 2, from: ['Arcano', 'Inganno', 'Intimidire', 'Intuizione', 'Persuasione', 'Religione'] }, casting: { ability: 'CAR', type: 'full' }, bonus: '', features: 'Incantesimi, Origine stregonesca.', weapons: ['dagger', 'lightcrossbow'] },
+  Warlock: { die: 8, saves: ['SAG', 'CAR'], skills: { n: 2, from: ['Arcano', 'Indagare', 'Inganno', 'Intimidire', 'Natura', 'Religione', 'Storia'] }, casting: { ability: 'CAR', type: 'pact' }, bonus: '', features: 'Patrono ultraterreno, Magia del patto (gli slot si recuperano col riposo breve).', weapons: ['dagger', 'lightcrossbow'] }
 };
 
 const SRD_RACES = {
@@ -124,9 +124,28 @@ const FULL_CASTER_SLOTS = [[2], [3], [4, 2], [4, 3], [4, 3, 2], [4, 3, 3], [4, 3
 const HALF_CASTER_SLOTS = [[], [2], [3], [3], [4, 2], [4, 2], [4, 3], [4, 3], [4, 3, 2], [4, 3, 2], [4, 3, 3], [4, 3, 3],
   [4, 3, 3, 1], [4, 3, 3, 1], [4, 3, 3, 2], [4, 3, 3, 2], [4, 3, 3, 3, 1], [4, 3, 3, 3, 1], [4, 3, 3, 3, 2], [4, 3, 3, 3, 2]];
 
-// Slot per livello d'incantesimo (array di 9) per una classe a un certo livello
-function classSpellSlots(className, level) {
-  const cls = SRD_CLASSES[className];
+// Nome della classe del regolamento da come lo scrive il giocatore ("Maga", "wizard", "Mago (Invocazione)")
+const CLASS_NAME_ALIASES = {
+  barbara: 'Barbaro', barda: 'Bardo', chierica: 'Chierico', druida: 'Druido', guerriera: 'Guerriero', ladra: 'Ladro', maga: 'Mago',
+  monaca: 'Monaco', paladina: 'Paladino', stregona: 'Stregone', strega: 'Stregone', barbarian: 'Barbaro', bard: 'Bardo',
+  cleric: 'Chierico', druid: 'Druido', fighter: 'Guerriero', rogue: 'Ladro', wizard: 'Mago', monk: 'Monaco', paladin: 'Paladino',
+  sorcerer: 'Stregone'
+};
+
+function srdClassKey(name) {
+  const first = normalizeSearchText(name).trim().split(/[^a-z]+/)[0] || '';
+  return Object.keys(SRD_CLASSES).find(c => normalizeSearchText(c) === first) || CLASS_NAME_ALIASES[first] || null;
+}
+
+// Con più classi ("Guerriero 3 / Ladro 2") servono tutte, per esempio per le competenze nelle armi
+function srdClassKeys(name) {
+  return String(name || '').split('/').map(srdClassKey).filter(Boolean);
+}
+
+// Slot per livello d'incantesimo (array di 9) per una classe a un certo livello.
+// Con le regole 2024 paladino e ranger hanno già 2 slot al 1° livello.
+function classSpellSlots(className, level, rules = campaignRules()) {
+  const cls = SRD_CLASSES[srdClassKey(className)];
   const out = new Array(9).fill(0);
   if (!cls?.casting) return out;
   const lv = clampInt(level, 1, 20, 1);
@@ -137,7 +156,8 @@ function classSpellSlots(className, level) {
     return out;
   }
   const table = cls.casting.type === 'full' ? FULL_CASTER_SLOTS : HALF_CASTER_SLOTS;
-  table[lv - 1].forEach((n, i) => { out[i] = n; });
+  const row = cls.casting.type === 'half' && lv === 1 && rules === '2024' ? [2] : table[lv - 1];
+  row.forEach((n, i) => { out[i] = n; });
   return out;
 }
 
@@ -150,7 +170,205 @@ function classAsiLevels(className) {
 // Caratteristica da incantatore: dalla classe, oppure quella scelta nella scheda
 function spellcastingAbility(ch) {
   if (ch.spellAbility && ABILITY_KEYS.includes(ch.spellAbility)) return ch.spellAbility;
-  return SRD_CLASSES[ch.className]?.casting?.ability || 'INT';
+  return SRD_CLASSES[srdClassKey(ch.className)]?.casting?.ability || 'INT';
+}
+
+// ---------------------------------------------------------------------------
+// Quanti incantesimi si scelgono a ogni livello (Manuale del Giocatore 2014 e 2024)
+// ---------------------------------------------------------------------------
+
+// Trucchetti dal 1°, dal 4° e dal 10° livello (uguali nelle due edizioni)
+const CANTRIPS_KNOWN = { Bardo: [2, 3, 4], Chierico: [3, 4, 5], Druido: [2, 3, 4], Mago: [3, 4, 5], Stregone: [4, 5, 6], Warlock: [2, 3, 4] };
+// 2014: incantesimi conosciuti per livello (le altre classi li preparano: caratteristica + livello)
+const SPELLS_KNOWN_2014 = {
+  Bardo: [4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 15, 16, 18, 19, 19, 20, 22, 22, 22],
+  Stregone: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15],
+  Warlock: [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
+  Ranger: [0, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11]
+};
+// 2024: incantesimi preparati per livello, dalla tabella di ogni classe
+const PREPARED_FULL_2024 = [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22];
+const PREPARED_HALF_2024 = [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15];
+const SPELLS_PREPARED_2024 = {
+  Bardo: PREPARED_FULL_2024, Chierico: PREPARED_FULL_2024, Druido: PREPARED_FULL_2024,
+  Mago: [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 18, 19, 21, 22, 23, 24, 25],
+  Stregone: [2, 4, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
+  Warlock: [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
+  Paladino: PREPARED_HALF_2024, Ranger: PREPARED_HALF_2024
+};
+
+// null se la classe non è un incantatore del regolamento. Il mago tiene un libro (book incantesimi)
+// e ne prepara "spells"; gli altri hanno in scheda solo quelli conosciuti o preparati.
+function classSpellRules(ch, rules = campaignRules()) {
+  const cls = srdClassKey(ch.className);
+  const casting = !String(ch.className || '').includes('/') && SRD_CLASSES[cls]?.casting;
+  if (!casting) return null;
+  const lv = clampInt(ch.level, 1, 20, 1);
+  const tier = lv >= 10 ? 2 : lv >= 4 ? 1 : 0;
+  const mod = getAbilityMod(ch.abilities?.[casting.ability]);
+  const out = {
+    cls, rules, ability: casting.ability, cantrips: CANTRIPS_KNOWN[cls]?.[tier] || 0,
+    maxLevel: classSpellSlots(cls, lv, rules).reduce((m, n, i) => (n ? i + 1 : m), 0),
+    book: cls === 'Mago' ? 6 + 2 * (lv - 1) : 0
+  };
+  if (rules === '2024') return Object.assign(out, { spells: SPELLS_PREPARED_2024[cls][lv - 1], kind: 'prepared', how: 'tabella della classe' });
+  if (SPELLS_KNOWN_2014[cls]) return Object.assign(out, { spells: SPELLS_KNOWN_2014[cls][lv - 1], kind: 'known', how: 'tabella della classe' });
+  if (cls === 'Paladino') return Object.assign(out, { spells: lv < 2 ? 0 : Math.max(1, mod + Math.floor(lv / 2)), kind: 'prepared', how: `${casting.ability} ${formatSignedMod(mod)} + metà livello` });
+  return Object.assign(out, { spells: Math.max(1, mod + lv), kind: 'prepared', how: `${casting.ability} ${formatSignedMod(mod)} + livello` });
+}
+
+// ---------------------------------------------------------------------------
+// Armi del regolamento base: tiro per colpire e danni li calcola il personaggio
+// ---------------------------------------------------------------------------
+
+// k chiave · n/e nome italiano e inglese · c semplice, da guerra o colpo senz'armi · ranged arma a distanza
+// d dado del danno · v dado a due mani (versatile) · t tipo di danno · p proprietà · r gittata in metri
+const SRD_WEAPONS = [
+  { k: 'club', n: 'Randello', e: 'Club', c: 'simple', d: '1d4', t: 'contundenti', p: ['light'] },
+  { k: 'dagger', n: 'Pugnale', e: 'Dagger', c: 'simple', d: '1d4', t: 'perforanti', p: ['finesse', 'light', 'thrown'], r: '6/18' },
+  { k: 'greatclub', n: 'Randello pesante', e: 'Greatclub', c: 'simple', d: '1d8', t: 'contundenti', p: ['twohanded'] },
+  { k: 'handaxe', n: 'Ascia', e: 'Handaxe', c: 'simple', d: '1d6', t: 'taglienti', p: ['light', 'thrown'], r: '6/18' },
+  { k: 'javelin', n: 'Giavellotto', e: 'Javelin', c: 'simple', d: '1d6', t: 'perforanti', p: ['thrown'], r: '9/36' },
+  { k: 'lighthammer', n: 'Martello leggero', e: 'Light Hammer', c: 'simple', d: '1d4', t: 'contundenti', p: ['light', 'thrown'], r: '6/18' },
+  { k: 'mace', n: 'Mazza', e: 'Mace', c: 'simple', d: '1d6', t: 'contundenti', p: [] },
+  { k: 'quarterstaff', n: 'Bastone ferrato', e: 'Quarterstaff', c: 'simple', d: '1d6', v: '1d8', t: 'contundenti', p: ['versatile'] },
+  { k: 'sickle', n: 'Falcetto', e: 'Sickle', c: 'simple', d: '1d4', t: 'taglienti', p: ['light'] },
+  { k: 'spear', n: 'Lancia', e: 'Spear', c: 'simple', d: '1d6', v: '1d8', t: 'perforanti', p: ['thrown', 'versatile'], r: '6/18' },
+  { k: 'lightcrossbow', n: 'Balestra leggera', e: 'Light Crossbow', c: 'simple', ranged: true, d: '1d8', t: 'perforanti', p: ['ammunition', 'loading', 'twohanded'], r: '24/96' },
+  { k: 'dart', n: 'Dardo', e: 'Dart', c: 'simple', ranged: true, d: '1d4', t: 'perforanti', p: ['finesse', 'thrown'], r: '6/18' },
+  { k: 'shortbow', n: 'Arco corto', e: 'Shortbow', c: 'simple', ranged: true, d: '1d6', t: 'perforanti', p: ['ammunition', 'twohanded'], r: '24/96' },
+  { k: 'sling', n: 'Fionda', e: 'Sling', c: 'simple', ranged: true, d: '1d4', t: 'contundenti', p: ['ammunition'], r: '9/36' },
+  { k: 'battleaxe', n: 'Ascia da battaglia', e: 'Battleaxe', c: 'martial', d: '1d8', v: '1d10', t: 'taglienti', p: ['versatile'] },
+  { k: 'flail', n: 'Mazzafrusto', e: 'Flail', c: 'martial', d: '1d8', t: 'contundenti', p: [] },
+  { k: 'glaive', n: 'Falcione', e: 'Glaive', c: 'martial', d: '1d10', t: 'taglienti', p: ['heavy', 'reach', 'twohanded'] },
+  { k: 'greataxe', n: 'Ascia bipenne', e: 'Greataxe', c: 'martial', d: '1d12', t: 'taglienti', p: ['heavy', 'twohanded'] },
+  { k: 'greatsword', n: 'Spadone', e: 'Greatsword', c: 'martial', d: '2d6', t: 'taglienti', p: ['heavy', 'twohanded'] },
+  { k: 'halberd', n: 'Alabarda', e: 'Halberd', c: 'martial', d: '1d10', t: 'taglienti', p: ['heavy', 'reach', 'twohanded'] },
+  { k: 'lance', n: 'Lancia da cavaliere', e: 'Lance', c: 'martial', d: '1d12', t: 'perforanti', p: ['reach', 'special'] },
+  { k: 'longsword', n: 'Spada lunga', e: 'Longsword', c: 'martial', d: '1d8', v: '1d10', t: 'taglienti', p: ['versatile'] },
+  { k: 'maul', n: 'Maglio', e: 'Maul', c: 'martial', d: '2d6', t: 'contundenti', p: ['heavy', 'twohanded'] },
+  { k: 'morningstar', n: 'Morning star', e: 'Morningstar', c: 'martial', d: '1d8', t: 'perforanti', p: [] },
+  { k: 'pike', n: 'Picca', e: 'Pike', c: 'martial', d: '1d10', t: 'perforanti', p: ['heavy', 'reach', 'twohanded'] },
+  { k: 'rapier', n: 'Stocco', e: 'Rapier', c: 'martial', d: '1d8', t: 'perforanti', p: ['finesse'] },
+  { k: 'scimitar', n: 'Scimitarra', e: 'Scimitar', c: 'martial', d: '1d6', t: 'taglienti', p: ['finesse', 'light'] },
+  { k: 'shortsword', n: 'Spada corta', e: 'Shortsword', c: 'martial', d: '1d6', t: 'perforanti', p: ['finesse', 'light'] },
+  { k: 'trident', n: 'Tridente', e: 'Trident', c: 'martial', d: '1d6', v: '1d8', t: 'perforanti', p: ['thrown', 'versatile'], r: '6/18' },
+  { k: 'warpick', n: 'Piccone da guerra', e: 'War Pick', c: 'martial', d: '1d8', t: 'perforanti', p: [] },
+  { k: 'warhammer', n: 'Martello da guerra', e: 'Warhammer', c: 'martial', d: '1d8', v: '1d10', t: 'contundenti', p: ['versatile'] },
+  { k: 'whip', n: 'Frusta', e: 'Whip', c: 'martial', d: '1d4', t: 'taglienti', p: ['finesse', 'reach'] },
+  { k: 'blowgun', n: 'Cerbottana', e: 'Blowgun', c: 'martial', ranged: true, d: '1', t: 'perforanti', p: ['ammunition', 'loading'], r: '7,5/30' },
+  { k: 'handcrossbow', n: 'Balestra a mano', e: 'Hand Crossbow', c: 'martial', ranged: true, d: '1d6', t: 'perforanti', p: ['ammunition', 'light', 'loading'], r: '9/36' },
+  { k: 'heavycrossbow', n: 'Balestra pesante', e: 'Heavy Crossbow', c: 'martial', ranged: true, d: '1d10', t: 'perforanti', p: ['ammunition', 'heavy', 'loading', 'twohanded'], r: '30/120' },
+  { k: 'longbow', n: 'Arco lungo', e: 'Longbow', c: 'martial', ranged: true, d: '1d8', t: 'perforanti', p: ['ammunition', 'heavy', 'twohanded'], r: '45/180' },
+  { k: 'net', n: 'Rete', e: 'Net', c: 'martial', ranged: true, d: '', t: '', p: ['special', 'thrown'], r: '1,5/4,5' },
+  { k: 'unarmed', n: 'Colpo senz\'armi', e: 'Unarmed Strike', c: 'unarmed', d: '1', t: 'contundenti', p: [] }
+];
+const WEAPON_PROPERTY_LABELS = {
+  finesse: 'accurata', light: 'leggera', heavy: 'pesante', thrown: 'da lancio', twohanded: 'a due mani', versatile: 'versatile',
+  ammunition: 'munizioni', loading: 'ricarica', reach: 'portata', special: 'speciale'
+};
+const WEAPON_GROUPS = [
+  ['Armi semplici da mischia', w => w.c === 'simple' && !w.ranged], ['Armi semplici a distanza', w => w.c === 'simple' && w.ranged],
+  ['Armi da guerra da mischia', w => w.c === 'martial' && !w.ranged], ['Armi da guerra a distanza', w => w.c === 'martial' && w.ranged],
+  ['Senz\'armi', w => w.c === 'unarmed']
+];
+// Competenze nelle armi per classe: "simple", "martial", "martial:<proprietà>" o la chiave di un'arma
+const CLASS_WEAPON_PROFS = {
+  2014: {
+    Bardo: ['simple', 'handcrossbow', 'longsword', 'rapier', 'shortsword'], Chierico: ['simple'], Warlock: ['simple'],
+    Druido: ['club', 'dagger', 'dart', 'javelin', 'mace', 'quarterstaff', 'scimitar', 'sickle', 'sling', 'spear'],
+    Ladro: ['simple', 'handcrossbow', 'longsword', 'rapier', 'shortsword'], Monaco: ['simple', 'shortsword'],
+    Mago: ['dagger', 'dart', 'sling', 'quarterstaff', 'lightcrossbow'], Stregone: ['dagger', 'dart', 'sling', 'quarterstaff', 'lightcrossbow']
+  },
+  2024: {
+    Bardo: ['simple'], Chierico: ['simple'], Druido: ['simple'], Mago: ['simple'], Stregone: ['simple'], Warlock: ['simple'],
+    Ladro: ['simple', 'martial:finesse', 'martial:light'], Monaco: ['simple', 'martial:light']
+  }
+};
+const ALL_WEAPONS_CLASSES = ['Barbaro', 'Guerriero', 'Paladino', 'Ranger'];
+
+function srdWeapon(key) {
+  return SRD_WEAPONS.find(w => w.k === key) || null;
+}
+
+// Riconosce un'arma dal nome scritto sulla scheda ("Longsword +1", "Spada Corta", "Crossbow, Light")
+function findSrdWeapon(...names) {
+  for (const name of names) {
+    const key = normalizeSearchText(name).replace(/\+\d/g, '').replace(/\(.*?\)/g, '').replace(/[^a-z]/g, '');
+    if (!key) continue;
+    const hit = SRD_WEAPONS.find(w => [w.n, w.e].some(x => normalizeSearchText(x).replace(/[^a-z]/g, '') === key))
+      || SRD_WEAPONS.find(w => normalizeSearchText(w.e).split(' ').reverse().join('').replace(/[^a-z]/g, '') === key);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+// Addestramento nelle armi della razza (nani ed elfi delle regole 2014)
+function raceWeaponProfs(race) {
+  const r = normalizeSearchText(race);
+  if (/nano|dwarf/.test(r)) return ['battleaxe', 'handaxe', 'lighthammer', 'warhammer'];
+  if (/drow/.test(r)) return ['rapier', 'shortsword', 'handcrossbow'];
+  if (/\belf/.test(r) && !/half|mezz/.test(r)) return ['longsword', 'shortsword', 'shortbow', 'longbow'];
+  return [];
+}
+
+function weaponProficient(ch, w, rules) {
+  if (w.c === 'unarmed') return true;
+  const profs = raceWeaponProfs(ch.race);
+  srdClassKeys(ch.className).forEach(cls => {
+    profs.push(...(ALL_WEAPONS_CLASSES.includes(cls) ? ['simple', 'martial'] : CLASS_WEAPON_PROFS[rules]?.[cls] || CLASS_WEAPON_PROFS[2014][cls] || []));
+  });
+  return profs.some(x => x === w.c || x === w.k || (x.startsWith(`${w.c}:`) && w.p.includes(x.split(':')[1])));
+}
+
+// Arti marziali del monaco: dado e armi che può usare con la Destrezza
+function martialArtsDie(level, rules) {
+  const step = level >= 17 ? 3 : level >= 11 ? 2 : level >= 5 ? 1 : 0;
+  return rules === '2024' ? ['1d6', '1d8', '1d10', '1d12'][step] : ['1d4', '1d6', '1d8', '1d10'][step];
+}
+
+function isMonkWeapon(w, rules) {
+  if (w.c === 'unarmed') return true;
+  if (w.ranged || w.p.includes('heavy') || w.p.includes('twohanded')) return false;
+  return w.c === 'simple' || (rules === '2024' ? w.p.includes('light') : w.k === 'shortsword');
+}
+
+function dieSides(die) {
+  const m = String(die).match(/^(\d+)d(\d+)$/);
+  return m ? parseInt(m[1], 10) * parseInt(m[2], 10) : parseInt(die, 10) || 0;
+}
+
+function damageWithBonus(die, bonus) {
+  if (!die) return '';
+  if (/^\d+$/.test(die)) return String(Math.max(0, parseInt(die, 10) + bonus));
+  return bonus ? `${die}${formatSignedMod(bonus)}` : die;
+}
+
+// Tiro per colpire e danni di un'arma del personaggio ({ k, magic, prof, name })
+function weaponStats(ch, entry, rules = campaignRules()) {
+  const w = srdWeapon(entry.k);
+  if (!w) return null;
+  const mods = { FOR: getAbilityMod(ch.abilities.FOR), DES: getAbilityMod(ch.abilities.DES) };
+  const monk = srdClassKeys(ch.className).includes('Monaco') && isMonkWeapon(w, rules);
+  let ability = w.ranged ? 'DES' : 'FOR';
+  if (w.p.includes('finesse') || monk) ability = mods.DES > mods.FOR ? 'DES' : 'FOR';
+  const magic = clampInt(entry.magic, 0, 3, 0);
+  const proficient = typeof entry.prof === 'boolean' ? entry.prof : weaponProficient(ch, w, rules);
+  const bonus = mods[ability] + magic;
+  const monkDie = monk ? martialArtsDie(ch.level, rules) : '';
+  const bigger = die => (monkDie && dieSides(monkDie) > dieSides(die) ? monkDie : die);
+  return {
+    w, ability, proficient, magic,
+    name: entry.name || `${w.n}${magic ? ` +${magic}` : ''}`,
+    hit: bonus + (proficient ? getProficiencyBonus(ch.level) : 0),
+    damage: damageWithBonus(bigger(w.d), bonus),
+    damage2: w.v ? damageWithBonus(bigger(w.v), bonus) : ''
+  };
+}
+
+function weaponOptionsHtml(selected = '') {
+  return WEAPON_GROUPS.map(([label, test]) => `<optgroup label="${label}">${SRD_WEAPONS.filter(test)
+    .map(w => `<option value="${w.k}" ${w.k === selected ? 'selected' : ''}>${escapeHtml(w.n)} (${w.d ? escapeHtml(w.d) : '—'})</option>`).join('')}</optgroup>`).join('');
 }
 
 // Campo di ricerca dei mostri con elenco di risultati cliccabili
