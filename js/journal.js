@@ -55,7 +55,7 @@ function renderJournal() {
           ${LINK_CATEGORIES.includes(j.category) ? citedInHtml('journal', j.id, j.title) : ''}
           ${isQuestion ? (dm
             ? `<label class="flex flex-col gap-1 pt-1 border-t border-[var(--line)]"><span class="font-bold text-[var(--brass)]">Risposta del DM</span>
-                 <textarea rows="2" class="input-field w-full text-xs journal-answer-input" placeholder="Scrivi la risposta…">${escapeHtml(j.dmAnswer)}</textarea></label>`
+                 <textarea rows="2" class="input-field w-full text-xs journal-answer-input auto-grow auto-grow-sm" placeholder="Scrivi la risposta…">${escapeHtml(j.dmAnswer)}</textarea></label>`
             : j.dmAnswer ? `<div class="pt-1 border-t border-[var(--line)]"><strong class="text-[var(--brass)]">🐉 Risposta del DM:</strong> <span class="whitespace-pre-wrap">${linkify(j.dmAnswer)}</span></div>`
               : '<div class="text-[11px] italic text-[var(--muted)]">In attesa di risposta dal DM…</div>') : ''}
         </article>`;

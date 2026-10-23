@@ -302,3 +302,18 @@ textarea.input-field { resize: vertical; }
 .dice-total-badge.is-crit .dice-total-value { color: #c9930a; text-shadow: 0 0 12px rgba(255, 210, 74, 0.9); }
 .dice-total-badge.is-fumble { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(163, 57, 42, 0.3), 0 0 26px 6px rgba(200, 50, 30, 0.6); }
 .dice-total-badge.is-fumble .dice-total-value { color: var(--danger); }
+
+/* Schermo intero: la mappa o la scheda coprono tutta la finestra. Funziona anche dove il browser non ha
+   l'API Fullscreen (iPhone); dove c'è, l'app nasconde in più le barre del browser. Sotto finestre, pedine e dadi. */
+body.fs-active { overflow: hidden; }
+.fs-target {
+  position: fixed !important; inset: 0; z-index: 45; margin: 0 !important; border-radius: 0 !important; max-width: none !important;
+  background: var(--bg); overflow-y: auto; overscroll-behavior: contain;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+}
+#mapCard.fs-target { background: var(--surface); overflow: hidden; }
+.fs-target .map-viewport { flex: 1 1 auto; min-height: 0; max-height: none; }
+
+/* Campi di testo che crescono mentre si scrive (field-sizing dove c'è, altrimenti ci pensa autoGrow) */
+textarea.auto-grow { resize: vertical; field-sizing: content; min-height: 6.5rem; }
+textarea.auto-grow.auto-grow-sm { min-height: 3.5rem; }

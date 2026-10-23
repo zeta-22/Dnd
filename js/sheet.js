@@ -214,6 +214,7 @@ function renderSheet() {
   setText('sheetPassivePerceptionDisplay', 10 + skillBonus(ch, perception));
 
   renderSheetAttacks(ch, editable);
+  renderCoins(ch);
   renderSpellSlots(ch, editable, complete);
   renderSpellsCard(ch, editable);
   renderConditions(ch, editable);
@@ -302,6 +303,78 @@ function renderSheetAttacks(ch, editable) {
       </div>
     </div>`);
   list.innerHTML = weapons.concat(attacks).join('') || '<div class="text-xs text-[var(--muted)] italic">Nessuna arma. Scegline una qui sopra: tiro per colpire e danni li calcola la scheda.</div>';
+}
+
+// ---------------------------------------------------------------------------
+// Monete
+// ---------------------------------------------------------------------------
+
+const COIN_VALUE = { mp: 1000, mo: 100, me: 50, ma: 10, mr: 1 };
+
+function coinTotal(coins) {
+  return COIN_KEYS.reduce((n, k) => n + (coins[k] || 0) * COIN_VALUE[k], 0);
+}
+
+function coinTotalText(coins) {
+  return `${(coinTotal(coins) / 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })} mo`;
+}
+
+// Paga con la moneta indicata; se non basta usa le più piccole, poi cambia le più grandi una alla volta
+// (dalla più piccola) e mette il resto in monete più piccole di quella cambiata, senza electrum
+function payCoins(coins, type, amount) {
+  let need = amount * COIN_VALUE[type];
+  if (coinTotal(coins) < need) return null;
+  const c = Object.assign({}, coins);
+  const broken = [];
+  const take = (k, max) => { const n = Math.min(c[k], max); c[k] -= n; need -= n * COIN_VALUE[k]; };
+  take(type, amount);
+  COIN_KEYS.filter(k => COIN_VALUE[k] < COIN_VALUE[type]).forEach(k => take(k, Math.floor(need / COIN_VALUE[k])));
+  while (need > 0) {
+    const k = [...COIN_KEYS].reverse().find(x => c[x] > 0);
+    if (!k) return null;
+    c[k] -= 1;
+    broken.push(k);
+    let change = COIN_VALUE[k] - need;
+    need = Math.max(0, need - COIN_VALUE[k]);
+    COIN_KEYS.filter(x => x !== 'me' && COIN_VALUE[x] < COIN_VALUE[k]).forEach(x => {
+      const n = Math.max(0, Math.floor(change / COIN_VALUE[x]));
+      c[x] += n;
+      change -= n * COIN_VALUE[x];
+    });
+  }
+  return { coins: c, broken };
+}
+
+function changeCoins(ch, spend) {
+  const amount = clampInt($('sheetCoinAmount').value, 0, 9999999, 0);
+  const type = $('sheetCoinType').value;
+  if (!amount || !COIN_VALUE[type]) { showToast('Scrivi quante monete'); $('sheetCoinAmount').focus(); return; }
+  const before = Object.assign({}, ch.coins);
+  let note = '';
+  if (spend) {
+    const paid = payCoins(ch.coins, type, amount);
+    if (!paid) { showToast(`💰 Non bastano: hai ${coinTotalText(ch.coins)} in tutto`, 3500); return; }
+    ch.coins = paid.coins;
+    const counts = {};
+    paid.broken.forEach(k => { counts[k] = (counts[k] || 0) + 1; });
+    note = paid.broken.length ? ` (cambiat${paid.broken.length > 1 ? 'e' : 'a'} ${Object.entries(counts).map(([k, n]) => `${n} ${k}`).join(' e ')})` : '';
+  } else {
+    ch.coins[type] += amount;
+  }
+  App.coinUndo = { charId: ch.id, coins: before, text: `${spend ? '−' : '+'}${amount} ${type}${note}` };
+  $('sheetCoinAmount').value = '';
+  touchEnt(`char:${ch.id}`);
+  showToast(`💰 ${spend ? 'Spese' : 'Ricevute'} ${amount} ${type}${note} · ora hai ${coinTotalText(ch.coins)} in tutto`, 3500);
+  scheduleRender();
+}
+
+function renderCoins(ch) {
+  document.querySelectorAll('.coin-input').forEach(inp => setVal(inp, ch.coins[inp.dataset.coin]));
+  setText('sheetCoinTotal', `In tutto: ${coinTotalText(ch.coins)}`);
+  const last = $('sheetCoinLast');
+  const undo = App.coinUndo?.charId === ch.id ? App.coinUndo : null;
+  showEl(last, Boolean(undo));
+  if (undo) last.innerHTML = `<span class="text-[var(--muted)]">Ultima operazione: <strong>${escapeHtml(undo.text)}</strong></span><button type="button" class="btn text-[11px] py-0 px-2 coin-undo-btn">↩︎ Annulla</button>`;
 }
 
 function weaponEntry(ch, el) {
@@ -577,6 +650,27 @@ function initSheetEvents() {
     if (e.target.open) App.weaponEditOpen = id;
     else if (App.weaponEditOpen === id) App.weaponEditOpen = null;
   }, true);
+  const withMyChar = fn => () => { const ch = currentSheetChar(); if (ch && canEditChar(ch)) fn(ch); };
+  $('btnCoinGain').addEventListener('click', withMyChar(ch => changeCoins(ch, false)));
+  $('btnCoinSpend').addEventListener('click', withMyChar(ch => changeCoins(ch, true)));
+  $('sheetCoinForm').addEventListener('submit', (e) => { e.preventDefault(); });
+  document.querySelectorAll('.coin-input').forEach(inp => inp.addEventListener('change', withMyChar(ch => {
+    ch.coins[inp.dataset.coin] = clampInt(inp.value, 0, 9999999, 0);
+    App.coinUndo = null;
+    touchEnt(`char:${ch.id}`);
+    inp.blur();
+    scheduleRender();
+  })));
+  $('sheetCoinLast').addEventListener('click', (e) => {
+    const ch = currentSheetChar();
+    const undo = App.coinUndo;
+    if (!e.target.closest('.coin-undo-btn') || !ch || !canEditChar(ch) || undo?.charId !== ch.id) return;
+    ch.coins = undo.coins;
+    App.coinUndo = null;
+    touchEnt(`char:${ch.id}`);
+    showToast('↩︎ Operazione annullata');
+    scheduleRender();
+  });
   $('btnAddWeapon').addEventListener('click', () => {
     const ch = currentSheetChar();
     const key = $('sheetWeaponAdd').value;

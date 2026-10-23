@@ -18,6 +18,10 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
   anche se usate da più pedine; un'immagine può valere per tutti i mostri dello stesso tipo.
 - **Condizioni con durata** in round, che finiscono da sole al momento giusto del turno.
 - **Scheda personaggio** semplice o completa: PF e PF temporanei, riposi, tiri salvezza contro morte, abilità con competenza e maestria, attacchi, condizioni.
+- **Monete**: platino, oro, electrum, argento e rame con il totale in monete d'oro; si ricevono e si spendono dalla scheda
+  (se manca la moneta giusta la scheda cambia da sola quelle più grandi e dà il resto) e l'ultima operazione si può annullare.
+- **Schermo intero** per la mappa e per la scheda (⛶): su telefono e tablet si gioca senza le barre dell'app e, dove si può, del browser.
+- **Spazi di scrittura** (equipaggiamento, privilegi, note, storia, diario) che si allungano mentre si scrive.
 - **Armi dal manuale**: si sceglie l'arma (pugnale, spada lunga, arco corto…) e la scheda calcola da sola tiro per colpire e danni
   da caratteristiche, competenza della classe e della razza, livello, armi accurate e versatili, arti marziali del monaco e bonus magico.
   Gli attacchi speciali (morsi, armi homebrew) si possono ancora scrivere a mano.

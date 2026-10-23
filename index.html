@@ -99,7 +99,7 @@
     <section id="tab-tavolo" class="flex flex-col gap-3">
       <div class="tavolo-grid">
         <!-- Mappa A Sinistra -->
-        <div class="card-surface p-3 flex flex-col gap-2">
+        <div id="mapCard" class="card-surface p-3 flex flex-col gap-2">
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
             <div class="flex items-center gap-2">
               <h2 class="font-serif-title font-bold text-xl">🗺️ Mappa Tattica</h2>
@@ -113,6 +113,7 @@
               <button id="btnZoomIn" class="btn text-xs px-2" title="Ingrandisci">+</button>
               <button id="btnZoomOut" class="btn text-xs px-2" title="Riduci">−</button>
               <button id="btnZoomFit" class="btn text-xs px-2" title="Adatta la mappa allo schermo">⤢</button>
+              <button id="btnMapFullscreen" type="button" class="btn btn-felt text-xs px-2 fs-toggle" data-fs-target="mapCard" title="Mappa a schermo intero">⛶<span class="hidden sm:inline"> Schermo intero</span></button>
               <button id="btnToggleGrid" class="btn text-xs dm-only">Griglia</button>
               <div class="flex items-center gap-1 px-1 bg-[var(--surface2)] border border-[var(--line)] rounded dm-only">
                 <span class="text-[10px] text-[var(--muted)]">Colonne:</span>
@@ -317,7 +318,8 @@
           <button id="btnConfirmDeleteSheetYes" type="button" class="btn btn-danger text-xs py-0.5 px-2">Sì</button>
           <button id="btnConfirmDeleteSheetNo" type="button" class="btn text-xs py-0.5 px-2">Annulla</button>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="btnSheetFullscreen" type="button" class="btn btn-felt text-xs fs-toggle" data-fs-target="tab-personaggio" title="Scheda a schermo intero">⛶ Schermo intero</button>
           <span class="text-xs font-bold text-[var(--muted)]">Vista:</span>
           <div class="flex items-center bg-[var(--surface2)] p-1 rounded-lg border border-[var(--line)] text-xs">
             <button id="btnSheetViewSimple" type="button" class="px-3 py-1 rounded-md font-bold transition-all bg-[var(--felt)] text-[var(--felt-ink)]">Semplice</button>
@@ -543,8 +545,38 @@
             <details class="text-xs">
               <summary class="cursor-pointer font-bold text-[var(--muted)]">✍️ Altri attacchi scritti a mano (attacchi naturali, armi speciali…)</summary>
               <p class="text-[11px] text-[var(--muted)] mt-1">Uno per riga, con il bonus e i danni già calcolati: Nome | +bonus | danno, per esempio “Morso | +4 | 1d6+2”.</p>
-              <textarea id="sheetTextareaAttacks" rows="3" class="input-field w-full text-xs font-mono mt-1" aria-label="Altri attacchi"></textarea>
+              <textarea id="sheetTextareaAttacks" rows="3" class="input-field w-full text-xs font-mono mt-1 auto-grow auto-grow-sm" aria-label="Altri attacchi"></textarea>
             </details>
+          </div>
+
+          <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+              <h3 class="font-serif-title font-bold text-lg">🎒 Equipaggiamento e monete</h3>
+              <span id="sheetCoinTotal" class="text-[11px] font-bold text-[var(--muted)]"></span>
+            </div>
+            <div class="grid grid-cols-5 gap-1.5 text-center text-xs">
+              <label class="card-surface2 p-1.5 flex flex-col gap-0.5"><span class="font-bold text-[10px] text-[var(--muted)]">Platino <span class="font-mono">mp</span></span><input data-coin="mp" type="number" min="0" inputmode="numeric" class="input-field w-full text-center font-bold py-0.5 px-1 coin-input" /></label>
+              <label class="card-surface2 p-1.5 flex flex-col gap-0.5 border-[var(--brass)]"><span class="font-bold text-[10px] text-[var(--muted)]">Oro <span class="font-mono">mo</span></span><input data-coin="mo" type="number" min="0" inputmode="numeric" class="input-field w-full text-center font-bold py-0.5 px-1 coin-input" /></label>
+              <label class="card-surface2 p-1.5 flex flex-col gap-0.5"><span class="font-bold text-[10px] text-[var(--muted)]">Electrum <span class="font-mono">me</span></span><input data-coin="me" type="number" min="0" inputmode="numeric" class="input-field w-full text-center font-bold py-0.5 px-1 coin-input" /></label>
+              <label class="card-surface2 p-1.5 flex flex-col gap-0.5"><span class="font-bold text-[10px] text-[var(--muted)]">Argento <span class="font-mono">ma</span></span><input data-coin="ma" type="number" min="0" inputmode="numeric" class="input-field w-full text-center font-bold py-0.5 px-1 coin-input" /></label>
+              <label class="card-surface2 p-1.5 flex flex-col gap-0.5"><span class="font-bold text-[10px] text-[var(--muted)]">Rame <span class="font-mono">mr</span></span><input data-coin="mr" type="number" min="0" inputmode="numeric" class="input-field w-full text-center font-bold py-0.5 px-1 coin-input" /></label>
+            </div>
+            <form id="sheetCoinForm" class="flex flex-wrap items-center gap-1.5 text-xs">
+              <input id="sheetCoinAmount" type="number" min="1" inputmode="numeric" class="input-field w-20 text-center font-bold" placeholder="Quante" aria-label="Quante monete" />
+              <select id="sheetCoinType" class="input-field text-xs" aria-label="Moneta">
+                <option value="mp">mp (platino)</option>
+                <option value="mo" selected>mo (oro)</option>
+                <option value="me">me (electrum)</option>
+                <option value="ma">ma (argento)</option>
+                <option value="mr">mr (rame)</option>
+              </select>
+              <button id="btnCoinGain" type="button" class="btn btn-felt text-xs font-bold">＋ Ricevi</button>
+              <button id="btnCoinSpend" type="button" class="btn btn-brass text-xs font-bold">－ Spendi</button>
+            </form>
+            <p class="text-[11px] text-[var(--muted)] -mt-1">Se non hai la moneta giusta la scheda cambia da sola quelle più grandi e ti dà il resto.</p>
+            <div id="sheetCoinLast" class="hidden flex-wrap items-center gap-2 text-[11px]"></div>
+            <label for="sheetTextareaEquipment" class="font-bold text-[var(--muted)] text-xs">Oggetti</label>
+            <textarea id="sheetTextareaEquipment" rows="5" class="input-field w-full text-sm leading-relaxed auto-grow" placeholder="Uno per riga: zaino, corda (15 m), 2 torce, razioni per 5 giorni…"></textarea>
           </div>
 
           <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
@@ -631,20 +663,17 @@
 
           <div id="sheetCompleteTextAreas" class="hidden flex-col gap-3 sheet-5e">
             <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
-              <label class="font-bold text-[var(--muted)]">🎒 Equipaggiamento</label>
-              <textarea id="sheetTextareaEquipment" rows="3" class="input-field w-full text-xs"></textarea>
+              <label for="sheetTextareaFeatures" class="font-bold text-[var(--muted)]">📜 Privilegi e tratti</label>
+              <textarea id="sheetTextareaFeatures" rows="6" class="input-field w-full text-sm leading-relaxed auto-grow" placeholder="Privilegi di classe e razza, talenti, competenze, linguaggi…"></textarea>
             </div>
             <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
-              <label class="font-bold text-[var(--muted)]">✨ Incantesimi conosciuti</label>
-              <textarea id="sheetTextareaSpells" rows="3" class="input-field w-full text-xs"></textarea>
+              <label for="sheetTextareaNotes" class="font-bold text-[var(--muted)]">📝 Note</label>
+              <textarea id="sheetTextareaNotes" rows="6" class="input-field w-full text-sm leading-relaxed auto-grow" placeholder="Quello che vuoi ricordare (le note solo tue stanno nel Diario)"></textarea>
             </div>
             <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
-              <label class="font-bold text-[var(--muted)]">📜 Privilegi</label>
-              <textarea id="sheetTextareaFeatures" rows="3" class="input-field w-full text-xs"></textarea>
-            </div>
-            <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
-              <label class="font-bold text-[var(--muted)]">📝 Note</label>
-              <textarea id="sheetTextareaNotes" rows="3" class="input-field w-full text-xs"></textarea>
+              <label for="sheetTextareaSpells" class="font-bold text-[var(--muted)]">✨ Altri incantesimi (scritti a mano)</label>
+              <span class="text-[11px] text-[var(--muted)]">Per quelli che non sono nel regolamento base: gli altri si aggiungono da “📖 Incantesimi”.</span>
+              <textarea id="sheetTextareaSpells" rows="4" class="input-field w-full text-sm leading-relaxed auto-grow auto-grow-sm"></textarea>
             </div>
           </div>
         </div>
@@ -669,7 +698,7 @@
         </div>
         <div id="personalNotesForm" class="hidden flex-col gap-2 text-xs">
           <input id="personalNoteTitle" type="text" maxlength="160" class="input-field w-full font-bold" placeholder="Titolo (es. Sospetti sul barone)" />
-          <textarea id="personalNoteText" rows="3" maxlength="20000" class="input-field w-full" placeholder="Scrivi quello che vuoi ricordare solo per te…"></textarea>
+          <textarea id="personalNoteText" rows="5" maxlength="20000" class="input-field w-full auto-grow" placeholder="Scrivi quello che vuoi ricordare solo per te…"></textarea>
           <div class="flex justify-end"><button id="btnSavePersonalNote" type="button" class="btn btn-felt text-xs font-bold">💾 Salva nota</button></div>
         </div>
         <div id="personalNotesList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
@@ -713,7 +742,7 @@
           </div>
           <div class="md:col-span-3">
             <label class="block font-bold text-[var(--muted)] mb-1">Dettagli</label>
-            <textarea id="journalInputDetails" rows="3" class="input-field w-full" placeholder="Dettagli..."></textarea>
+            <textarea id="journalInputDetails" rows="5" class="input-field w-full auto-grow" placeholder="Dettagli..."></textarea>
           </div>
         </div>
         <div class="flex justify-end pt-1">
@@ -916,13 +945,13 @@
               </div>
               <div class="text-xs flex flex-col gap-1">
                 <label class="flex items-center justify-between font-bold text-[var(--muted)]"><span>🕵️ Note segrete del DM</span><span id="dmVaultSaveStatus" class="font-normal text-[10px]"></span></label>
-                <textarea id="dmTextareaSecretNotes" rows="7" class="input-field w-full leading-relaxed text-xs" placeholder="Note segrete..."></textarea>
+                <textarea id="dmTextareaSecretNotes" rows="7" class="input-field w-full leading-relaxed text-xs auto-grow" placeholder="Note segrete..."></textarea>
               </div>
               <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-2 text-xs">
                 <label class="font-bold text-[var(--muted)] flex items-center justify-between">
                   <span>📜 Riassunto di fine sessione</span>
                 </label>
-                <textarea id="dmTextareaSessionNotes" rows="4" class="input-field w-full leading-relaxed text-xs" placeholder="Incolla appunti della serata..."></textarea>
+                <textarea id="dmTextareaSessionNotes" rows="4" class="input-field w-full leading-relaxed text-xs auto-grow" placeholder="Incolla appunti della serata..."></textarea>
                 <div class="flex items-center justify-between gap-2">
                   <span class="text-[11px] text-[var(--muted)]">Trasforma gli appunti in voci del Diario (missioni, bottino, PNG…).</span>
                   <button id="btnPrepareSessionEntries" type="button" class="btn btn-felt text-xs font-bold">✨ Prepara le voci</button>
@@ -955,7 +984,7 @@
               </div>
               <form id="dmHandoutForm" class="flex flex-col gap-2">
                 <input id="dmHandoutTitle" type="text" maxlength="120" class="input-field w-full font-bold" placeholder="Titolo (es. Lettera del barone)" />
-                <textarea id="dmHandoutText" rows="3" maxlength="8000" class="input-field w-full" placeholder="Testo della dispensa..."></textarea>
+                <textarea id="dmHandoutText" rows="5" maxlength="20000" class="input-field w-full auto-grow" placeholder="Testo della dispensa..."></textarea>
                 <div class="flex flex-wrap items-center gap-2">
                   <label class="btn cursor-pointer text-xs">🖼️ Immagine <input id="dmHandoutImage" type="file" accept="image/*" class="hidden" /></label>
                   <select id="dmHandoutTo" class="input-field flex-1 min-w-[140px]"></select>

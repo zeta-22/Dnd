@@ -50,6 +50,7 @@ const SHEET_DAMAGE_EN = {
   piercing: 'perforanti', slashing: 'taglienti', bludgeoning: 'contundenti', fire: 'fuoco', cold: 'freddo', lightning: 'fulmine',
   thunder: 'tuono', acid: 'acido', poison: 'veleno', necrotic: 'necrotici', radiant: 'radiosi', force: 'forza', psychic: 'psichici'
 };
+// Monete inglesi (cp, sp…) → italiane (mr, ma…)
 const SHEET_COINS = [['cp', 'mr'], ['sp', 'ma'], ['ep', 'me'], ['gp', 'mo'], ['pp', 'mp']];
 
 // ---------------------------------------------------------------------------
@@ -254,7 +255,7 @@ function parseSheetFields(list) {
   const spellAbility = SHEET_ABILITY_FIELDS[fieldKey(all(/^spellcastingability\d*$/)[0] || '')] || null;
   const spellSlots = [...f].map(([k, v]) => [k.match(/^spellslotslevel(\d)$/), v]).filter(([m]) => m).map(([m, v]) => ({ level: parseInt(m[1], 10), max: sheetNumber(v) || 0 }));
   const spells = all(/^(spells|spellname)\d+$/).filter(v => /[a-z]/i.test(v) && v.length < 60).map(v => ({ name: v, englishName: v, level: null }));
-  const coins = SHEET_COINS.map(([k, it]) => (sheetNumber(f.get(k)) ? `${sheetNumber(f.get(k))} ${it}` : '')).filter(Boolean);
+  const coins = Object.fromEntries(SHEET_COINS.map(([k]) => [k, parseInt(String(f.get(k) || '').replace(/[.,\s]/g, ''), 10) || 0]));
   const look = [['age', 'Età'], ['height', 'Altezza'], ['weight', 'Peso'], ['eyes', 'Occhi'], ['skin', 'Carnagione'], ['hair', 'Capelli']]
     .filter(([k]) => f.get(k)).map(([k, label]) => `${label}: ${f.get(k)}`).join(' · ');
   const hd = `${pick('hd')} ${pick('hdtotal', 'hitdice', 'dadivita')} ${pick('total')}`.match(/d\s*(\d+)/i);
@@ -276,7 +277,7 @@ function parseSheetFields(list) {
     speedMeters: parseSpeed(pick('speed', 'velocita')),
     hitDie: hd ? `d${hd[1]}` : '',
     spellcastingAbility: spellAbility,
-    equipment: [pick('equipment', 'equipaggiamento'), ...equipment, coins.length ? `Monete: ${coins.join(', ')}` : ''].filter(Boolean).join('\n'),
+    equipment: [pick('equipment', 'equipaggiamento'), ...equipment].filter(Boolean).join('\n'), coins,
     features: [pick('featuresandtraits', 'features'), ...all(/^featurestraits\d+$/), pick('feattraits'),
       pick('defenses') && `Difese: ${pick('defenses')}`, pick('savemodifiers') && `Tiri salvezza: ${pick('savemodifiers')}`,
       pick('additionalsenses') && `Sensi: ${pick('additionalsenses')}`].filter(Boolean).join('\n\n'),
@@ -429,8 +430,9 @@ async function buildImportedCharacter(raw, rules = campaignRules()) {
       abilities, savingThrowsProf, skillsProf, weapons, attacksText: otherAttacks.join('\n'), spells, spellSlots,
       spellAbility: ABILITY_KEYS.includes(raw.spellcastingAbility) ? raw.spellcastingAbility : null,
       spellsText: otherSpells.map(s => `• ${s}`).join('\n'),
-      equipmentText: str(raw.equipment, 6000),
-      featuresText: [classExtra, str(raw.features, 8000), raw.proficiencies ? `Competenze e linguaggi:\n${str(raw.proficiencies, 2000)}` : ''].filter(Boolean).join('\n\n'),
+      equipmentText: str(raw.equipment, 20000),
+      coins: Object.fromEntries(SHEET_COINS.map(([en, it]) => [it, clampInt(raw.coins?.[en], 0, 9999999, 0)])),
+      featuresText: [classExtra, str(raw.features, 20000), raw.proficiencies ? `Competenze e linguaggi:\n${str(raw.proficiencies, 2000)}` : ''].filter(Boolean).join('\n\n'),
       notes: [raw.alignment ? `Allineamento: ${str(raw.alignment, 60)}` : '', str(raw.notes, 3000)].filter(Boolean).join('\n'),
       story
     }
@@ -524,6 +526,7 @@ function renderSheetImportPreview() {
       ${st.matchedSpells.length ? `<div><strong>Incantesimi (${st.matchedSpells.length}):</strong> ${escapeHtml(st.matchedSpells.join(', '))}</div>` : ''}
       ${st.otherSpells.length ? `<div><strong>Altri incantesimi</strong> <span class="text-[var(--muted)]">(non sono nel regolamento base: restano scritti nella scheda)</span>: ${escapeHtml(st.otherSpells.join(', '))}</div>` : ''}
       ${slots.length ? `<div><strong>Slot incantesimo:</strong> ${slots.join(' · ')}</div>` : ''}
+      <div><strong>Monete:</strong> ${escapeHtml(COIN_KEYS.filter(k => f.coins[k]).map(k => `${f.coins[k]} ${k}`).join(', ') || 'nessuna')}</div>
     </div>
     ${longText('🎒 Equipaggiamento', f.equipmentText)}
     ${longText('⭐ Privilegi, tratti e competenze', f.featuresText)}

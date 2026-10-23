@@ -46,7 +46,8 @@ const SHEET_PROMPT = [
   'Velocità in metri: piedi × 0,3 (30 ft = 9 m). Dado vita nella forma "d8".',
   'Attacchi: nome italiano, nome inglese dell\'arma del manuale (es. "Longsword", anche se la scheda è in italiano), bonus, danno solo come formula di dadi (es. "1d8+3") e tipo di danno a parte.',
   'Incantesimi: tutti quelli conosciuti o preparati, con il nome italiano ufficiale, il nome inglese originale, il livello (0 per i trucchetti) e se è segnato come preparato. Slot: il numero massimo per livello.',
-  'Traduci anche i testi (equipaggiamento e monete, privilegi e tratti, competenze e linguaggi, storia, aspetto, tratti caratteriali, ideali, legami, difetti) in un italiano naturale, senza togliere informazioni utili e senza aggiungerne.',
+  'Monete: solo i numeri in "coins" (cp rame, sp argento, ep electrum, gp oro, pp platino), non nell\'equipaggiamento.',
+  'Traduci anche i testi (equipaggiamento, privilegi e tratti, competenze e linguaggi, storia, aspetto, tratti caratteriali, ideali, legami, difetti) in un italiano naturale, senza togliere informazioni utili e senza aggiungerne.',
   'Non inventare: se un dato manca lascia una stringa vuota, 0 o null. In "warnings" elenca brevemente, in italiano, le parti illeggibili o dubbie.'
 ].join(' ');
 
@@ -76,6 +77,7 @@ const SHEET_SCHEMA = {
     spellSlots: { type: 'ARRAY', items: { type: 'OBJECT', properties: { level: INTEGER, max: INTEGER }, required: ['level', 'max'] } },
     spells: { type: 'ARRAY', items: { type: 'OBJECT', properties: { name: STRING, englishName: STRING, level: INTEGER, prepared: { type: 'BOOLEAN', nullable: true } }, required: ['name', 'level'] } },
     equipment: STRING, features: STRING, proficiencies: STRING,
+    coins: { type: 'OBJECT', properties: { cp: INTEGER, sp: INTEGER, ep: INTEGER, gp: INTEGER, pp: INTEGER } },
     story: { type: 'OBJECT', properties: { text: STRING, look: STRING, traits: STRING, ideals: STRING, bonds: STRING, flaws: STRING } },
     notes: STRING,
     warnings: { type: 'ARRAY', items: STRING }

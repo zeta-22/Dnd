@@ -234,7 +234,30 @@ function setVal(el, value) {
   if (!el || document.activeElement === el) return;
   if (el.type === 'checkbox') { el.checked = Boolean(value); return; }
   const v = value === null || value === undefined ? '' : String(value);
-  if (el.value !== v) el.value = v;
+  if (el.value !== v) {
+    el.value = v;
+    if (el.classList.contains('auto-grow')) autoGrow(el);
+  }
+}
+
+// I campi .auto-grow si allungano col testo, così si legge e si scrive tutto senza barre di scorrimento.
+// shrink: mentre si scrive si può anche accorciare; durante il disegno si allunga soltanto (niente salti di pagina)
+const fieldSizingSupported = typeof CSS !== 'undefined' && CSS.supports?.('field-sizing', 'content');
+function autoGrow(el, shrink = false) {
+  if (fieldSizingSupported || !el.offsetParent) return;
+  if (shrink) {
+    const scroller = el.closest('.fs-target') || document.scrollingElement;
+    const top = scroller.scrollTop;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight + 2}px`;
+    scroller.scrollTop = top;
+  } else if (el.scrollHeight > el.clientHeight + 1) {
+    el.style.height = `${el.scrollHeight + 2}px`;
+  }
+}
+
+function growTextareas(root = document) {
+  root.querySelectorAll('textarea.auto-grow').forEach(el => autoGrow(el));
 }
 
 function setText(id, text) {

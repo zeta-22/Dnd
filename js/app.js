@@ -31,6 +31,7 @@ function renderAll() {
   renderPersonalNotes();
   refreshSheetTypeSelects();
   if (!isDM() && myChar()) ensureMyKeys();
+  growTextareas();
 }
 
 // ---------------------------------------------------------------------------
@@ -135,7 +136,48 @@ function openCloudModal() {
   renderCloudModal();
 }
 
+// ---------------------------------------------------------------------------
+// Schermo intero (mappa o scheda): la classe fs-target la stende su tutta la finestra;
+// dove il browser lo permette si nascondono anche le sue barre (non su iPhone, dove basta la classe)
+// ---------------------------------------------------------------------------
+
+function fullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function enterFullscreenView(targetId) {
+  if (App.fullscreen) exitFullscreenView();
+  $(targetId).classList.add('fs-target');
+  document.body.classList.add('fs-active');
+  App.fullscreen = targetId;
+  const root = document.documentElement;
+  try { (root.requestFullscreen || root.webkitRequestFullscreen)?.call(root)?.catch?.(() => {}); } catch (e) { /* resta la versione senza API */ }
+  afterFullscreenChange();
+}
+
+function exitFullscreenView() {
+  if (!App.fullscreen) return;
+  $(App.fullscreen)?.classList.remove('fs-target');
+  document.body.classList.remove('fs-active');
+  App.fullscreen = null;
+  if (fullscreenElement()) {
+    try { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document)?.catch?.(() => {}); } catch (e) { /* già uscito */ }
+  }
+  afterFullscreenChange();
+}
+
+function afterFullscreenChange() {
+  document.querySelectorAll('.fs-toggle').forEach(btn => {
+    const on = App.fullscreen === btn.dataset.fsTarget;
+    btn.innerHTML = on ? '✕ Esci' : btn.id === 'btnMapFullscreen' ? '⛶<span class="hidden sm:inline"> Schermo intero</span>' : '⛶ Schermo intero';
+    btn.title = on ? 'Esci dallo schermo intero' : btn.id === 'btnMapFullscreen' ? 'Mappa a schermo intero' : 'Scheda a schermo intero';
+  });
+  if (App.tab === 'tavolo') requestAnimationFrame(() => { App.zoomUserSet = false; fitZoom(); });
+  growTextareas();
+}
+
 function switchTab(tabId) {
+  if (App.fullscreen) exitFullscreenView();
   App.tab = tabId;
   document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabId));
   ['tavolo', 'personaggio', 'diario', 'regole', 'vistadm'].forEach(s => showEl(`tab-${s}`, s === tabId));
@@ -253,6 +295,7 @@ function renderLobby() {
 }
 
 function openLobbyHome() {
+  exitFullscreenView();
   showEl('homeLobbyScreen', true);
   closeTokenPopover();
   renderLobby();
@@ -665,6 +708,12 @@ function initAppEvents() {
   document.querySelectorAll('.nav-tab').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
   document.querySelectorAll('[data-goto-tab]').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.gotoTab)));
   $('btnToggleTheme').addEventListener('click', toggleTheme);
+  document.querySelectorAll('.fs-toggle').forEach(btn => btn.addEventListener('click', () => {
+    if (App.fullscreen === btn.dataset.fsTarget) exitFullscreenView(); else enterFullscreenView(btn.dataset.fsTarget);
+  }));
+  // Uscendo con Esc o con il gesto del browser si esce anche dalla vista a schermo intero
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { if (!fullscreenElement() && App.fullscreen) exitFullscreenView(); }));
+  document.addEventListener('input', (e) => { if (e.target.classList?.contains('auto-grow')) autoGrow(e.target, true); });
   $('btnOpenSupabaseModal').addEventListener('click', openCloudModal);
   $('btnLobbyOpenCloud').addEventListener('click', openCloudModal);
   $('btnCloseCloudModal').addEventListener('click', () => showEl('modalCloudStatus', false));

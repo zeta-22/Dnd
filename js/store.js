@@ -50,6 +50,8 @@ const Campaigns = {};
 const MAP_WIDTH = 800;
 const DEFAULT_MAP_HEIGHT = 600;
 
+const COIN_KEYS = ['mp', 'mo', 'me', 'ma', 'mr'];
+
 function createEmptySpellSlots() {
   const slots = {};
   for (let lvl = 1; lvl <= 9; lvl++) slots[lvl] = { max: 0, used: 0 };
@@ -84,6 +86,9 @@ function ensureCharacterDefaults(char) {
   if (!char.savingThrowsProf || typeof char.savingThrowsProf !== 'object') char.savingThrowsProf = {};
   if (!char.skillsProf || typeof char.skillsProf !== 'object') char.skillsProf = {};
   if (char.attacksText === undefined || char.attacksText === null) char.attacksText = '';
+  // Monete: platino, oro, electrum, argento, rame
+  const coins = char.coins && typeof char.coins === 'object' ? char.coins : {};
+  char.coins = Object.fromEntries(COIN_KEYS.map(k => [k, clampInt(coins[k], 0, 9999999, 0)]));
   // Armi del regolamento: { id, k (chiave dell'arma), magic (+0…+3), prof (true/false, null = dalla classe), name }
   char.weapons = (Array.isArray(char.weapons) ? char.weapons : []).filter(w => w && typeof w.k === 'string').map(w => ({
     id: w.id || uid('w'), k: w.k, magic: clampInt(w.magic, 0, 3, 0), prof: typeof w.prof === 'boolean' ? w.prof : null, name: String(w.name || '').slice(0, 60)
@@ -291,7 +296,7 @@ function buildNewCampaignEntities(title, options = {}) {
     savingThrowsProf: { DES: true, INT: true },
     skillsProf: { 'Furtività': 2, 'Acrobazia': 1, 'Percezione': 1, 'Rapidità di Mano': 2, 'Indagare': 1 },
     weapons: [{ k: 'shortsword' }, { k: 'shortbow' }],
-    equipmentText: 'Zaino, attrezzi da scasso, corda (15 m), 2 torce, 15 mo.',
+    equipmentText: 'Zaino, attrezzi da scasso, corda (15 m), 2 torce.', coins: { mo: 15 },
     featuresText: 'Attacco furtivo (1d6), Azione scaltra, Gergo ladresco.'
   });
   const goblinA = { id: uid('tok'), name: 'Goblin', type: 'enemy', gridX: 11, gridY: 4, hp: 7, maxHp: 7, ac: 15, hidden: false, initMod: 2 };
