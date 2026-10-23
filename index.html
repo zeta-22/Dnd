@@ -320,6 +320,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <button id="btnSheetFullscreen" type="button" class="btn btn-felt text-xs fs-toggle" data-fs-target="tab-personaggio" title="Scheda a schermo intero">⛶ Schermo intero</button>
+          <button id="btnSheetPdf" type="button" class="btn text-xs font-bold" title="Scarica questa scheda in PDF, da stampare o tenere sul telefono">⬇️ PDF</button>
           <span class="text-xs font-bold text-[var(--muted)]">Vista:</span>
           <div class="flex items-center bg-[var(--surface2)] p-1 rounded-lg border border-[var(--line)] text-xs">
             <button id="btnSheetViewSimple" type="button" class="px-3 py-1 rounded-md font-bold transition-all bg-[var(--felt)] text-[var(--felt-ink)]">Semplice</button>
@@ -878,6 +879,7 @@
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2">
+            <button id="btnDmSheetsPdf" type="button" class="btn text-xs" title="Tutte le schede dei giocatori in un unico PDF">📄 Schede dei giocatori (PDF)</button>
             <button type="button" class="btn text-xs export-json-btn">💾 Salva file (.json)</button>
             <label class="btn cursor-pointer text-xs">
               📂 Carica (.json)
@@ -1659,6 +1661,7 @@
   <script src="js/links.js"></script>
   <script src="js/customsheet.js"></script>
   <script src="js/sheetimport.js"></script>
+  <script src="js/sheetpdf.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

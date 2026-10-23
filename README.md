@@ -8,7 +8,8 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Più mappe per avventura**: il Master prepara la prossima mappa di nascosto e con **📣 Mostra ai giocatori** ci porta tutti.
 - **Iniziativa** con turno attivo evidenziato sulla mappa e avviso “Tocca a te!”.
 - **Lancia-dadi** con vantaggio/svantaggio, tiri contro CA, critici, tiri segreti del Master e formule libere (`2d6+1d4+3`).
-- **Dadi 3D** con la fisica: ogni tiro rotola sullo schermo di tutti e si ferma sugli stessi numeri. Ogni giocatore sceglie
+- **Dadi 3D** con la fisica: ogni tiro rotola sullo schermo di tutti e si ferma sugli stessi numeri; il risultato
+  (storico, avvisi) compare solo quando i dadi si fermano, anche per chi tira. Ogni giocatore sceglie
   il colore dei suoi dadi; il 20 naturale si illumina d'oro, l'1 di rosso; suono facoltativo. Sui dispositivi che non
   reggono il 3D (o se si sceglie così) si usano i dadi semplici; l'animazione si può anche spegnere.
 - **Mostri del regolamento base**: cerchi “goblin” o “drago”, aggiungi uno o più mostri con PF, CA e iniziativa già pronti;
@@ -20,6 +21,9 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Scheda personaggio** semplice o completa: PF e PF temporanei, riposi, tiri salvezza contro morte, abilità con competenza e maestria, attacchi, condizioni.
 - **Monete**: platino, oro, electrum, argento e rame con il totale in monete d'oro; si ricevono e si spendono dalla scheda
   (se manca la moneta giusta la scheda cambia da sola quelle più grandi e dà il resto) e l'ultima operazione si può annullare.
+- **Schede in PDF**: ogni scheda si scarica in PDF (⬇️ PDF) con un'impaginazione come quella di D&D Beyond: caratteristiche,
+  tiri salvezza e abilità con i pallini, CA e PF, armi e trucchetti, equipaggiamento e monete, storia e incantesimi con gli slot.
+  Il Master scarica tutte le schede dei giocatori in un unico PDF dallo schermo del Master. Anche le schede personalizzate.
 - **Schermo intero** per la mappa e per la scheda (⛶): su telefono e tablet si gioca senza le barre dell'app e, dove si può, del browser.
 - **Spazi di scrittura** (equipaggiamento, privilegi, note, storia, diario) che si allungano mentre si scrive.
 - **Armi dal manuale**: si sceglie l'arma (pugnale, spada lunga, arco corto…) e la scheda calcola da sola tiro per colpire e danni
@@ -168,6 +172,7 @@ js/private.js       PIN personale, note personali, storia del personaggio
 js/links.js         collegamenti nel Diario e menu "@"
 js/customsheet.js   modelli e schede personalizzate
 js/sheetimport.js   scheda del personaggio importata da PDF o foto (lettura, traduzione con Gemini, anteprima)
+js/sheetpdf.js      scheda del personaggio scaricata in PDF (pdf-lib, caricato solo quando serve)
 js/bestiary.js      i mostri comuni con le loro icone (generato da tools/build-bestiary.py)
 vendor/             libreria dei dadi 3D (scaricata solo al primo tiro) e i suoi suoni
 js/app.js           avvio, lobby, ingresso nelle avventure
@@ -203,6 +208,8 @@ Dettagli in [`data/LICENZE.md`](data/LICENZE.md). Il Tavolo non è affiliato a W
 
 Icone dei mostri di [game-icons.net](https://game-icons.net), licenza [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/):
 Lorc, Delapouite, Carl Olsen, Caro Asercion, DarkZaitzev, Skoll, Sparker (l'autore di ogni icona è indicato in `js/bestiary.js`).
+
+PDF delle schede: [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT), caricato da cdnjs solo quando si scarica una scheda.
 
 Dadi 3D: [dice-box-threejs](https://github.com/3d-dice/dice-box-threejs) (MIT, © 3D Dice), che include
 [three.js](https://threejs.org) (MIT) e [cannon-es](https://github.com/pmndrs/cannon-es) (MIT); vedi `vendor/dice-box-threejs/`.

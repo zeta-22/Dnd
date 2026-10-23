@@ -96,8 +96,9 @@ function shortRest(ch) {
   ch.hp = Math.min(ch.maxHp, ch.hp + heal);
   if (heal > 0) ch.deathSaves = { successes: 0, failures: 0 };
   touchEnt(`char:${ch.id}`);
-  recordRoll({ id: uid('roll'), at: Date.now(), by: ch.name, byId: DEVICE_ID, label: 'Dado Vita (riposo breve)', formula: describeFormula(1, sides, conMod), dice: [v], diceSides: [sides], bonus: conMod, total: heal }, false);
-  showToast(`⛺ ${ch.name} recupera ${heal} PF`);
+  const roll = { id: uid('roll'), at: Date.now(), by: ch.name, byId: DEVICE_ID, label: 'Dado Vita (riposo breve)', formula: describeFormula(1, sides, conMod), dice: [v], diceSides: [sides], bonus: conMod, total: heal };
+  recordRoll(roll, false);
+  whenRollLands(roll, () => showToast(`⛺ ${ch.name} recupera ${heal} PF`));
   scheduleRender();
 }
 
@@ -134,8 +135,9 @@ function rollDeathSave(ch) {
   if (ch.deathSaves.successes >= 3) msg += ` — ${ch.name} è stabile`;
   if (ch.deathSaves.failures >= 3) msg += ` — ${ch.name} è morto…`;
   touchEnt(`char:${ch.id}`);
-  recordRoll({ id: uid('roll'), at: Date.now(), by: ch.name, byId: DEVICE_ID, label: 'TS contro morte', formula: '1d20', dice: [d], diceSides: [20], bonus: 0, total: d, nat: d, crit: d === 20, fumble: d === 1 }, false);
-  showToast(msg, 3500);
+  const roll = { id: uid('roll'), at: Date.now(), by: ch.name, byId: DEVICE_ID, label: 'TS contro morte', formula: '1d20', dice: [d], diceSides: [20], bonus: 0, total: d, nat: d, crit: d === 20, fumble: d === 1 };
+  recordRoll(roll, false);
+  whenRollLands(roll, () => showToast(msg, 3500));
   scheduleRender();
 }
 

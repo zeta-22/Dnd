@@ -8,5 +8,7 @@ const TAVOLO_CONFIG = {
   aiEndpoint: '/api/gemini',
   // pdf.js viene caricato solo quando serve indicizzare un PDF
   pdfJsUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-  pdfJsWorkerUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+  pdfJsWorkerUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  // pdf-lib serve solo per scaricare le schede in PDF
+  pdfLibUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js'
 };

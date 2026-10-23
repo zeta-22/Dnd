@@ -342,7 +342,10 @@ function readFileAsDataUrl(file) {
 }
 
 function downloadJson(filename, obj) {
-  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  downloadBlob(filename, new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }));
+}
+
+function downloadBlob(filename, blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -350,7 +353,8 @@ function downloadJson(filename, obj) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  // Su telefono il file può aprirsi in un'altra scheda: lasciamogli il tempo di leggerlo
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 function slugify(text) {

@@ -867,6 +867,7 @@ async function startApp() {
   initLinkEvents();
   initCustomSheetEvents();
   initSheetImportEvents();
+  initSheetPdfEvents();
   setAdvMode('normal');
   renderGlossary();
   renderChat();

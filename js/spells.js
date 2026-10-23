@@ -105,11 +105,12 @@ function rollConcentrationSave(ch) {
   if (!ch.concentration?.name) return;
   const dc = ch.concentration.dc || 10;
   const roll = performD20Roll({ label: `TS concentrazione (${ch.concentration.name})`, bonus: saveBonus(ch, 'COS'), by: ch.name });
+  const name = ch.concentration.name;
   if (roll.total < dc) {
-    showToast(`🔮 Concentrazione persa: ${ch.concentration.name} finisce`, 3500);
+    whenRollLands(roll, () => showToast(`🔮 Concentrazione persa: ${name} finisce`, 3500));
     ch.concentration = null;
   } else {
-    showToast(`🔮 Concentrazione mantenuta (${roll.total} contro CD ${dc})`, 3000);
+    whenRollLands(roll, () => showToast(`🔮 Concentrazione mantenuta (${roll.total} contro CD ${dc})`, 3000));
     ch.concentration.dc = null;
   }
   touchEnt(`char:${ch.id}`);
