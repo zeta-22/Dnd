@@ -533,7 +533,7 @@
           <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
             <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
               <h3 class="font-serif-title font-bold text-lg">⚔️ Attacchi &amp; Incantesimi d'Offesa</h3>
-              <span class="text-[11px] text-[var(--muted)]">Formato: Nome | +bonus | danno</span>
+              <span class="text-[11px] text-[var(--muted)]" title="Con FOR, DES… al posto dei numeri bonus e danni si aggiornano da soli quando sali di livello o cambiano le caratteristiche">Formato: Nome | bonus | danno · FOR o DES si aggiornano da soli</span>
             </div>
             <div id="sheetGeneratedAttacksList" class="flex flex-col gap-2"></div>
             <div class="pt-1">
@@ -1278,7 +1278,7 @@
           </div>
           <div class="text-xs onb-5e">
             <label class="block font-bold text-[var(--muted)] mb-1">Attacco Principale</label>
-            <input id="onbCharAttack" type="text" value="Spada lunga | +5 | 1d8+3" class="input-field w-full font-mono text-xs" />
+            <input id="onbCharAttack" type="text" value="Spada lunga | FOR | 1d8+FOR" class="input-field w-full font-mono text-xs" title="FOR o DES al posto dei numeri: bonus e danni seguono le caratteristiche e il livello" />
           </div>
           <div class="flex items-center justify-between pt-2 border-t border-[var(--line)]">
             <button id="btnBackToRoleStep" type="button" class="btn text-xs">← Indietro</button>

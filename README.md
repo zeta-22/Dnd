@@ -25,7 +25,9 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
   preparati”. I **rituali** si lanciano senza slot con 10 minuti in più: il Mago anche quelli non preparati del suo libro,
   Chierico e Druido quelli preparati, il Bardo quelli che conosce.
 - **Creazione guidata del personaggio** (razza, classe, caratteristiche con serie standard, acquisto a punti o 4d6, abilità)
-  e **passaggio di livello** con PF, aumenti di caratteristica e nuovi slot.
+  e **passaggio di livello** con PF, aumenti di caratteristica e nuovi slot (anche quelli del patto del Warlock, che si
+  recuperano col riposo breve, e i PF in più per i livelli già fatti quando sale la Costituzione). Negli attacchi si può
+  scrivere FOR o DES al posto dei numeri (“Spada lunga | FOR | 1d8+FOR”): bonus e danni si aggiornano da soli.
 - **Messaggi privati** tra Master e giocatori e **dispense** (testo e immagini) per tutti o per un solo giocatore.
 - **Diario condiviso** (missioni, PNG, luoghi, bottino, domande per il DM con risposta): ogni voce si può correggere o
   eliminare da chi l'ha scritta e dal Master. **Note personali** che legge solo chi le scrive (nemmeno il Master),
