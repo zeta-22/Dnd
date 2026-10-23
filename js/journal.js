@@ -42,6 +42,7 @@ function openJournalForm(open, entry = null) {
   } else if (App.journalFilter !== 'Tutto') {
     $('journalInputCategory').value = App.journalFilter;
   }
+  autoSizeTextarea($('journalInputDetails'));
   focusSoon('journalInputTitle');
 }
 

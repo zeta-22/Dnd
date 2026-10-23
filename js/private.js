@@ -364,6 +364,7 @@ async function savePersonalNote() {
   App.editingNoteId = null;
   $('personalNoteTitle').value = '';
   $('personalNoteText').value = '';
+  autoSizeTextarea($('personalNoteText'));
   setText('btnSavePersonalNote', '💾 Salva nota');
   $('personalNoteText').blur();
   showToast('📓 Nota salvata: la leggi solo tu');
@@ -389,6 +390,7 @@ async function onPersonalNotesClick(e) {
     App.editingNoteId = note.id;
     $('personalNoteTitle').value = data.title || '';
     $('personalNoteText').value = data.text || '';
+    autoSizeTextarea($('personalNoteText'));
     setText('btnSavePersonalNote', '💾 Salva modifiche');
     focusSoon('personalNoteText');
   }
@@ -397,6 +399,7 @@ async function onPersonalNotesClick(e) {
     openJournalForm(true);
     $('journalInputTitle').value = data.title || '';
     $('journalInputDetails').value = data.text || '';
+    autoSizeTextarea($('journalInputDetails'));
     $('journalAddFormCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
     showToast('📤 Scegli la categoria e premi “Aggiungi”: la nota resta anche tra le tue', 4000);
   }

@@ -41,6 +41,11 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Schermo del Master**: note segrete, appunti di sessione trasformati in voci del diario (poi gli appunti si svuotano,
   così la volta dopo non si ricreano le stesse voci), bilanciamento degli scontri (DMG 2014).
 
+- **Schermo intero** (pulsante con i quattro angoli in alto): sparisce la barra in alto e le schede (Tavolo, Scheda,
+  Diario, Regole, Master) si cambiano da una barra in fondo, toccandole o facendo scorrere il dito. Dove il browser lo
+  permette spariscono anche le sue barre; sull'iPhone resta comunque la barra in fondo.
+- **Caselle di testo che crescono** con quello che c'è scritto, fino a metà schermo; oltre compare “Mostra tutto”.
+
 Tutto si sincronizza da solo tra i dispositivi. Se la connessione cade si continua a giocare: le modifiche partono appena torna.
 
 ---

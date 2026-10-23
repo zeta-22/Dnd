@@ -74,6 +74,9 @@
             👁️ <span class="hidden sm:inline">Vista:</span> <span id="viewModeLabel" class="underline">DM</span>
           </button>
           <button id="btnToggleTheme" class="btn px-2.5 py-1.5" title="Cambia tema Chiaro / Scuro">🌓</button>
+          <button id="btnToggleImmersive" type="button" class="btn px-2.5 py-1.5" title="Schermo intero: sparisce la barra in alto e le schede si cambiano dal fondo" aria-label="Schermo intero">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
         </div>
       </div>
 
@@ -1537,6 +1540,20 @@
       <button id="btnGoToSheet" type="button" class="btn btn-felt text-xs py-1 px-3 font-bold">Scheda</button>
     </div>
   </div>
+
+  <!-- Schermo intero: le schede si cambiano dal fondo (toccandole o trascinando il dito) -->
+  <nav id="immersiveDock" class="immersive-dock" aria-label="Schede">
+    <div id="immersiveDockTrack" class="dock-track">
+      <span class="dock-pill" aria-hidden="true"></span>
+    </div>
+    <button id="btnDockMessages" type="button" class="dock-btn relative" title="Messaggi" aria-label="Messaggi">
+      💬
+      <span id="dockUnreadBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--danger)] text-white text-[10px] font-bold leading-[18px] text-center">0</span>
+    </button>
+    <button id="btnExitImmersive" type="button" class="dock-btn" title="Esci dallo schermo intero" aria-label="Esci dallo schermo intero">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
+    </button>
+  </nav>
 
   <div id="dice3d" aria-hidden="true"></div>
   <div id="diceOverlay" aria-hidden="true"></div>
