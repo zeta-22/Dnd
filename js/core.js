@@ -18,6 +18,7 @@ const App = {
   drag: null,
   fogPaint: null,
   journalFilter: 'Tutto',
+  editingJournalId: null,
   books: [],
   secretRolls: [],
   chat: [],

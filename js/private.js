@@ -394,7 +394,7 @@ async function onPersonalNotesClick(e) {
   }
   if (e.target.closest('.note-share-btn')) {
     // Apre il modulo del Diario già compilato: si sceglie la categoria e si conferma
-    showEl('journalAddFormCard', true);
+    openJournalForm(true);
     $('journalInputTitle').value = data.title || '';
     $('journalInputDetails').value = data.text || '';
     $('journalAddFormCard').scrollIntoView({ behavior: 'smooth', block: 'center' });

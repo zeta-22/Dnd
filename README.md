@@ -23,9 +23,11 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Creazione guidata del personaggio** (razza, classe, caratteristiche con serie standard, acquisto a punti o 4d6, abilità)
   e **passaggio di livello** con PF, aumenti di caratteristica e nuovi slot.
 - **Messaggi privati** tra Master e giocatori e **dispense** (testo e immagini) per tutti o per un solo giocatore.
-- **Diario condiviso** (missioni, PNG, luoghi, bottino, domande per il DM con risposta) e **note personali** che legge solo
-  chi le scrive (nemmeno il Master), protette da un PIN personale.
-- **Collegamenti nel Diario**: i nomi di personaggi, PNG, luoghi, missioni, bottino e mappe diventano link da soli;
+- **Diario condiviso** (missioni, PNG, luoghi, bottino, domande per il DM con risposta): ogni voce si può correggere o
+  eliminare da chi l'ha scritta e dal Master. **Note personali** che legge solo chi le scrive (nemmeno il Master),
+  protette da un PIN personale.
+- **Collegamenti nel Diario**: i nomi di personaggi, PNG, luoghi, missioni, bottino e mappe diventano link da soli
+  (maiuscole, minuscole e accenti non contano: “citta bianca” trova “Città Bianca”);
   scrivendo “@” si sceglie un nome dall'elenco (o si crea una voce nuova). Ogni voce mostra dove viene citata.
 - **Schede personalizzate** per giocare con altre regole (Daggerheart, D&D 2024, homebrew…): il Master prepara un
   modello con valori, risorse, testi e tiri; i giocatori lo scelgono quando creano il personaggio e possono aggiungere
@@ -36,7 +38,8 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Gestione dalla Home**: il Master elimina le avventure e toglie i personaggi che non giocano più; chiunque può
   nascondere dalla propria Home le avventure che non gli interessano.
 - **Regole & PDF**: carichi i tuoi manuali, ci cerchi dentro e l'assistente li usa per rispondere.
-- **Schermo del Master**: note segrete, appunti di sessione trasformati in voci del diario, bilanciamento degli scontri (DMG 2014).
+- **Schermo del Master**: note segrete, appunti di sessione trasformati in voci del diario (poi gli appunti si svuotano,
+  così la volta dopo non si ricreano le stesse voci), bilanciamento degli scontri (DMG 2014).
 
 Tutto si sincronizza da solo tra i dispositivi. Se la connessione cade si continua a giocare: le modifiche partono appena torna.
 

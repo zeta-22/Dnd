@@ -683,7 +683,7 @@
 
       <div id="journalAddFormCard" class="hidden card-surface p-4 flex-col gap-3 border-2 border-[var(--brass)]">
         <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
-          <h3 class="font-serif-title font-bold text-lg">✍️ Aggiungi voce al Diario</h3>
+          <h3 id="journalFormHeading" class="font-serif-title font-bold text-lg">✍️ Aggiungi voce al Diario</h3>
           <button id="btnCloseJournalForm" type="button" class="btn text-xs">✕</button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
@@ -913,7 +913,11 @@
                 <div id="sessionExtractedContainer" class="hidden flex-col gap-2 pt-2 border-t border-[var(--line)]">
                   <div class="font-bold text-[var(--ink)]">Voci estratte pronte per il Diario: <span class="font-normal text-[var(--muted)]">(togli la spunta per scartarle)</span></div>
                   <div id="sessionExtractedList" class="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1"></div>
-                  <div class="flex justify-end pt-1">
+                  <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <label class="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
+                      <input id="sessionClearNotesCheck" type="checkbox" class="w-4 h-4 accent-[var(--felt)]" checked />
+                      Poi svuota gli appunti (per non ricreare le stesse voci)
+                    </label>
                     <button id="btnAddExtractedToJournal" type="button" class="btn btn-brass text-xs font-bold">📥 Aggiungi al diario</button>
                   </div>
                 </div>

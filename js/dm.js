@@ -271,10 +271,16 @@ function addExtractedToJournal() {
   const chosen = App.extracted.filter(x => x.checked);
   if (!chosen.length) { showToast('Nessuna voce selezionata'); return; }
   chosen.forEach(x => addJournalEntry({ category: x.category, title: x.title, content: x.content }));
+  const clearNotes = $('sessionClearNotesCheck').checked && App.vault;
+  if (clearNotes) {
+    App.vault.sessionNotes = '';
+    $('dmTextareaSessionNotes').value = '';
+    scheduleVaultSave();
+  }
   App.extracted = [];
   renderExtractedEntries();
   scheduleRender();
-  showToast(`📥 ${chosen.length} voci aggiunte al diario`);
+  showToast(`📥 ${chosen.length} ${chosen.length === 1 ? 'voce aggiunta' : 'voci aggiunte'} al diario${clearNotes ? ' · appunti svuotati' : ''}`);
 }
 
 // ---------------------------------------------------------------------------
