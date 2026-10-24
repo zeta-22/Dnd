@@ -239,14 +239,14 @@ async function renderStoryCard(ch) {
   const data = view.data || {};
   body.innerHTML = STORY_FIELDS.map(([field, label, placeholder, rows]) => `
     <label class="flex flex-col gap-1"><span class="font-bold text-[var(--muted)]">${label}</span>
-      <textarea class="input-field w-full text-xs story-field" data-field="${field}" rows="${rows}" placeholder="${escapeHtml(placeholder)}" ${view.editable ? '' : 'readonly'}>${escapeHtml(data[field] || '')}</textarea>
+      <textarea class="input-field w-full text-sm leading-relaxed story-field" data-field="${field}" rows="${rows}" placeholder="${escapeHtml(placeholder)}" ${view.editable ? '' : 'readonly'}>${escapeHtml(data[field] || '')}</textarea>
     </label>`).join('');
   if (view.editable) body.querySelectorAll('.story-field').forEach(attachMentions);
 }
 
 function readStoryFields() {
   const out = {};
-  document.querySelectorAll('#sheetStoryFields .story-field').forEach(t => { out[t.dataset.field] = t.value.slice(0, 8000); });
+  document.querySelectorAll('#sheetStoryFields .story-field').forEach(t => { out[t.dataset.field] = t.value.slice(0, 20000); });
   return out;
 }
 

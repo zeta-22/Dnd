@@ -128,7 +128,7 @@ function lastReadKey() { return `iltavolo_msgread_${App.activeId}_${isDM() ? 'dm
 async function sendHandout({ to, title, text, image }) {
   if (!isDM()) return false;
   const base = { id: uid('ho'), at: Date.now(), from: 'DM', to };
-  const payload = { title: title.slice(0, 120), text: text.slice(0, 8000), image: image || null };
+  const payload = { title: title.slice(0, 120), text: text.slice(0, 20000), image: image || null };
   if (to === 'all') {
     putEnt(`handout:${base.id}`, Object.assign(base, payload));
   } else {

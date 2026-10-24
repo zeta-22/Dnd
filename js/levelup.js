@@ -172,8 +172,10 @@ function spellGroups(ch, lu, next) {
   const cantrips = at(CANTRIPS_KNOWN[cls]) + landCantrip;
   if (cantrips > 0) groups.push({ id: 'cantrips', title: 'Trucchetti nuovi', help: 'Incantesimi minori che lanci quando vuoi, senza slot.', count: cantrips, filter: sp => sp.lv === 0 && fromClass(sp) });
 
-  if (SPELLS_KNOWN[cls]) {
-    const n = at(SPELLS_KNOWN[cls]);
+  // Con le regole 2024 anche bardo, stregone, warlock e ranger seguono la tabella dei preparati della classe
+  const knownTable = SPELLS_KNOWN[cls] && campaignRules() === '2024' ? SPELLS_PREPARED_2024[cls] : SPELLS_KNOWN[cls];
+  if (knownTable) {
+    const n = at(knownTable);
     if (cls === 'Bardo' && [10, 14, 18].includes(next)) {
       groups.push({ id: 'secrets', title: 'Segreti magici', help: `Incantesimi di qualsiasi classe, fino al ${maxLv}° livello (anche trucchetti): contano come incantesimi da bardo.`, count: n, filter: sp => sp.lv <= maxLv });
     } else if (n > 0) {

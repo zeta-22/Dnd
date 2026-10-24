@@ -309,6 +309,9 @@
           <select id="newSheetType" class="hidden input-field text-xs" aria-label="Tipo di scheda per i nuovi personaggi"></select>
           <button id="btnNewPcSheet" type="button" class="btn btn-felt text-xs font-bold">+ Nuovo PG</button>
           <button id="btnSheetWizard" type="button" class="btn btn-brass text-xs font-bold" title="Creazione guidata passo passo">🧭 Guidata</button>
+          <label class="btn btn-brass text-xs font-bold cursor-pointer" title="Crea il personaggio da una scheda in PDF o da una foto">📄 Da PDF
+            <input type="file" accept="application/pdf,.pdf,image/*" class="hidden sheet-import-input" data-purpose="sheet" />
+          </label>
           <button id="btnNewNpcSheet" type="button" class="btn btn-brass text-xs font-bold dm-only">+ Nuova scheda PNG</button>
           <button id="btnDeleteSheet" type="button" class="btn text-xs text-[var(--danger)]">Elimina scheda</button>
         </div>
@@ -317,7 +320,8 @@
           <button id="btnConfirmDeleteSheetYes" type="button" class="btn btn-danger text-xs py-0.5 px-2">Sì</button>
           <button id="btnConfirmDeleteSheetNo" type="button" class="btn text-xs py-0.5 px-2">Annulla</button>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="btnSheetPdf" type="button" class="btn text-xs font-bold" title="Scarica questa scheda in PDF, da stampare o tenere sul telefono">⬇️ PDF</button>
           <span class="text-xs font-bold text-[var(--muted)]">Vista:</span>
           <div class="flex items-center bg-[var(--surface2)] p-1 rounded-lg border border-[var(--line)] text-xs">
             <button id="btnSheetViewSimple" type="button" class="px-3 py-1 rounded-md font-bold transition-all bg-[var(--felt)] text-[var(--felt-ink)]">Semplice</button>
@@ -361,11 +365,11 @@
               </div>
               <div class="sheet-5e">
                 <label for="sheetInputRace" class="block font-bold text-[var(--muted)] mb-1">Razza</label>
-                <input id="sheetInputRace" type="text" class="input-field w-full font-bold" />
+                <input id="sheetInputRace" type="text" list="srdRaceList" class="input-field w-full font-bold" />
               </div>
               <div class="sheet-5e">
                 <label for="sheetInputClass" class="block font-bold text-[var(--muted)] mb-1">Classe</label>
-                <input id="sheetInputClass" type="text" class="input-field w-full font-bold" />
+                <input id="sheetInputClass" type="text" list="srdClassList" class="input-field w-full font-bold" />
               </div>
               <div class="sheet-5e">
                 <label for="sheetInputLevel" class="block font-bold text-[var(--muted)] mb-1">Livello (1-20)</label>
@@ -531,15 +535,50 @@
           </div>
 
           <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
-            <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
-              <h3 class="font-serif-title font-bold text-lg">⚔️ Attacchi &amp; Incantesimi d'Offesa</h3>
-              <span class="text-[11px] text-[var(--muted)]" title="Con FOR, DES… al posto dei numeri bonus e danni si aggiornano da soli quando sali di livello o cambiano le caratteristiche">Formato: Nome | bonus | danno · FOR o DES si aggiornano da soli</span>
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+              <h3 class="font-serif-title font-bold text-lg">⚔️ Armi e attacchi</h3>
+              <div class="flex items-center gap-1.5">
+                <select id="sheetWeaponAdd" class="input-field text-xs max-w-[11rem]" aria-label="Arma da aggiungere"></select>
+                <button id="btnAddWeapon" type="button" class="btn btn-felt text-xs">+ Arma</button>
+              </div>
             </div>
+            <p class="text-[11px] text-[var(--muted)] -mt-1">Scegli l'arma dal manuale: tiro per colpire e danni li calcola la scheda da caratteristiche, competenza e livello.</p>
             <div id="sheetGeneratedAttacksList" class="flex flex-col gap-2"></div>
-            <div class="pt-1">
-              <label for="sheetTextareaAttacks" class="block font-bold text-[var(--muted)] mb-1 text-xs">Modifica testo attacchi</label>
-              <textarea id="sheetTextareaAttacks" rows="3" class="input-field w-full text-xs font-mono"></textarea>
+            <details class="text-xs">
+              <summary class="cursor-pointer font-bold text-[var(--muted)]">✍️ Altri attacchi scritti a mano (attacchi naturali, armi speciali…)</summary>
+              <p class="text-[11px] text-[var(--muted)] mt-1">Uno per riga: Nome | bonus | danno. Con FOR o DES al posto dei numeri si aggiornano da soli, per esempio “Morso | FOR | 1d6+FOR”; oppure con i numeri, “Morso | +4 | 1d6+2”.</p>
+              <textarea id="sheetTextareaAttacks" rows="3" class="input-field w-full text-xs font-mono mt-1" aria-label="Altri attacchi"></textarea>
+            </details>
+          </div>
+
+          <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+              <h3 class="font-serif-title font-bold text-lg">🎒 Equipaggiamento e monete</h3>
+              <span id="sheetCoinTotal" class="text-[11px] font-bold text-[var(--muted)]"></span>
             </div>
+            <div class="grid grid-cols-5 gap-1.5 text-center text-xs">
+              <label class="card-surface2 p-1.5 flex flex-col gap-0.5"><span class="font-bold text-[10px] text-[var(--muted)]">Platino <span class="font-mono">mp</span></span><input data-coin="mp" type="number" min="0" inputmode="numeric" class="input-field w-full text-center font-bold py-0.5 px-1 coin-input" /></label>
+              <label class="card-surface2 p-1.5 flex flex-col gap-0.5 border-[var(--brass)]"><span class="font-bold text-[10px] text-[var(--muted)]">Oro <span class="font-mono">mo</span></span><input data-coin="mo" type="number" min="0" inputmode="numeric" class="input-field w-full text-center font-bold py-0.5 px-1 coin-input" /></label>
+              <label class="card-surface2 p-1.5 flex flex-col gap-0.5"><span class="font-bold text-[10px] text-[var(--muted)]">Electrum <span class="font-mono">me</span></span><input data-coin="me" type="number" min="0" inputmode="numeric" class="input-field w-full text-center font-bold py-0.5 px-1 coin-input" /></label>
+              <label class="card-surface2 p-1.5 flex flex-col gap-0.5"><span class="font-bold text-[10px] text-[var(--muted)]">Argento <span class="font-mono">ma</span></span><input data-coin="ma" type="number" min="0" inputmode="numeric" class="input-field w-full text-center font-bold py-0.5 px-1 coin-input" /></label>
+              <label class="card-surface2 p-1.5 flex flex-col gap-0.5"><span class="font-bold text-[10px] text-[var(--muted)]">Rame <span class="font-mono">mr</span></span><input data-coin="mr" type="number" min="0" inputmode="numeric" class="input-field w-full text-center font-bold py-0.5 px-1 coin-input" /></label>
+            </div>
+            <form id="sheetCoinForm" class="flex flex-wrap items-center gap-1.5 text-xs">
+              <input id="sheetCoinAmount" type="number" min="1" inputmode="numeric" class="input-field w-20 text-center font-bold" placeholder="Quante" aria-label="Quante monete" />
+              <select id="sheetCoinType" class="input-field text-xs" aria-label="Moneta">
+                <option value="mp">mp (platino)</option>
+                <option value="mo" selected>mo (oro)</option>
+                <option value="me">me (electrum)</option>
+                <option value="ma">ma (argento)</option>
+                <option value="mr">mr (rame)</option>
+              </select>
+              <button id="btnCoinGain" type="button" class="btn btn-felt text-xs font-bold">＋ Ricevi</button>
+              <button id="btnCoinSpend" type="button" class="btn btn-brass text-xs font-bold">－ Spendi</button>
+            </form>
+            <p class="text-[11px] text-[var(--muted)] -mt-1">Se non hai la moneta giusta la scheda cambia da sola quelle più grandi e ti dà il resto.</p>
+            <div id="sheetCoinLast" class="hidden flex-wrap items-center gap-2 text-[11px]"></div>
+            <label for="sheetTextareaEquipment" class="font-bold text-[var(--muted)] text-xs">Oggetti</label>
+            <textarea id="sheetTextareaEquipment" rows="5" class="input-field w-full text-sm leading-relaxed" placeholder="Uno per riga: zaino, corda (15 m), 2 torce, razioni per 5 giorni…"></textarea>
           </div>
 
           <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
@@ -561,6 +600,7 @@
                 <button id="btnOpenSpellPicker" type="button" class="btn btn-felt text-xs">+ Aggiungi</button>
               </div>
             </div>
+            <div id="sheetSpellLimits" class="hidden text-[11px] leading-relaxed"></div>
             <div id="sheetConcentrationBar" class="hidden flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-lg border-2 border-[var(--brass)] bg-[var(--brass-soft)] text-xs"></div>
             <div id="sheetSpellList" class="flex flex-col gap-2 text-xs"></div>
           </div>
@@ -625,20 +665,17 @@
 
           <div id="sheetCompleteTextAreas" class="hidden flex-col gap-3 sheet-5e">
             <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
-              <label class="font-bold text-[var(--muted)]">🎒 Equipaggiamento</label>
-              <textarea id="sheetTextareaEquipment" rows="3" class="input-field w-full text-xs"></textarea>
+              <label for="sheetTextareaFeatures" class="font-bold text-[var(--muted)]">📜 Privilegi e tratti</label>
+              <textarea id="sheetTextareaFeatures" rows="6" class="input-field w-full text-sm leading-relaxed" placeholder="Privilegi di classe e razza, talenti, competenze, linguaggi…"></textarea>
             </div>
             <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
-              <label class="font-bold text-[var(--muted)]">✨ Incantesimi conosciuti</label>
-              <textarea id="sheetTextareaSpells" rows="3" class="input-field w-full text-xs"></textarea>
+              <label for="sheetTextareaNotes" class="font-bold text-[var(--muted)]">📝 Note</label>
+              <textarea id="sheetTextareaNotes" rows="6" class="input-field w-full text-sm leading-relaxed" placeholder="Quello che vuoi ricordare (le note solo tue stanno nel Diario)"></textarea>
             </div>
             <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
-              <label class="font-bold text-[var(--muted)]">📜 Privilegi</label>
-              <textarea id="sheetTextareaFeatures" rows="3" class="input-field w-full text-xs"></textarea>
-            </div>
-            <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
-              <label class="font-bold text-[var(--muted)]">📝 Note</label>
-              <textarea id="sheetTextareaNotes" rows="3" class="input-field w-full text-xs"></textarea>
+              <label for="sheetTextareaSpells" class="font-bold text-[var(--muted)]">✨ Altri incantesimi (scritti a mano)</label>
+              <span class="text-[11px] text-[var(--muted)]">Per quelli che non sono nel regolamento base: gli altri si aggiungono da “📖 Incantesimi”.</span>
+              <textarea id="sheetTextareaSpells" rows="4" class="input-field w-full text-sm leading-relaxed"></textarea>
             </div>
           </div>
         </div>
@@ -663,7 +700,7 @@
         </div>
         <div id="personalNotesForm" class="hidden flex-col gap-2 text-xs">
           <input id="personalNoteTitle" type="text" maxlength="160" class="input-field w-full font-bold" placeholder="Titolo (es. Sospetti sul barone)" />
-          <textarea id="personalNoteText" rows="3" maxlength="20000" class="input-field w-full" placeholder="Scrivi quello che vuoi ricordare solo per te…"></textarea>
+          <textarea id="personalNoteText" rows="5" maxlength="20000" class="input-field w-full" placeholder="Scrivi quello che vuoi ricordare solo per te…"></textarea>
           <div class="flex justify-end"><button id="btnSavePersonalNote" type="button" class="btn btn-felt text-xs font-bold">💾 Salva nota</button></div>
         </div>
         <div id="personalNotesList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
@@ -707,7 +744,7 @@
           </div>
           <div class="md:col-span-3">
             <label class="block font-bold text-[var(--muted)] mb-1">Dettagli</label>
-            <textarea id="journalInputDetails" rows="3" class="input-field w-full" placeholder="Dettagli..."></textarea>
+            <textarea id="journalInputDetails" rows="5" class="input-field w-full" placeholder="Dettagli..."></textarea>
           </div>
         </div>
         <div class="flex justify-end pt-1">
@@ -843,6 +880,7 @@
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2">
+            <button id="btnDmSheetsPdf" type="button" class="btn text-xs" title="Tutte le schede dei giocatori in un unico PDF">📄 Schede dei giocatori (PDF)</button>
             <button type="button" class="btn text-xs export-json-btn">💾 Salva file (.json)</button>
             <label class="btn cursor-pointer text-xs">
               📂 Carica (.json)
@@ -900,6 +938,14 @@
                 <label class="block font-bold text-[var(--muted)] mb-1">Nome campagna</label>
                 <input id="dmInputCampaignName" type="text" class="input-field w-full font-serif-title font-bold text-base" />
               </div>
+              <div class="text-xs">
+                <label for="dmRulesSelect" class="block font-bold text-[var(--muted)] mb-1">Regole</label>
+                <select id="dmRulesSelect" class="input-field w-full text-xs">
+                  <option value="2014">D&amp;D 5e (Manuale del Giocatore 2014)</option>
+                  <option value="2024">D&amp;D 5e revisione 2024 (Manuale del Giocatore 2024, come D&amp;D Beyond)</option>
+                </select>
+                <p class="text-[10px] text-[var(--muted)] mt-1">Decide quanti incantesimi si scelgono a ogni livello, gli slot di paladino e ranger al 1° livello e le armi in cui sono competenti alcune classi.</p>
+              </div>
               <div class="text-xs flex flex-col gap-1">
                 <label class="flex items-center justify-between font-bold text-[var(--muted)]"><span>🕵️ Note segrete del DM</span><span id="dmVaultSaveStatus" class="font-normal text-[10px]"></span></label>
                 <textarea id="dmTextareaSecretNotes" rows="7" class="input-field w-full leading-relaxed text-xs" placeholder="Note segrete..."></textarea>
@@ -945,7 +991,7 @@
               </div>
               <form id="dmHandoutForm" class="flex flex-col gap-2">
                 <input id="dmHandoutTitle" type="text" maxlength="120" class="input-field w-full font-bold" placeholder="Titolo (es. Lettera del barone)" />
-                <textarea id="dmHandoutText" rows="3" maxlength="8000" class="input-field w-full" placeholder="Testo della dispensa..."></textarea>
+                <textarea id="dmHandoutText" rows="5" maxlength="20000" class="input-field w-full" placeholder="Testo della dispensa..."></textarea>
                 <div class="flex flex-wrap items-center gap-2">
                   <label class="btn cursor-pointer text-xs">🖼️ Immagine <input id="dmHandoutImage" type="file" accept="image/*" class="hidden" /></label>
                   <select id="dmHandoutTo" class="input-field flex-1 min-w-[140px]"></select>
@@ -1234,6 +1280,15 @@
           <label data-sheet-type-row class="hidden items-center gap-2 text-xs font-bold text-[var(--muted)]">Tipo di scheda
             <select id="onbSheetType" class="input-field flex-1 font-bold"></select>
           </label>
+          <div class="card-surface2 p-3 flex flex-wrap items-center justify-between gap-2 border-2 border-[var(--brass)] onb-5e">
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-sm">📄 Hai già una scheda?</div>
+              <p class="text-[11px] text-[var(--muted)] leading-relaxed">Carica il PDF (o una foto) della tua scheda, anche in inglese: l'app legge tutti i dati, li traduce in italiano e prepara il personaggio. Prima di entrare puoi controllarli. Per la traduzione la scheda passa dall'assistente IA (Gemini).</p>
+            </div>
+            <label class="btn btn-felt text-xs font-bold cursor-pointer">📄 Carica la scheda
+              <input type="file" accept="application/pdf,.pdf,image/*" class="hidden sheet-import-input" data-purpose="onboarding" />
+            </label>
+          </div>
           <p class="text-[11px] text-[var(--muted)] -mt-1 onb-5e">La creazione guidata ti accompagna passo passo (razza, classe, caratteristiche, abilità). Oppure compila al volo qui sotto.</p>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
             <div class="col-span-2">
@@ -1242,11 +1297,11 @@
             </div>
             <div class="onb-5e">
               <label class="block font-bold text-[var(--muted)] mb-1">Razza</label>
-              <input id="onbCharRace" type="text" value="Elfo" class="input-field w-full font-bold" />
+              <input id="onbCharRace" type="text" value="Elfo" list="srdRaceList" class="input-field w-full font-bold" />
             </div>
             <div class="onb-5e">
               <label class="block font-bold text-[var(--muted)] mb-1">Classe</label>
-              <input id="onbCharClass" type="text" value="Guerriero" class="input-field w-full font-bold" />
+              <input id="onbCharClass" type="text" value="Guerriero" list="srdClassList" class="input-field w-full font-bold" />
             </div>
             <div class="onb-5e">
               <label class="block font-bold text-[var(--muted)] mb-1">Livello</label>
@@ -1261,8 +1316,8 @@
               <input id="onbCharAc" type="number" min="1" max="35" value="16" class="input-field w-full text-center font-bold" />
             </div>
             <div class="onb-5e">
-              <label class="block font-bold text-[var(--muted)] mb-1">Azione Bonus</label>
-              <input id="onbCharBonus" type="text" value="Recuperare Energie" class="input-field w-full font-bold" />
+              <label class="block font-bold text-[var(--muted)] mb-1">Azione bonus</label>
+              <input id="onbCharBonus" type="text" value="Recuperare energie" placeholder="nessuna" title="L'azione bonus tipica della classe: si riempie da sola" class="input-field w-full font-bold" />
             </div>
           </div>
           <div class="onb-5e">
@@ -1277,8 +1332,9 @@
             </div>
           </div>
           <div class="text-xs onb-5e">
-            <label class="block font-bold text-[var(--muted)] mb-1">Attacco Principale</label>
-            <input id="onbCharAttack" type="text" value="Spada lunga | FOR | 1d8+FOR" class="input-field w-full font-mono text-xs" title="FOR o DES al posto dei numeri: bonus e danni seguono le caratteristiche e il livello" />
+            <label for="onbCharWeapon" class="block font-bold text-[var(--muted)] mb-1">Arma principale</label>
+            <select id="onbCharWeapon" class="input-field w-full text-xs"></select>
+            <p class="text-[11px] text-[var(--muted)] mt-1">Tiro per colpire e danni li calcola la scheda; altre armi le aggiungi dopo.</p>
           </div>
           <div class="flex items-center justify-between pt-2 border-t border-[var(--line)]">
             <button id="btnBackToRoleStep" type="button" class="btn text-xs">← Indietro</button>
@@ -1303,6 +1359,25 @@
         <button id="btnWizardBack" type="button" class="btn text-xs">← Indietro</button>
         <span id="wizardProblem" class="text-[11px] font-bold text-[var(--danger)] text-center"></span>
         <button id="btnWizardNext" type="button" class="btn btn-felt text-sm font-bold px-5">Avanti →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalSheetImport" class="hidden fixed inset-0 z-[55] bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-surface p-5 w-full max-w-3xl flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto">
+      <div class="flex items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+        <div class="min-w-0">
+          <span id="sheetImportFileName" class="block truncate text-[11px] font-bold uppercase tracking-wider text-[var(--brass)]">Scheda</span>
+          <h3 class="font-serif-title font-bold text-2xl">📄 Personaggio dalla scheda</h3>
+        </div>
+        <button id="btnCloseSheetImport" type="button" class="btn text-xs" aria-label="Chiudi">✕</button>
+      </div>
+      <div id="sheetImportBody" class="text-xs flex flex-col gap-3"></div>
+      <div class="flex items-center justify-between gap-2 pt-2 border-t border-[var(--line)]">
+        <label class="btn text-xs cursor-pointer">📄 Un altro file
+          <input type="file" accept="application/pdf,.pdf,image/*" class="hidden sheet-import-input" />
+        </label>
+        <button id="btnConfirmSheetImport" type="button" class="hidden btn btn-felt text-sm font-bold px-5">⚔️ Crea ed entra</button>
       </div>
     </div>
   </div>
@@ -1336,6 +1411,11 @@
         <select id="selectSpellClass" class="input-field" aria-label="Classe"></select>
         <select id="selectSpellLevel" class="input-field" aria-label="Livello"></select>
       </div>
+      <div id="spellPickerLimits" class="hidden text-[11px] leading-relaxed"></div>
+      <label id="spellPickerExtraRow" class="hidden items-start gap-2 text-[11px] cursor-pointer">
+        <input id="spellPickerExtra" type="checkbox" class="mt-0.5 accent-[var(--felt)]" />
+        <span><strong>Incantesimi extra</strong>: dati dalla razza, da un talento, da un oggetto o da un'altra classe. Si scelgono da tutto l'elenco e non contano nei limiti.</span>
+      </label>
       <div id="spellPickerResults" class="flex flex-col gap-1.5 overflow-y-auto pr-1 text-xs"></div>
       <p class="text-[10px] text-[var(--muted)]">Nomi in italiano; le descrizioni sono quelle ufficiali del regolamento base (SRD 5.1) in inglese.</p>
     </div>
@@ -1579,6 +1659,10 @@
     </div>
   </div>
 
+  <!-- Suggerimenti per classe e razza: si può comunque scrivere altro -->
+  <datalist id="srdClassList"><option value="Barbaro"></option><option value="Bardo"></option><option value="Chierico"></option><option value="Druido"></option><option value="Guerriero"></option><option value="Ladro"></option><option value="Mago"></option><option value="Monaco"></option><option value="Paladino"></option><option value="Ranger"></option><option value="Stregone"></option><option value="Warlock"></option></datalist>
+  <datalist id="srdRaceList"><option value="Dragonide"></option><option value="Elfo (Alto Elfo)"></option><option value="Elfo (dei Boschi)"></option><option value="Elfo (Drow)"></option><option value="Gnomo (delle Rocce)"></option><option value="Halfling (Piedelesto)"></option><option value="Mezzelfo"></option><option value="Mezzorco"></option><option value="Nano (delle Colline)"></option><option value="Nano (delle Montagne)"></option><option value="Tiefling"></option><option value="Umano"></option></datalist>
+
   <script src="js/config.js"></script>
   <script src="js/rules.js"></script>
   <script src="js/store.js"></script>
@@ -1602,6 +1686,8 @@
   <script src="js/private.js"></script>
   <script src="js/links.js"></script>
   <script src="js/customsheet.js"></script>
+  <script src="js/sheetimport.js"></script>
+  <script src="js/sheetpdf.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

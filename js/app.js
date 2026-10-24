@@ -673,6 +673,7 @@ function openOnboardingCharacterStep() {
   showEl('onboardingStepRole', false);
   showEl('onboardingStepCharacter', true);
   loadOnboardingSheetTypes(App.onboardingCampId);
+  if (!$('onbCharWeapon').options.length) $('onbCharWeapon').innerHTML = `<option value="">Nessuna</option>${weaponOptionsHtml('longsword')}`;
   const pcs = entry?.pcs || [];
   showEl('onboardingExistingCharsSection', pcs.length > 0);
   $('onboardingExistingCharsList').innerHTML = pcs.map(pc => {
@@ -705,10 +706,21 @@ async function createCharFromOnboarding() {
   const abilities = {};
   ABILITY_KEYS.forEach(k => { abilities[k] = clampInt($(`onbStat${k}`).value, 1, 30, 10); });
   const maxHp = clampInt($('onbCharHp').value, 1, 999, 10);
+  const level = clampInt($('onbCharLevel').value, 1, 20, 1);
+  // Con una classe del regolamento la scheda imposta da sola slot, dado vita e tiri salvezza
+  const typedClass = $('onbCharClass').value.trim();
+  const clsKey = srdClassKey(typedClass);
+  const cls = SRD_CLASSES[clsKey];
+  const spellSlots = createEmptySpellSlots();
+  classSpellSlots(typedClass, level, campaignRules(campId)).forEach((n, i) => { spellSlots[i + 1].max = n; });
+  const weapon = $('onbCharWeapon').value;
   const ch = createCharacter({
-    name, race: $('onbCharRace').value.trim(), className: $('onbCharClass').value.trim(),
-    level: clampInt($('onbCharLevel').value, 1, 20, 1), maxHp, hp: maxHp, ac: clampInt($('onbCharAc').value, 1, 40, 10),
-    bonusAction: $('onbCharBonus').value.trim(), abilities, attacksText: $('onbCharAttack').value.trim()
+    name, race: $('onbCharRace').value.trim(), level, maxHp, hp: maxHp, ac: clampInt($('onbCharAc').value, 1, 40, 10),
+    // Il nome del manuale ("maga", "wizard" → "Mago") serve al passaggio di livello guidato e alle regole della classe
+    className: clsKey && !/\s/.test(typedClass) ? clsKey : typedClass,
+    bonusAction: $('onbCharBonus').value.trim(), abilities, spellSlots,
+    hitDie: cls ? `d${cls.die}` : 'd8', savingThrowsProf: Object.fromEntries((cls?.saves || []).map(ab => [ab, true])),
+    weapons: weapon ? [{ k: weapon }] : []
   });
   $('onbCharName').value = '';
   await enterAsPlayer(campId, ch.id);
@@ -872,11 +884,17 @@ function initAppEvents() {
     if (row && e.target.closest('.onb-play-btn')) enterAsPlayer(App.onboardingCampId, row.dataset.pcId);
   });
   $('btnConfirmCreateOnbChar').addEventListener('click', createCharFromOnboarding);
+  // L'azione bonus segue la classe scelta, finché il giocatore non la scrive lui
+  $('onbCharBonus').addEventListener('input', () => { $('onbCharBonus').dataset.touched = '1'; });
+  $('onbCharClass').addEventListener('input', () => {
+    const cls = SRD_CLASSES[srdClassKey($('onbCharClass').value)];
+    if (cls && !$('onbCharBonus').dataset.touched) $('onbCharBonus').value = cls.bonus;
+  });
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     closeTokenPopover();
-    ['modalAddToken', 'modalVerifyDmPassword', 'modalCloudStatus', 'modalSpellPicker', 'modalLevelUp', 'modalMessages', 'modalHandout', 'modalImageCrop', 'modalCampaignPassword', 'modalLobbyManage', 'modalTemplateEditor'].forEach(id => showEl(id, false));
+    ['modalAddToken', 'modalVerifyDmPassword', 'modalCloudStatus', 'modalSpellPicker', 'modalLevelUp', 'modalMessages', 'modalHandout', 'modalImageCrop', 'modalCampaignPassword', 'modalLobbyManage', 'modalTemplateEditor', 'modalSheetImport'].forEach(id => showEl(id, false));
     if (!$('modalPin').classList.contains('hidden')) finishPinRequest(null);
   });
   window.addEventListener('pagehide', () => { if (App.activeId) Sync.saveLocalNow(App.activeId); });
@@ -914,6 +932,8 @@ async function startApp() {
   initPrivateEvents();
   initLinkEvents();
   initCustomSheetEvents();
+  initSheetImportEvents();
+  initSheetPdfEvents();
   setAdvMode('normal');
   renderGlossary();
   renderChat();

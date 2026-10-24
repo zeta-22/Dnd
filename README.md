@@ -8,7 +8,8 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Più mappe per avventura**: il Master prepara la prossima mappa di nascosto e con **📣 Mostra ai giocatori** ci porta tutti.
 - **Iniziativa** con turno attivo evidenziato sulla mappa e avviso “Tocca a te!”.
 - **Lancia-dadi** con vantaggio/svantaggio, tiri contro CA, critici, tiri segreti del Master e formule libere (`2d6+1d4+3`).
-- **Dadi 3D** con la fisica: ogni tiro rotola sullo schermo di tutti e si ferma sugli stessi numeri. Ogni giocatore sceglie
+- **Dadi 3D** con la fisica: ogni tiro rotola sullo schermo di tutti e si ferma sugli stessi numeri; il risultato
+  (storico, avvisi) compare solo quando i dadi si fermano, anche per chi tira. Ogni giocatore sceglie
   il colore dei suoi dadi; il 20 naturale si illumina d'oro, l'1 di rosso; suono facoltativo. Sui dispositivi che non
   reggono il 3D (o se si sceglie così) si usano i dadi semplici; l'animazione si può anche spegnere.
 - **Mostri del regolamento base**: cerchi “goblin” o “drago”, aggiungi uno o più mostri con PF, CA e iniziativa già pronti;
@@ -18,12 +19,24 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
   anche se usate da più pedine; un'immagine può valere per tutti i mostri dello stesso tipo.
 - **Condizioni con durata** in round, che finiscono da sole al momento giusto del turno.
 - **Scheda personaggio** semplice o completa: PF e PF temporanei, riposi, tiri salvezza contro morte, abilità con competenza e maestria, attacchi, condizioni.
+- **Monete**: platino, oro, electrum, argento e rame con il totale in monete d'oro; si ricevono e si spendono dalla scheda
+  (se manca la moneta giusta la scheda cambia da sola quelle più grandi e dà il resto) e l'ultima operazione si può annullare.
+- **Schede in PDF**: ogni scheda si scarica in PDF (⬇️ PDF) con un'impaginazione come quella di D&D Beyond: caratteristiche,
+  tiri salvezza e abilità con i pallini, CA e PF, armi e trucchetti, equipaggiamento e monete, storia e incantesimi con gli slot.
+  Il Master scarica tutte le schede dei giocatori in un unico PDF dallo schermo del Master. Anche le schede personalizzate.
+- **Armi dal manuale**: si sceglie l'arma (pugnale, spada lunga, arco corto…) e la scheda calcola da sola tiro per colpire e danni
+  da caratteristiche, competenza della classe e della razza, livello, armi accurate e versatili, arti marziali del monaco e bonus magico.
+  Gli attacchi speciali (morsi, armi homebrew) si possono ancora scrivere a mano.
 - **Incantesimi**: si scelgono dall'elenco del regolamento base, si lanciano spendendo gli slot (anche a livello superiore),
   con tiri d'attacco, danni, cure, CD e concentrazione (con il tiro salvezza quando si subiscono danni).
   Chierico, Druido, Mago e Paladino **preparano** gli incantesimi (caratteristica + livello, metà livello per il Paladino):
   si spuntano nella scheda, si lanciano solo quelli preparati e quelli del dominio o del giuramento si segnano “sempre
   preparati”. I **rituali** si lanciano senza slot con 10 minuti in più: il Mago anche quelli non preparati del suo libro,
   Chierico e Druido quelli preparati, il Bardo quelli che conosce.
+  La scelta propone solo gli incantesimi della classe fino al livello che si può lanciare e tiene il conto di trucchetti e
+  incantesimi conosciuti; quelli dati da razza, talenti o oggetti si aggiungono come "extra" e non contano nei limiti.
+- **Regole 2014 o 2024**: il Master sceglie l'edizione nello schermo del Master; cambia quanti incantesimi si preparano o si
+  conoscono a ogni livello, gli slot di paladino e ranger al 1° livello e le competenze nelle armi di alcune classi.
 - **Creazione guidata del personaggio** (razza, classe, caratteristiche con serie standard, acquisto a punti o 4d6, abilità)
   e **passaggio di livello guidato** fino al 20°, per tutte le 12 classi del regolamento base. Passo per passo dice
   cosa si ottiene (privilegi di classe, sottoclasse e razza, risorse che crescono) e propone le scelte spiegando ogni
@@ -34,6 +47,13 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
   i privilegi nuovi nella scheda. Le scelte saltate dai personaggi già esistenti si recuperano al primo passaggio.
   Negli attacchi si può scrivere FOR o DES al posto dei numeri (“Spada lunga | FOR | 1d8+FOR”): bonus e danni si
   aggiornano da soli.
+- **Scheda da PDF o da foto**: al primo ingresso (o con **📄 Da PDF** nella scheda Personaggio) si carica la propria scheda,
+  anche in inglese, e l'app prepara il personaggio già tradotto in italiano: caratteristiche, competenze e maestrie, armi,
+  incantesimi lanciabili con i loro slot, monete, equipaggiamento, privilegi e storia. Prima di confermare si vede un'anteprima
+  da correggere. Funziona con le schede compilabili (quella ufficiale, gli export di D&D Beyond), con quelle stampate o
+  scansionate e con le foto. Le armi diventano armi del manuale, con la competenza presa dalla scheda; se un numero non torna,
+  l'anteprima lo segnala. Senza assistente IA si leggono solo le schede compilabili e gli export di D&D Beyond, e i testi
+  restano nella lingua originale.
 - **Messaggi privati** tra Master e giocatori e **dispense** (testo e immagini) per tutti o per un solo giocatore.
 - **Diario condiviso** (missioni, PNG, luoghi, bottino, domande per il DM con risposta): ogni voce si può correggere o
   eliminare da chi l'ha scritta e dal Master. **Note personali** che legge solo chi le scrive (nemmeno il Master),
@@ -105,7 +125,8 @@ Su Vercel → progetto → **Settings → Environment Variables** aggiungi:
 | `GEMINI_MODEL` | facoltativo, predefinito `gemini-flash-latest` |
 
 Poi rifai il deploy (Deployments → ⋯ → Redeploy). La chiave resta sul server: i giocatori usano l'assistente senza vederla.
-Senza chiave l'assistente funziona lo stesso, ma risponde solo con il glossario e la ricerca nei PDF.
+Senza chiave l'assistente funziona lo stesso, ma risponde solo con il glossario e la ricerca nei PDF,
+e le schede personaggio si importano solo dai PDF compilabili e da D&D Beyond, senza traduzione.
 
 ### 4. Pubblicazione
 
@@ -128,6 +149,8 @@ Il Master può premere **👁️ Vista** per vedere la mappa esattamente come la
 - **Protetto dalla password del Master**: note segrete, appunti di sessione, nemici preparati. Stanno in una “cassaforte” nel database che si apre solo con la password giusta.
 - **Tiri segreti del Master**: restano solo sul suo dispositivo.
 - **PDF dei manuali**: restano nel browser di chi li carica, non vengono mai inviati online.
+- **Schede personaggio importate**: per la traduzione il contenuto della scheda passa da Gemini (tramite la funzione su Vercel);
+  il file in sé non viene salvato da nessuna parte. Senza IA le schede compilabili si leggono solo sul dispositivo.
 - **Messaggi e dispense per un solo giocatore**: sono cifrati con una chiave che esiste solo sul dispositivo di quel giocatore.
   Se il giocatore cambia telefono, i messaggi vecchi su quello nuovo non si leggono (quelli nuovi sì).
   I messaggi dei giocatori al Master si leggono solo con la password del Master.
@@ -168,6 +191,8 @@ js/images.js        immagini di personaggi e pedine (ritaglio, compressione, pul
 js/private.js       PIN personale, note personali, storia del personaggio
 js/links.js         collegamenti nel Diario e menu "@"
 js/customsheet.js   modelli e schede personalizzate
+js/sheetimport.js   scheda del personaggio importata da PDF o foto (lettura, traduzione con Gemini, anteprima)
+js/sheetpdf.js      scheda del personaggio scaricata in PDF (pdf-lib, caricato solo quando serve)
 js/bestiary.js      i mostri comuni con le loro icone (generato da tools/build-bestiary.py)
 vendor/             libreria dei dadi 3D (scaricata solo al primo tiro) e i suoi suoni
 js/app.js           avvio, lobby, ingresso nelle avventure
@@ -203,6 +228,8 @@ Dettagli in [`data/LICENZE.md`](data/LICENZE.md). Il Tavolo non è affiliato a W
 
 Icone dei mostri di [game-icons.net](https://game-icons.net), licenza [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/):
 Lorc, Delapouite, Carl Olsen, Caro Asercion, DarkZaitzev, Skoll, Sparker (l'autore di ogni icona è indicato in `js/bestiary.js`).
+
+PDF delle schede: [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT), caricato da cdnjs solo quando si scarica una scheda.
 
 Dadi 3D: [dice-box-threejs](https://github.com/3d-dice/dice-box-threejs) (MIT, © 3D Dice), che include
 [three.js](https://threejs.org) (MIT) e [cannon-es](https://github.com/pmndrs/cannon-es) (MIT); vedi `vendor/dice-box-threejs/`.

@@ -95,8 +95,9 @@ function recordRoll(roll, secret) {
     // Teniamo solo gli ultimi 40 tiri
     getRolls().slice(40).forEach(r => removeEnt(`roll:${r.id}`));
   }
-  showToast(`🎲 ${roll.label}: ${roll.total}${roll.hit === true ? ' — colpito!' : roll.hit === false ? ' — mancato' : ''}${roll.crit && roll.vsAc ? ' ✨' : ''}`);
   renderRolls();
+  // Con i dadi animati il risultato lo mostrano i dadi quando si fermano, come per chi guarda
+  if (!isRollRolling(roll.id)) showToast(`🎲 ${roll.label}: ${roll.total}${roll.hit === true ? ' — colpito!' : roll.hit === false ? ' — mancato' : ''}${roll.crit && roll.vsAc ? ' ✨' : ''}`);
 }
 
 function describeRollDice(r) {
@@ -136,14 +137,16 @@ function renderRolls() {
     showEl('lastRollDisplay', false);
     return;
   }
+  // Finché i dadi rotolano si vede solo la formula, non il risultato
+  const rolling = r => isRollRolling(r.id);
   listEl.innerHTML = all.map(r => `
     <div class="card-surface2 roll-entry ${r.secret ? 'secret' : ''} p-2 text-xs flex items-start justify-between gap-2">
       <div class="min-w-0">
         <div class="font-bold truncate">${r.secret ? '🔒 ' : ''}${escapeHtml(r.by)} · ${escapeHtml(r.label)}</div>
-        <div class="text-[11px] text-[var(--muted)]">${escapeHtml(describeRollDice(r))} ${rollOutcomeHtml(r)}</div>
+        <div class="text-[11px] text-[var(--muted)]">${rolling(r) ? `${escapeHtml(r.formula || '')} · i dadi rotolano…` : `${escapeHtml(describeRollDice(r))} ${rollOutcomeHtml(r)}`}</div>
       </div>
       <div class="text-right flex-shrink-0">
-        <strong class="font-serif-title text-base">${r.total}</strong>
+        <strong class="font-serif-title text-base">${rolling(r) ? '🎲' : r.total}</strong>
         <div class="text-[10px] text-[var(--muted)]">${new Date(r.at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</div>
       </div>
     </div>`).join('');
@@ -153,12 +156,12 @@ function renderRolls() {
   box.innerHTML = `
     <div class="min-w-0 text-xs">
       <div class="font-bold truncate">${last.secret ? '🔒 ' : ''}${escapeHtml(last.by)} · ${escapeHtml(last.label)}</div>
-      <div class="text-[var(--muted)]">${escapeHtml(describeRollDice(last))}</div>
-      <div>${rollOutcomeHtml(last)}</div>
+      <div class="text-[var(--muted)]">${rolling(last) ? `${escapeHtml(last.formula || '')} · i dadi rotolano…` : escapeHtml(describeRollDice(last))}</div>
+      <div>${rolling(last) ? '' : rollOutcomeHtml(last)}</div>
     </div>
-    <div class="last-roll-total">${last.total}</div>`;
+    <div class="last-roll-total">${rolling(last) ? '🎲' : last.total}</div>`;
   showEl(box, true);
-  if (App.lastShownRollId !== last.id) {
+  if (!rolling(last) && App.lastShownRollId !== last.id) {
     App.lastShownRollId = last.id;
     box.classList.remove('fresh');
     void box.offsetWidth;
@@ -207,7 +210,7 @@ function rollInitiativeForChar(ch, quiet = false) {
   }));
   putEnt(`init:${entry.id}`, entry);
   startCombatIfNeeded();
-  if (!quiet) showToast(`⚡ Iniziativa di ${ch.name}: ${roll.total}`);
+  if (!quiet) whenRollLands(roll, () => showToast(`⚡ Iniziativa di ${ch.name}: ${roll.total}`));
 }
 
 function addTokenToInitiative(tok) {

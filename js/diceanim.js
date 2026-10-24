@@ -103,12 +103,37 @@ function dieVariant(roll, sides, idx) {
   return sides === 20 ? 'd20' : 'normal';
 }
 
+// Tiri i cui dadi stanno ancora rotolando: il risultato (storico, avvisi) si mostra solo quando si fermano,
+// uguale per chi tira e per chi guarda
+const rollingIds = new Set();
+const rollWaiters = new Map();
+
+function isRollRolling(id) {
+  return rollingIds.has(id);
+}
+
+// Esegue fn quando i dadi del tiro si fermano, oppure subito se non c'è animazione
+function whenRollLands(roll, fn) {
+  if (!roll || !rollingIds.has(roll.id)) { fn(); return; }
+  if (!rollWaiters.has(roll.id)) rollWaiters.set(roll.id, []);
+  rollWaiters.get(roll.id).push(fn);
+}
+
+function rollLanded(roll) {
+  if (!roll || !rollingIds.delete(roll.id)) return;
+  const waiting = rollWaiters.get(roll.id) || [];
+  rollWaiters.delete(roll.id);
+  waiting.forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
+  scheduleRender();
+}
+
 // Chiamata da renderRolls per ogni tiro nuovo
 function queueDiceAnimation(roll) {
   if (!diceAnimationEnabled() || document.hidden || !roll || !Array.isArray(roll.dice) || !roll.dice.length) return;
   diceQueue.push(roll);
+  rollingIds.add(roll.id);
   // Se arrivano molti tiri insieme (es. iniziativa di tutto il gruppo) mostriamo solo gli ultimi
-  while (diceQueue.length > 3) diceQueue.shift();
+  while (diceQueue.length > 3) rollLanded(diceQueue.shift());
   if (!diceBusy) playNextDice();
 }
 
@@ -116,6 +141,8 @@ function playNextDice() {
   const roll = diceQueue.shift();
   if (!roll) { diceBusy = false; return; }
   diceBusy = true;
+  // Rete di sicurezza: se l'animazione si blocca il risultato compare lo stesso
+  const guard = setTimeout(() => rollLanded(roll), 12000);
   const run = canUse3d(roll)
     ? animateRoll3D(roll).catch(() => {
       // Il 3D non parte (libreria non caricata, scheda grafica non adatta…): torniamo ai dadi semplici
@@ -123,7 +150,11 @@ function playNextDice() {
       return animateRollAcrossTable(roll);
     })
     : animateRollAcrossTable(roll);
-  run.then(() => playNextDice());
+  run.then(() => {
+    clearTimeout(guard);
+    rollLanded(roll);
+    playNextDice();
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -251,6 +282,7 @@ async function animateRoll3D(roll) {
   holder.classList.add('dice3d-on');
   // Se la scheda va in secondo piano l'animazione si ferma: non aspettiamo all'infinito
   await Promise.race([box.roll(dice3dNotation(roll)), waitMs(9000)]);
+  rollLanded(roll);
   const badge = showRollBadge(roll, window.innerHeight * 0.78);
   await waitMs(1800);
   holder.classList.add('dice3d-fade');
@@ -342,6 +374,7 @@ function animateRollAcrossTable(roll) {
     }
 
     Promise.all(dice.map(d => d.anim.finished.catch(() => {}))).then(() => {
+      rollLanded(roll);
       const badge = showRollBadge(roll, H * 0.42 + size * 0.75);
       setTimeout(() => {
         const fades = [fadeOutBadge(badge), ...dice.map(d => d.el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, fill: 'forwards' }).finished.catch(() => {}))];

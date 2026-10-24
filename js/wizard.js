@@ -76,14 +76,11 @@ function wizardAc(w, scores) {
   return 10 + dex;
 }
 
-// Il testo salvato usa FOR/DES, così bonus e danni seguono il livello e le caratteristiche
-function wizardAttackText(w) {
-  return (SRD_CLASSES[w.cls].attack || '').replace(/\+\{(FOR|DES)\}/g, '$1').replace(/\{(FOR|DES)mod\}/g, '+$1');
-}
-
-function wizardAttackPreview(w, scores) {
-  return parseAttacks(wizardAttackText(w), { abilities: scores, level: w.level })
-    .map(a => `${a.name} ${a.bonus !== null ? formatSignedMod(a.bonus) : ''} · ${a.damage}`).join(', ');
+// Armi iniziali della classe, già calcolate sul personaggio che si sta creando
+function wizardWeaponsText(w, scores) {
+  const ch = { abilities: scores, level: w.level, className: w.cls, race: w.race };
+  return SRD_CLASSES[w.cls].weapons.map(k => weaponStats(ch, { k }, campaignRules(w.campId)))
+    .map(st => `${st.name} ${formatSignedMod(st.hit)} (${st.damage})`).join(' · ');
 }
 
 // Controlla il passo corrente: restituisce un messaggio se manca qualcosa
@@ -177,7 +174,7 @@ function renderWizard() {
         <div class="flex flex-wrap gap-1.5">${ALL_SKILL_KEYS.filter(s => !fixed.includes(s) && !w.classSkills.includes(s)).map(s => `<label class="condition-btn ${w.freeSkills.includes(s) ? 'active' : ''} cursor-pointer"><input type="checkbox" class="hidden wiz-free-skill" data-skill="${escapeHtml(s)}" ${w.freeSkills.includes(s) ? 'checked' : ''}/>${escapeHtml(s)}</label>`).join('')}</div></div>` : ''}`;
   } else {
     const cls = SRD_CLASSES[w.cls];
-    const slots = classSpellSlots(w.cls, w.level).map((n, i) => n ? `${i + 1}°: ${n}` : '').filter(Boolean).join(' · ');
+    const slots = classSpellSlots(w.cls, w.level, campaignRules(w.campId)).map((n, i) => n ? `${i + 1}°: ${n}` : '').filter(Boolean).join(' · ');
     const skills = [...wizardFixedSkills(w), ...w.classSkills, ...w.freeSkills];
     body.innerHTML = `
       <div class="card-surface2 p-3 flex flex-col gap-1.5">
@@ -188,7 +185,7 @@ function renderWizard() {
         <div><strong>Tiri salvezza:</strong> ${cls.saves.join(', ')}</div>
         <div><strong>Abilità:</strong> ${escapeHtml(skills.join(', '))}</div>
         ${slots ? `<div><strong>Slot incantesimo:</strong> ${slots} · aggiungi gli incantesimi dalla scheda (“📖 Incantesimi”)</div>` : ''}
-        <div><strong>Attacco:</strong> ${escapeHtml(wizardAttackPreview(w, scores))}</div>
+        <div><strong>Armi:</strong> ${escapeHtml(wizardWeaponsText(w, scores))} <span class="text-[var(--muted)]">(altre le aggiungi dalla scheda)</span></div>
       </div>`;
   }
   const problem = wizardProblem(w);
@@ -214,7 +211,7 @@ async function finishCharWizard() {
   [...wizardFixedSkills(w), ...w.classSkills, ...w.freeSkills].forEach(s => { skillsProf[s] = 1; });
   const savingThrowsProf = {};
   cls.saves.forEach(s => { savingThrowsProf[s] = true; });
-  const slots = classSpellSlots(w.cls, w.level);
+  const slots = classSpellSlots(w.cls, w.level, campaignRules(w.campId));
   const spellSlots = {};
   slots.forEach((n, i) => { spellSlots[i + 1] = { max: n, used: 0 }; });
   const maxHp = wizardHp(w, scores);
@@ -222,15 +219,20 @@ async function finishCharWizard() {
     name: w.name.trim(), race: w.race, className: w.cls, level: w.level, background: w.background, bonusAction: cls.bonus,
     maxHp, hp: maxHp, ac: wizardAc(w, scores), speed: race.speed, hitDie: `d${cls.die}`, hitDiceRemaining: w.level,
     abilities: scores, savingThrowsProf, skillsProf, spellSlots, spellAbility: cls.casting?.ability || null,
-    attacksText: wizardAttackText(w),
+    weapons: cls.weapons.map(k => ({ k })),
     featuresText: `${w.race}: ${race.traits}\n${w.cls}: ${cls.features}`
   };
   closeCharWizard();
-  if (w.purpose === 'onboarding') {
-    if (!(await ensureCampaignLoaded(w.campId))) return;
+  await addNewCharacter(w.purpose, w.campId, fields);
+}
+
+// Crea il personaggio (creazione guidata o scheda importata): al primo ingresso si entra con lui
+async function addNewCharacter(purpose, campId, fields) {
+  if (purpose === 'onboarding') {
+    if (!(await ensureCampaignLoaded(campId))) return;
     if (App.dmUnlocked) lockDm();
     const ch = createCharacter(fields);
-    await enterAsPlayer(w.campId, ch.id);
+    await enterAsPlayer(campId, ch.id);
     return;
   }
   const dm = isDM();

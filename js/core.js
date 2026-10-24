@@ -52,6 +52,12 @@ function getMeta() {
   if (!c.ents.meta) c.ents.meta = normalizeMeta({});
   return c.ents.meta;
 }
+
+// Edizione delle regole scelta dal Master ('2014' o '2024'), anche per un'avventura non ancora aperta
+function campaignRules(campId = App.activeId) {
+  const meta = Campaigns[campId]?.ents?.meta || App.lobby?.find(c => c.id === campId)?.meta;
+  return meta?.rules === '2024' ? '2024' : '2014';
+}
 // ---------------------------------------------------------------------------
 // Mappe (scene): la "principale" usa le chiavi storiche scene/map, le altre scene:<id>/map:<id>.
 // I giocatori vedono la scena indicata in stage; il Master può prepararne un'altra intanto.
@@ -370,7 +376,10 @@ function readFileAsDataUrl(file) {
 }
 
 function downloadJson(filename, obj) {
-  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  downloadBlob(filename, new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }));
+}
+
+function downloadBlob(filename, blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -378,7 +387,8 @@ function downloadJson(filename, obj) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  // Su telefono il file può aprirsi in un'altra scheda: lasciamogli il tempo di leggerlo
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 function slugify(text) {
