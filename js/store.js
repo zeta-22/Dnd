@@ -103,6 +103,16 @@ function ensureCharacterDefaults(char) {
   if (!char.conditionRounds || typeof char.conditionRounds !== 'object') char.conditionRounds = {};
   if (!Array.isArray(char.spells)) char.spells = [];
   char.spells = char.spells.filter(s => s && !isNaN(Number(s.i)));
+  // Gli incantesimi messi prima che esistesse la preparazione restano pronti da lanciare
+  char.spells.forEach(s => {
+    s.prep = s.prep === undefined ? true : Boolean(s.prep);
+    s.always = Boolean(s.always);
+    s.ritualOnly = Boolean(s.ritualOnly);
+  });
+  // Sottoclasse e scelte di classe fatte con il passaggio di livello guidato
+  char.subclass = typeof char.subclass === 'string' ? char.subclass : '';
+  if (!char.classPicks || typeof char.classPicks !== 'object') char.classPicks = {};
+  Object.keys(char.classPicks).forEach(k => { if (!Array.isArray(char.classPicks[k])) delete char.classPicks[k]; });
   if (char.spellAbility && !ABILITY_KEYS.includes(char.spellAbility)) char.spellAbility = null;
   if (char.concentration && typeof char.concentration !== 'object') char.concentration = null;
   ['equipmentText', 'spellsText', 'featuresText', 'notes'].forEach(f => { if (typeof char[f] !== 'string') char[f] = char[f] ? String(char[f]) : ''; });

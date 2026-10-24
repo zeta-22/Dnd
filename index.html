@@ -74,6 +74,9 @@
             👁️ <span class="hidden sm:inline">Vista:</span> <span id="viewModeLabel" class="underline">DM</span>
           </button>
           <button id="btnToggleTheme" class="btn px-2.5 py-1.5" title="Cambia tema Chiaro / Scuro">🌓</button>
+          <button id="btnToggleImmersive" type="button" class="btn px-2.5 py-1.5" title="Schermo intero: sparisce la barra in alto e le schede si cambiano dal fondo" aria-label="Schermo intero">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
         </div>
       </div>
 
@@ -99,7 +102,7 @@
     <section id="tab-tavolo" class="flex flex-col gap-3">
       <div class="tavolo-grid">
         <!-- Mappa A Sinistra -->
-        <div id="mapCard" class="card-surface p-3 flex flex-col gap-2">
+        <div class="card-surface p-3 flex flex-col gap-2">
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
             <div class="flex items-center gap-2">
               <h2 class="font-serif-title font-bold text-xl">🗺️ Mappa Tattica</h2>
@@ -113,7 +116,6 @@
               <button id="btnZoomIn" class="btn text-xs px-2" title="Ingrandisci">+</button>
               <button id="btnZoomOut" class="btn text-xs px-2" title="Riduci">−</button>
               <button id="btnZoomFit" class="btn text-xs px-2" title="Adatta la mappa allo schermo">⤢</button>
-              <button id="btnMapFullscreen" type="button" class="btn btn-felt text-xs px-2 fs-toggle" data-fs-target="mapCard" title="Mappa a schermo intero">⛶<span class="hidden sm:inline"> Schermo intero</span></button>
               <button id="btnToggleGrid" class="btn text-xs dm-only">Griglia</button>
               <div class="flex items-center gap-1 px-1 bg-[var(--surface2)] border border-[var(--line)] rounded dm-only">
                 <span class="text-[10px] text-[var(--muted)]">Colonne:</span>
@@ -319,7 +321,6 @@
           <button id="btnConfirmDeleteSheetNo" type="button" class="btn text-xs py-0.5 px-2">Annulla</button>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <button id="btnSheetFullscreen" type="button" class="btn btn-felt text-xs fs-toggle" data-fs-target="tab-personaggio" title="Scheda a schermo intero">⛶ Schermo intero</button>
           <button id="btnSheetPdf" type="button" class="btn text-xs font-bold" title="Scarica questa scheda in PDF, da stampare o tenere sul telefono">⬇️ PDF</button>
           <span class="text-xs font-bold text-[var(--muted)]">Vista:</span>
           <div class="flex items-center bg-[var(--surface2)] p-1 rounded-lg border border-[var(--line)] text-xs">
@@ -545,8 +546,8 @@
             <div id="sheetGeneratedAttacksList" class="flex flex-col gap-2"></div>
             <details class="text-xs">
               <summary class="cursor-pointer font-bold text-[var(--muted)]">✍️ Altri attacchi scritti a mano (attacchi naturali, armi speciali…)</summary>
-              <p class="text-[11px] text-[var(--muted)] mt-1">Uno per riga, con il bonus e i danni già calcolati: Nome | +bonus | danno, per esempio “Morso | +4 | 1d6+2”.</p>
-              <textarea id="sheetTextareaAttacks" rows="3" class="input-field w-full text-xs font-mono mt-1 auto-grow auto-grow-sm" aria-label="Altri attacchi"></textarea>
+              <p class="text-[11px] text-[var(--muted)] mt-1">Uno per riga: Nome | bonus | danno. Con FOR o DES al posto dei numeri si aggiornano da soli, per esempio “Morso | FOR | 1d6+FOR”; oppure con i numeri, “Morso | +4 | 1d6+2”.</p>
+              <textarea id="sheetTextareaAttacks" rows="3" class="input-field w-full text-xs font-mono mt-1" aria-label="Altri attacchi"></textarea>
             </details>
           </div>
 
@@ -577,7 +578,7 @@
             <p class="text-[11px] text-[var(--muted)] -mt-1">Se non hai la moneta giusta la scheda cambia da sola quelle più grandi e ti dà il resto.</p>
             <div id="sheetCoinLast" class="hidden flex-wrap items-center gap-2 text-[11px]"></div>
             <label for="sheetTextareaEquipment" class="font-bold text-[var(--muted)] text-xs">Oggetti</label>
-            <textarea id="sheetTextareaEquipment" rows="5" class="input-field w-full text-sm leading-relaxed auto-grow" placeholder="Uno per riga: zaino, corda (15 m), 2 torce, razioni per 5 giorni…"></textarea>
+            <textarea id="sheetTextareaEquipment" rows="5" class="input-field w-full text-sm leading-relaxed" placeholder="Uno per riga: zaino, corda (15 m), 2 torce, razioni per 5 giorni…"></textarea>
           </div>
 
           <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
@@ -665,16 +666,16 @@
           <div id="sheetCompleteTextAreas" class="hidden flex-col gap-3 sheet-5e">
             <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
               <label for="sheetTextareaFeatures" class="font-bold text-[var(--muted)]">📜 Privilegi e tratti</label>
-              <textarea id="sheetTextareaFeatures" rows="6" class="input-field w-full text-sm leading-relaxed auto-grow" placeholder="Privilegi di classe e razza, talenti, competenze, linguaggi…"></textarea>
+              <textarea id="sheetTextareaFeatures" rows="6" class="input-field w-full text-sm leading-relaxed" placeholder="Privilegi di classe e razza, talenti, competenze, linguaggi…"></textarea>
             </div>
             <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
               <label for="sheetTextareaNotes" class="font-bold text-[var(--muted)]">📝 Note</label>
-              <textarea id="sheetTextareaNotes" rows="6" class="input-field w-full text-sm leading-relaxed auto-grow" placeholder="Quello che vuoi ricordare (le note solo tue stanno nel Diario)"></textarea>
+              <textarea id="sheetTextareaNotes" rows="6" class="input-field w-full text-sm leading-relaxed" placeholder="Quello che vuoi ricordare (le note solo tue stanno nel Diario)"></textarea>
             </div>
             <div class="card-surface p-3 flex flex-col gap-1.5 text-xs">
               <label for="sheetTextareaSpells" class="font-bold text-[var(--muted)]">✨ Altri incantesimi (scritti a mano)</label>
               <span class="text-[11px] text-[var(--muted)]">Per quelli che non sono nel regolamento base: gli altri si aggiungono da “📖 Incantesimi”.</span>
-              <textarea id="sheetTextareaSpells" rows="4" class="input-field w-full text-sm leading-relaxed auto-grow auto-grow-sm"></textarea>
+              <textarea id="sheetTextareaSpells" rows="4" class="input-field w-full text-sm leading-relaxed"></textarea>
             </div>
           </div>
         </div>
@@ -699,7 +700,7 @@
         </div>
         <div id="personalNotesForm" class="hidden flex-col gap-2 text-xs">
           <input id="personalNoteTitle" type="text" maxlength="160" class="input-field w-full font-bold" placeholder="Titolo (es. Sospetti sul barone)" />
-          <textarea id="personalNoteText" rows="5" maxlength="20000" class="input-field w-full auto-grow" placeholder="Scrivi quello che vuoi ricordare solo per te…"></textarea>
+          <textarea id="personalNoteText" rows="5" maxlength="20000" class="input-field w-full" placeholder="Scrivi quello che vuoi ricordare solo per te…"></textarea>
           <div class="flex justify-end"><button id="btnSavePersonalNote" type="button" class="btn btn-felt text-xs font-bold">💾 Salva nota</button></div>
         </div>
         <div id="personalNotesList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
@@ -722,7 +723,7 @@
 
       <div id="journalAddFormCard" class="hidden card-surface p-4 flex-col gap-3 border-2 border-[var(--brass)]">
         <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
-          <h3 class="font-serif-title font-bold text-lg">✍️ Aggiungi voce al Diario</h3>
+          <h3 id="journalFormHeading" class="font-serif-title font-bold text-lg">✍️ Aggiungi voce al Diario</h3>
           <button id="btnCloseJournalForm" type="button" class="btn text-xs">✕</button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
@@ -743,7 +744,7 @@
           </div>
           <div class="md:col-span-3">
             <label class="block font-bold text-[var(--muted)] mb-1">Dettagli</label>
-            <textarea id="journalInputDetails" rows="5" class="input-field w-full auto-grow" placeholder="Dettagli..."></textarea>
+            <textarea id="journalInputDetails" rows="5" class="input-field w-full" placeholder="Dettagli..."></textarea>
           </div>
         </div>
         <div class="flex justify-end pt-1">
@@ -947,13 +948,13 @@
               </div>
               <div class="text-xs flex flex-col gap-1">
                 <label class="flex items-center justify-between font-bold text-[var(--muted)]"><span>🕵️ Note segrete del DM</span><span id="dmVaultSaveStatus" class="font-normal text-[10px]"></span></label>
-                <textarea id="dmTextareaSecretNotes" rows="7" class="input-field w-full leading-relaxed text-xs auto-grow" placeholder="Note segrete..."></textarea>
+                <textarea id="dmTextareaSecretNotes" rows="7" class="input-field w-full leading-relaxed text-xs" placeholder="Note segrete..."></textarea>
               </div>
               <div class="pt-2 border-t border-[var(--line)] flex flex-col gap-2 text-xs">
                 <label class="font-bold text-[var(--muted)] flex items-center justify-between">
                   <span>📜 Riassunto di fine sessione</span>
                 </label>
-                <textarea id="dmTextareaSessionNotes" rows="4" class="input-field w-full leading-relaxed text-xs auto-grow" placeholder="Incolla appunti della serata..."></textarea>
+                <textarea id="dmTextareaSessionNotes" rows="4" class="input-field w-full leading-relaxed text-xs" placeholder="Incolla appunti della serata..."></textarea>
                 <div class="flex items-center justify-between gap-2">
                   <span class="text-[11px] text-[var(--muted)]">Trasforma gli appunti in voci del Diario (missioni, bottino, PNG…).</span>
                   <button id="btnPrepareSessionEntries" type="button" class="btn btn-felt text-xs font-bold">✨ Prepara le voci</button>
@@ -961,7 +962,11 @@
                 <div id="sessionExtractedContainer" class="hidden flex-col gap-2 pt-2 border-t border-[var(--line)]">
                   <div class="font-bold text-[var(--ink)]">Voci estratte pronte per il Diario: <span class="font-normal text-[var(--muted)]">(togli la spunta per scartarle)</span></div>
                   <div id="sessionExtractedList" class="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1"></div>
-                  <div class="flex justify-end pt-1">
+                  <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <label class="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
+                      <input id="sessionClearNotesCheck" type="checkbox" class="w-4 h-4 accent-[var(--felt)]" checked />
+                      Poi svuota gli appunti (per non ricreare le stesse voci)
+                    </label>
                     <button id="btnAddExtractedToJournal" type="button" class="btn btn-brass text-xs font-bold">📥 Aggiungi al diario</button>
                   </div>
                 </div>
@@ -986,7 +991,7 @@
               </div>
               <form id="dmHandoutForm" class="flex flex-col gap-2">
                 <input id="dmHandoutTitle" type="text" maxlength="120" class="input-field w-full font-bold" placeholder="Titolo (es. Lettera del barone)" />
-                <textarea id="dmHandoutText" rows="5" maxlength="20000" class="input-field w-full auto-grow" placeholder="Testo della dispensa..."></textarea>
+                <textarea id="dmHandoutText" rows="5" maxlength="20000" class="input-field w-full" placeholder="Testo della dispensa..."></textarea>
                 <div class="flex flex-wrap items-center gap-2">
                   <label class="btn cursor-pointer text-xs">🖼️ Immagine <input id="dmHandoutImage" type="file" accept="image/*" class="hidden" /></label>
                   <select id="dmHandoutTo" class="input-field flex-1 min-w-[140px]"></select>
@@ -1378,14 +1383,19 @@
   </div>
 
   <div id="modalLevelUp" class="hidden fixed inset-0 z-[55] bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
-    <div class="card-surface p-5 w-full max-w-lg flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto">
+    <div class="card-surface p-5 w-full max-w-2xl flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto">
       <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
-        <h3 class="font-serif-title font-bold text-xl">⬆️ Sali di livello</h3>
+        <div>
+          <span id="levelUpStepLabel" class="text-[11px] font-bold uppercase tracking-wider text-[var(--brass)]">⬆️ Sali di livello</span>
+          <h3 id="levelUpTitle" class="font-serif-title font-bold text-2xl">Cosa cambia</h3>
+        </div>
         <button id="btnCloseLevelUp" type="button" class="btn text-xs" aria-label="Chiudi">✕</button>
       </div>
       <div id="levelUpBody" class="text-xs flex flex-col gap-3"></div>
-      <div class="flex justify-end pt-2 border-t border-[var(--line)]">
-        <button id="btnApplyLevelUp" type="button" class="btn btn-felt text-sm font-bold px-5">Conferma</button>
+      <div class="flex items-center justify-between gap-2 pt-2 border-t border-[var(--line)]">
+        <button id="btnLevelUpBack" type="button" class="btn text-xs">← Indietro</button>
+        <span id="levelUpProblem" class="text-[11px] font-bold text-[var(--danger)] text-center"></span>
+        <button id="btnApplyLevelUp" type="button" class="btn btn-felt text-sm font-bold px-5">Avanti →</button>
       </div>
     </div>
   </div>
@@ -1616,6 +1626,20 @@
     </div>
   </div>
 
+  <!-- Schermo intero: le schede si cambiano dal fondo (toccandole o trascinando il dito) -->
+  <nav id="immersiveDock" class="immersive-dock" aria-label="Schede">
+    <div id="immersiveDockTrack" class="dock-track">
+      <span class="dock-pill" aria-hidden="true"></span>
+    </div>
+    <button id="btnDockMessages" type="button" class="dock-btn relative" title="Messaggi" aria-label="Messaggi">
+      💬
+      <span id="dockUnreadBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--danger)] text-white text-[10px] font-bold leading-[18px] text-center">0</span>
+    </button>
+    <button id="btnExitImmersive" type="button" class="dock-btn" title="Esci dallo schermo intero" aria-label="Esci dallo schermo intero">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
+    </button>
+  </nav>
+
   <div id="dice3d" aria-hidden="true"></div>
   <div id="diceOverlay" aria-hidden="true"></div>
 
@@ -1646,12 +1670,14 @@
   <script src="js/core.js"></script>
   <script src="js/bestiary.js"></script>
   <script src="js/srd.js"></script>
+  <script src="js/classes.js"></script>
   <script src="js/map.js"></script>
   <script src="js/diceanim.js"></script>
   <script src="js/table.js"></script>
   <script src="js/sheet.js"></script>
   <script src="js/spells.js"></script>
   <script src="js/wizard.js"></script>
+  <script src="js/levelup.js"></script>
   <script src="js/journal.js"></script>
   <script src="js/books.js"></script>
   <script src="js/dm.js"></script>

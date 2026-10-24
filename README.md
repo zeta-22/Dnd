@@ -24,30 +24,42 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Schede in PDF**: ogni scheda si scarica in PDF (⬇️ PDF) con un'impaginazione come quella di D&D Beyond: caratteristiche,
   tiri salvezza e abilità con i pallini, CA e PF, armi e trucchetti, equipaggiamento e monete, storia e incantesimi con gli slot.
   Il Master scarica tutte le schede dei giocatori in un unico PDF dallo schermo del Master. Anche le schede personalizzate.
-- **Schermo intero** per la mappa e per la scheda (⛶): su telefono e tablet si gioca senza le barre dell'app e, dove si può, del browser.
-- **Spazi di scrittura** (equipaggiamento, privilegi, note, storia, diario) che si allungano mentre si scrive.
 - **Armi dal manuale**: si sceglie l'arma (pugnale, spada lunga, arco corto…) e la scheda calcola da sola tiro per colpire e danni
   da caratteristiche, competenza della classe e della razza, livello, armi accurate e versatili, arti marziali del monaco e bonus magico.
   Gli attacchi speciali (morsi, armi homebrew) si possono ancora scrivere a mano.
 - **Incantesimi**: si scelgono dall'elenco del regolamento base, si lanciano spendendo gli slot (anche a livello superiore),
   con tiri d'attacco, danni, cure, CD e concentrazione (con il tiro salvezza quando si subiscono danni).
-  La scheda propone solo gli incantesimi della classe fino al livello che si può lanciare e tiene il conto di trucchetti,
-  incantesimi conosciuti o preparati (il mago ha il libro e prepara quelli da lanciare); quelli dati da razza o talenti si
-  aggiungono come "extra" e non contano nei limiti.
-- **Regole 2014 o 2024**: il Master sceglie l'edizione nello schermo del Master; cambia quanti incantesimi si scelgono a ogni
-  livello, gli slot di paladino e ranger al 1° livello e le competenze nelle armi di alcune classi.
+  Chierico, Druido, Mago e Paladino **preparano** gli incantesimi (caratteristica + livello, metà livello per il Paladino):
+  si spuntano nella scheda, si lanciano solo quelli preparati e quelli del dominio o del giuramento si segnano “sempre
+  preparati”. I **rituali** si lanciano senza slot con 10 minuti in più: il Mago anche quelli non preparati del suo libro,
+  Chierico e Druido quelli preparati, il Bardo quelli che conosce.
+  La scelta propone solo gli incantesimi della classe fino al livello che si può lanciare e tiene il conto di trucchetti e
+  incantesimi conosciuti; quelli dati da razza, talenti o oggetti si aggiungono come "extra" e non contano nei limiti.
+- **Regole 2014 o 2024**: il Master sceglie l'edizione nello schermo del Master; cambia quanti incantesimi si preparano o si
+  conoscono a ogni livello, gli slot di paladino e ranger al 1° livello e le competenze nelle armi di alcune classi.
 - **Creazione guidata del personaggio** (razza, classe, caratteristiche con serie standard, acquisto a punti o 4d6, abilità)
-  e **passaggio di livello** con PF, aumenti di caratteristica e nuovi slot.
+  e **passaggio di livello guidato** fino al 20°, per tutte le 12 classi del regolamento base. Passo per passo dice
+  cosa si ottiene (privilegi di classe, sottoclasse e razza, risorse che crescono) e propone le scelte spiegando ogni
+  opzione: sottoclasse, aumento o talento, stili di combattimento, maestrie, Metamagia, suppliche e dono del patto,
+  nemici e terreni del ranger, trucchetti e incantesimi nuovi, Segreti magici, Arcanum mistico, incantesimi del libro.
+  Poi aggiorna la scheda: PF (anche i PF in più quando sale la Costituzione), slot (anche quelli del patto del Warlock,
+  che si recuperano col riposo breve), incantesimi sempre preparati del dominio, del giuramento o del circolo, e scrive
+  i privilegi nuovi nella scheda. Le scelte saltate dai personaggi già esistenti si recuperano al primo passaggio.
+  Negli attacchi si può scrivere FOR o DES al posto dei numeri (“Spada lunga | FOR | 1d8+FOR”): bonus e danni si
+  aggiornano da soli.
 - **Scheda da PDF o da foto**: al primo ingresso (o con **📄 Da PDF** nella scheda Personaggio) si carica la propria scheda,
-  anche in inglese, e l'app prepara il personaggio già tradotto in italiano: caratteristiche, competenze e maestrie, attacchi,
-  incantesimi lanciabili con i loro slot, equipaggiamento, privilegi e storia. Prima di confermare si vede un'anteprima da correggere.
-  Funziona con le schede compilabili (quella ufficiale, gli export di D&D Beyond), con quelle stampate o scansionate e con le foto.
-  Le armi diventano armi del manuale, con la competenza presa dalla scheda; se un numero non torna, l'anteprima lo segnala.
-  Senza assistente IA si leggono solo le schede compilabili e gli export di D&D Beyond, e i testi restano nella lingua originale.
+  anche in inglese, e l'app prepara il personaggio già tradotto in italiano: caratteristiche, competenze e maestrie, armi,
+  incantesimi lanciabili con i loro slot, monete, equipaggiamento, privilegi e storia. Prima di confermare si vede un'anteprima
+  da correggere. Funziona con le schede compilabili (quella ufficiale, gli export di D&D Beyond), con quelle stampate o
+  scansionate e con le foto. Le armi diventano armi del manuale, con la competenza presa dalla scheda; se un numero non torna,
+  l'anteprima lo segnala. Senza assistente IA si leggono solo le schede compilabili e gli export di D&D Beyond, e i testi
+  restano nella lingua originale.
 - **Messaggi privati** tra Master e giocatori e **dispense** (testo e immagini) per tutti o per un solo giocatore.
-- **Diario condiviso** (missioni, PNG, luoghi, bottino, domande per il DM con risposta) e **note personali** che legge solo
-  chi le scrive (nemmeno il Master), protette da un PIN personale.
-- **Collegamenti nel Diario**: i nomi di personaggi, PNG, luoghi, missioni, bottino e mappe diventano link da soli;
+- **Diario condiviso** (missioni, PNG, luoghi, bottino, domande per il DM con risposta): ogni voce si può correggere o
+  eliminare da chi l'ha scritta e dal Master. **Note personali** che legge solo chi le scrive (nemmeno il Master),
+  protette da un PIN personale.
+- **Collegamenti nel Diario**: i nomi di personaggi, PNG, luoghi, missioni, bottino e mappe diventano link da soli
+  (maiuscole, minuscole e accenti non contano: “citta bianca” trova “Città Bianca”);
   scrivendo “@” si sceglie un nome dall'elenco (o si crea una voce nuova). Ogni voce mostra dove viene citata.
 - **Schede personalizzate** per giocare con altre regole (Daggerheart, D&D 2024, homebrew…): il Master prepara un
   modello con valori, risorse, testi e tiri; i giocatori lo scelgono quando creano il personaggio e possono aggiungere
@@ -58,7 +70,13 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Gestione dalla Home**: il Master elimina le avventure e toglie i personaggi che non giocano più; chiunque può
   nascondere dalla propria Home le avventure che non gli interessano.
 - **Regole & PDF**: carichi i tuoi manuali, ci cerchi dentro e l'assistente li usa per rispondere.
-- **Schermo del Master**: note segrete, appunti di sessione trasformati in voci del diario, bilanciamento degli scontri (DMG 2014).
+- **Schermo del Master**: note segrete, appunti di sessione trasformati in voci del diario (poi gli appunti si svuotano,
+  così la volta dopo non si ricreano le stesse voci), bilanciamento degli scontri (DMG 2014).
+
+- **Schermo intero** (pulsante con i quattro angoli in alto): sparisce la barra in alto e le schede (Tavolo, Scheda,
+  Diario, Regole, Master) si cambiano da una barra in fondo, toccandole o facendo scorrere il dito. Dove il browser lo
+  permette spariscono anche le sue barre; sull'iPhone resta comunque la barra in fondo.
+- **Caselle di testo che crescono** con quello che c'è scritto, fino a metà schermo; oltre compare “Mostra tutto”.
 
 Tutto si sincronizza da solo tra i dispositivi. Se la connessione cade si continua a giocare: le modifiche partono appena torna.
 
@@ -157,12 +175,14 @@ js/store.js         modello dati, valori di default, conversione dal vecchio for
 js/sync.js          sincronizzazione con Supabase (tempo reale + controllo periodico), cassaforte del Master, codice del gruppo
 js/core.js          stato dell'interfaccia e permessi (chi può modificare cosa), condizioni, mappe
 js/srd.js           mostri, incantesimi, classi e razze del regolamento base
+js/classes.js       privilegi, sottoclassi, risorse e scelte di ogni classe dal 1° al 20° livello
 js/map.js           mappe, griglia, nebbia, pedine, schede dei mostri
 js/diceanim.js      animazione dei dadi sul tavolo
 js/table.js         iniziativa, dadi, assistente, barra del personaggio
 js/sheet.js         scheda personaggio
 js/spells.js        incantesimi, slot e concentrazione
-js/wizard.js        creazione guidata del personaggio e passaggio di livello
+js/wizard.js        creazione guidata del personaggio
+js/levelup.js       passaggio di livello guidato
 js/journal.js       diario
 js/books.js         PDF, ricerca, assistente
 js/dm.js            schermo del Master, esporta/importa/duplica/elimina

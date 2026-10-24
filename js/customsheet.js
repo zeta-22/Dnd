@@ -249,7 +249,7 @@ function customFieldHtml(f, editable, ch) {
   }
   if (f.type === 'longtext') {
     return `<label class="flex flex-col gap-1 sm:col-span-2" data-field-id="${escapeHtml(f.id)}"><span class="font-bold text-[var(--muted)] flex items-center gap-1">${escapeHtml(f.label)} ${own}</span>
-      <textarea rows="4" class="input-field w-full text-sm leading-relaxed cf-text auto-grow auto-grow-sm" ${dis}>${escapeHtml(f.value || '')}</textarea></label>`;
+      <textarea rows="4" class="input-field w-full text-sm leading-relaxed cf-text" ${dis}>${escapeHtml(f.value || '')}</textarea></label>`;
   }
   if (f.type === 'roll') {
     return `<span class="inline-flex items-center gap-1" data-field-id="${escapeHtml(f.id)}"><button type="button" class="btn btn-brass text-xs cf-roll-btn" title="${escapeHtml(resolveCustomFormula(f.formula, ch, f))}">🎲 ${escapeHtml(f.label)} <span class="font-mono text-[10px]">${escapeHtml(resolveCustomFormula(f.formula, ch, f))}</span></button>${own}</span>`;

@@ -1,6 +1,6 @@
 // Collegamenti nel Diario: i nomi di personaggi, voci del Diario e mappe diventano link.
 //
-// • Riconoscimento automatico: basta scrivere il nome esatto (maiuscole e minuscole non contano).
+// • Riconoscimento automatico: basta scrivere il nome esatto (maiuscole, minuscole e accenti non contano).
 // • "@" apre un elenco da cui scegliere, o per creare al volo una voce nuova del Diario.
 // • Ogni voce mostra dove viene citata ("Citato in").
 // • I giocatori non vedono link verso cose che non devono conoscere (PNG del Master, mappe non mostrate).
@@ -9,8 +9,27 @@ const LINK_CATEGORIES = ['Personaggi incontrati', 'Luoghi', 'Missioni', 'Bottino
 const LINK_IGNORED_NAMES = /^(senza nome|senza titolo|pedina|nemico|mappa senza nome)$/i;
 let linkIndex = { sig: '', targets: [], regex: null };
 
+function foldAccents(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
 function normLinkText(s) {
-  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  return foldAccents(s).toLowerCase().trim();
+}
+
+// Testo senza accenti, con la posizione nel testo originale di ogni carattere rimasto
+function foldWithMap(src) {
+  let folded = '';
+  const map = [];
+  let i = 0;
+  for (const ch of src) {
+    const f = foldAccents(ch);
+    for (let k = 0; k < f.length; k++) map.push(i);
+    folded += f;
+    i += ch.length;
+  }
+  map.push(src.length);
+  return { folded, map };
 }
 
 function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
@@ -44,7 +63,7 @@ function getLinkIndex() {
   const targets = linkTargets();
   const sig = `${isDM()}|${targets.map(t => `${t.kind}:${t.id}:${t.name}`).join('|')}`;
   if (sig !== linkIndex.sig) {
-    const names = targets.map(t => t.name.trim()).sort((a, b) => b.length - a.length).map(escapeRegex);
+    const names = targets.map(t => foldAccents(t.name.trim())).sort((a, b) => b.length - a.length).map(escapeRegex);
     linkIndex = {
       sig,
       targets,
@@ -64,22 +83,26 @@ function linkify(text, exclude) {
   const idx = getLinkIndex();
   const src = String(text || '');
   if (!idx.regex || !src) return escapeHtml(src);
+  // Si cerca nel testo senza accenti, ma il link mostra le parole come sono state scritte
+  const { folded, map } = foldWithMap(src);
   let html = '';
   let last = 0;
   idx.regex.lastIndex = 0;
-  for (const m of src.matchAll(idx.regex)) {
+  for (const m of folded.matchAll(idx.regex)) {
     const t = idx.byName.get(normLinkText(m[0]));
     if (!t || (exclude && exclude.kind === t.kind && exclude.id === t.id)) continue;
-    html += escapeHtml(src.slice(last, m.index)) + refLinkHtml(t, m[0]);
-    last = m.index + m[0].length;
+    const start = map[m.index];
+    const end = map[m.index + m[0].length];
+    html += escapeHtml(src.slice(last, start)) + refLinkHtml(t, src.slice(start, end));
+    last = end;
   }
   return html + escapeHtml(src.slice(last));
 }
 
 function mentionsTarget(text, name) {
-  const n = String(name || '').trim();
+  const n = foldAccents(name).trim();
   if (n.length < 3 || !text) return false;
-  return new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegex(n)}(?![\\p{L}\\p{N}_])`, 'iu').test(text);
+  return new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegex(n)}(?![\\p{L}\\p{N}_])`, 'iu').test(foldAccents(text));
 }
 
 // Voci del Diario che citano qualcosa

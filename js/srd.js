@@ -86,14 +86,14 @@ const ALL_SKILL_KEYS = DND5E_SKILLS.map(s => s.key);
 
 const SRD_CLASSES = {
   Barbaro: { die: 12, saves: ['FOR', 'COS'], skills: { n: 2, from: ['Addestrare Animali', 'Atletica', 'Intimidire', 'Natura', 'Percezione', 'Sopravvivenza'] }, ac: 'barbarian', bonus: 'Ira', features: 'Ira (2 al giorno, +2 ai danni), Difesa senza armatura (CA 10 + DES + COS).', weapons: ['greataxe', 'handaxe'] },
-  Bardo: { die: 8, saves: ['DES', 'CAR'], skills: { n: 3, from: ALL_SKILL_KEYS }, casting: { ability: 'CAR', type: 'full' }, bonus: 'Ispirazione bardica', features: 'Incantesimi, Ispirazione bardica (d6).', weapons: ['rapier', 'dagger'] },
-  Chierico: { die: 8, saves: ['SAG', 'CAR'], skills: { n: 2, from: ['Intuizione', 'Medicina', 'Persuasione', 'Religione', 'Storia'] }, casting: { ability: 'SAG', type: 'full' }, bonus: '', features: 'Incantesimi, Dominio divino.', weapons: ['mace', 'lightcrossbow'] },
-  Druido: { die: 8, saves: ['INT', 'SAG'], skills: { n: 2, from: ['Addestrare Animali', 'Arcano', 'Intuizione', 'Medicina', 'Natura', 'Percezione', 'Religione', 'Sopravvivenza'] }, casting: { ability: 'SAG', type: 'full' }, bonus: '', features: 'Druidico, Incantesimi.', weapons: ['scimitar'] },
+  Bardo: { die: 8, saves: ['DES', 'CAR'], skills: { n: 3, from: ALL_SKILL_KEYS }, casting: { ability: 'CAR', type: 'full', ritual: 'known' }, bonus: 'Ispirazione bardica', features: 'Incantesimi, Ispirazione bardica (d6).', weapons: ['rapier', 'dagger'] },
+  Chierico: { die: 8, saves: ['SAG', 'CAR'], skills: { n: 2, from: ['Intuizione', 'Medicina', 'Persuasione', 'Religione', 'Storia'] }, casting: { ability: 'SAG', type: 'full', prepares: 'full', ritual: 'prepared' }, bonus: '', features: 'Incantesimi, Dominio divino.', weapons: ['mace', 'lightcrossbow'] },
+  Druido: { die: 8, saves: ['INT', 'SAG'], skills: { n: 2, from: ['Addestrare Animali', 'Arcano', 'Intuizione', 'Medicina', 'Natura', 'Percezione', 'Religione', 'Sopravvivenza'] }, casting: { ability: 'SAG', type: 'full', prepares: 'full', ritual: 'prepared' }, bonus: '', features: 'Druidico, Incantesimi.', weapons: ['scimitar'] },
   Guerriero: { die: 10, saves: ['FOR', 'COS'], skills: { n: 2, from: ['Acrobazia', 'Addestrare Animali', 'Atletica', 'Intimidire', 'Intuizione', 'Percezione', 'Sopravvivenza', 'Storia'] }, bonus: 'Recuperare energie', features: 'Stile di combattimento, Recuperare energie (1d10 + livello PF, azione bonus).', weapons: ['longsword', 'lightcrossbow'] },
   Ladro: { die: 8, saves: ['DES', 'INT'], skills: { n: 4, from: ['Acrobazia', 'Atletica', 'Furtività', 'Indagare', 'Inganno', 'Intimidire', 'Intrattenere', 'Intuizione', 'Percezione', 'Persuasione', 'Rapidità di Mano'] }, bonus: 'Azione scaltra (dal 2° livello)', features: 'Maestria (2 abilità: segnale nella vista Completa), Attacco furtivo (1d6), Gergo ladresco.', weapons: ['shortsword', 'shortbow'] },
-  Mago: { die: 6, saves: ['INT', 'SAG'], skills: { n: 2, from: ['Arcano', 'Indagare', 'Intuizione', 'Medicina', 'Religione', 'Storia'] }, casting: { ability: 'INT', type: 'full' }, bonus: '', features: 'Incantesimi (libro degli incantesimi), Recupero arcano.', weapons: ['dagger'] },
+  Mago: { die: 6, saves: ['INT', 'SAG'], skills: { n: 2, from: ['Arcano', 'Indagare', 'Intuizione', 'Medicina', 'Religione', 'Storia'] }, casting: { ability: 'INT', type: 'full', prepares: 'full', ritual: 'book' }, bonus: '', features: 'Incantesimi (libro degli incantesimi), Recupero arcano.', weapons: ['dagger'] },
   Monaco: { die: 8, saves: ['FOR', 'DES'], skills: { n: 2, from: ['Acrobazia', 'Atletica', 'Furtività', 'Intuizione', 'Religione', 'Storia'] }, ac: 'monk', bonus: 'Colpo senz\'armi (Arti marziali)', features: 'Difesa senza armatura (CA 10 + DES + SAG), Arti marziali (d4).', weapons: ['unarmed', 'shortsword'] },
-  Paladino: { die: 10, saves: ['SAG', 'CAR'], skills: { n: 2, from: ['Atletica', 'Intimidire', 'Intuizione', 'Medicina', 'Persuasione', 'Religione'] }, casting: { ability: 'CAR', type: 'half' }, bonus: '', features: 'Percezione del divino, Imposizione delle mani (5 × livello PF).', weapons: ['longsword', 'javelin'] },
+  Paladino: { die: 10, saves: ['SAG', 'CAR'], skills: { n: 2, from: ['Atletica', 'Intimidire', 'Intuizione', 'Medicina', 'Persuasione', 'Religione'] }, casting: { ability: 'CAR', type: 'half', prepares: 'half' }, bonus: '', features: 'Percezione del divino, Imposizione delle mani (5 × livello PF).', weapons: ['longsword', 'javelin'] },
   Ranger: { die: 10, saves: ['FOR', 'DES'], skills: { n: 3, from: ['Addestrare Animali', 'Atletica', 'Furtività', 'Indagare', 'Intuizione', 'Natura', 'Percezione', 'Sopravvivenza'] }, casting: { ability: 'SAG', type: 'half' }, bonus: '', features: 'Nemico prescelto, Esploratore nato.', weapons: ['longbow', 'shortsword'] },
   Stregone: { die: 6, saves: ['COS', 'CAR'], skills: { n: 2, from: ['Arcano', 'Inganno', 'Intimidire', 'Intuizione', 'Persuasione', 'Religione'] }, casting: { ability: 'CAR', type: 'full' }, bonus: '', features: 'Incantesimi, Origine stregonesca.', weapons: ['dagger', 'lightcrossbow'] },
   Warlock: { die: 8, saves: ['SAG', 'CAR'], skills: { n: 2, from: ['Arcano', 'Indagare', 'Inganno', 'Intimidire', 'Natura', 'Religione', 'Storia'] }, casting: { ability: 'CAR', type: 'pact' }, bonus: '', features: 'Patrono ultraterreno, Magia del patto (gli slot si recuperano col riposo breve).', weapons: ['dagger', 'lightcrossbow'] }
@@ -153,6 +153,8 @@ function classSpellSlots(className, level, rules = campaignRules()) {
     const count = lv === 1 ? 1 : lv <= 10 ? 2 : lv <= 16 ? 3 : 4;
     const slotLevel = Math.min(5, Math.ceil(lv / 2));
     out[slotLevel - 1] = count;
+    // Arcanum mistico: uno slot di 6°-9° solo per l'incantesimo dell'arcanum, si recupera col riposo lungo
+    Object.entries(MYSTIC_ARCANUM).forEach(([from, spellLv]) => { if (lv >= Number(from)) out[spellLv - 1] = 1; });
     return out;
   }
   const table = cls.casting.type === 'full' ? FULL_CASTER_SLOTS : HALF_CASTER_SLOTS;
@@ -177,15 +179,7 @@ function spellcastingAbility(ch) {
 // Quanti incantesimi si scelgono a ogni livello (Manuale del Giocatore 2014 e 2024)
 // ---------------------------------------------------------------------------
 
-// Trucchetti dal 1°, dal 4° e dal 10° livello (uguali nelle due edizioni)
-const CANTRIPS_KNOWN = { Bardo: [2, 3, 4], Chierico: [3, 4, 5], Druido: [2, 3, 4], Mago: [3, 4, 5], Stregone: [4, 5, 6], Warlock: [2, 3, 4] };
-// 2014: incantesimi conosciuti per livello (le altre classi li preparano: caratteristica + livello)
-const SPELLS_KNOWN_2014 = {
-  Bardo: [4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 15, 16, 18, 19, 19, 20, 22, 22, 22],
-  Stregone: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15],
-  Warlock: [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
-  Ranger: [0, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11]
-};
+// Trucchetti e incantesimi conosciuti (2014) stanno in classes.js: CANTRIPS_KNOWN e SPELLS_KNOWN.
 // 2024: incantesimi preparati per livello, dalla tabella di ogni classe
 const PREPARED_FULL_2024 = [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22];
 const PREPARED_HALF_2024 = [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15];
@@ -204,15 +198,13 @@ function classSpellRules(ch, rules = campaignRules()) {
   const casting = !String(ch.className || '').includes('/') && SRD_CLASSES[cls]?.casting;
   if (!casting) return null;
   const lv = clampInt(ch.level, 1, 20, 1);
-  const tier = lv >= 10 ? 2 : lv >= 4 ? 1 : 0;
   const mod = getAbilityMod(ch.abilities?.[casting.ability]);
-  const out = {
-    cls, rules, ability: casting.ability, cantrips: CANTRIPS_KNOWN[cls]?.[tier] || 0,
-    maxLevel: classSpellSlots(cls, lv, rules).reduce((m, n, i) => (n ? i + 1 : m), 0),
-    book: cls === 'Mago' ? 6 + 2 * (lv - 1) : 0
-  };
+  // Il Warlock sceglie fino al livello degli slot del patto: gli slot dell'Arcanum mistico (6°-9°) sono a parte
+  const slots = classSpellSlots(cls, lv, rules);
+  const maxLevel = casting.type === 'pact' ? slots.findIndex(n => n > 0) + 1 : slots.reduce((m, n, i) => (n ? i + 1 : m), 0);
+  const out = { cls, rules, ability: casting.ability, cantrips: CANTRIPS_KNOWN[cls]?.[lv - 1] || 0, maxLevel, book: cls === 'Mago' ? 6 + 2 * (lv - 1) : 0 };
   if (rules === '2024') return Object.assign(out, { spells: SPELLS_PREPARED_2024[cls][lv - 1], kind: 'prepared', how: 'tabella della classe' });
-  if (SPELLS_KNOWN_2014[cls]) return Object.assign(out, { spells: SPELLS_KNOWN_2014[cls][lv - 1], kind: 'known', how: 'tabella della classe' });
+  if (SPELLS_KNOWN[cls]) return Object.assign(out, { spells: SPELLS_KNOWN[cls][lv - 1], kind: 'known', how: 'tabella della classe' });
   if (cls === 'Paladino') return Object.assign(out, { spells: lv < 2 ? 0 : Math.max(1, mod + Math.floor(lv / 2)), kind: 'prepared', how: `${casting.ability} ${formatSignedMod(mod)} + metà livello` });
   return Object.assign(out, { spells: Math.max(1, mod + lv), kind: 'prepared', how: `${casting.ability} ${formatSignedMod(mod)} + livello` });
 }

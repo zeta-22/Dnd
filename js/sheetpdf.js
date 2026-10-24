@@ -201,7 +201,7 @@ function pdfAttackRows(ch, rules) {
       st.proficient ? '' : 'non competente'].filter(Boolean);
     rows.push([st.name, w.k === 'net' ? '—' : formatSignedMod(st.hit), [st.damage, w.t].filter(Boolean).join(' ') + (st.damage2 ? ` (2 mani ${st.damage2})` : ''), notes.join(', ')]);
   });
-  parseAttacks(ch.attacksText).forEach(a => rows.push([a.name, a.bonus === null ? '' : formatSignedMod(a.bonus), a.damage, '']));
+  parseAttacks(ch.attacksText, ch).forEach(a => rows.push([a.name, a.bonus === null ? '' : formatSignedMod(a.bonus), a.damage, '']));
   // Trucchetti d'attacco, come nella tabella di D&D Beyond
   if (SRD.spells) {
     const st = spellStats(ch);
@@ -420,6 +420,7 @@ function pdfSpellPages(k, ch) {
   const spells = SRD.spells ? ch.spells.map(s => ({ s, sp: srdSpell(Number(s.i)) })).filter(x => x.sp).sort((a, b) => a.sp.lv - b.sp.lv || a.sp.n.localeCompare(b.sp.n, 'it')) : [];
   if (!spells.length && !slots.length && !String(ch.spellsText || '').trim()) return '';
   const rules = classSpellRules(ch);
+  const prepares = Boolean(spellPrepMode(ch));
   const st = spellStats(ch);
   const { bold } = k.fonts;
   const cols = [[PDF_M + 6, 24, 'Prep.'], [PDF_M + 32, 150, 'Nome'], [PDF_M + 186, 70, 'Tempo'], [PDF_M + 258, 62, 'Gittata'], [PDF_M + 322, 110, 'Durata'], [PDF_M + 434, PDF_W - 2 * PDF_M - 438, 'Note']];
@@ -453,7 +454,8 @@ function pdfSpellPages(k, ch) {
         y += 30;
       }
       if (rules) {
-        const limits = rules.book ? `trucchetti ${rules.cantrips} · libro ${rules.book} · preparati ${rules.spells}` : `trucchetti ${rules.cantrips} · ${rules.kind === 'known' ? 'conosciuti' : 'preparati'} ${rules.spells}`;
+        const known = spellPrepMode(ch) ? `preparati ${maxPreparedSpells(ch)}` : `${rules.kind === 'known' ? 'conosciuti' : 'preparati'} ${rules.spells}`;
+        const limits = `${rules.cantrips ? `trucchetti ${rules.cantrips} · ` : ''}${known}`;
         pdfText(k, `Al ${ch.level}° livello (regole ${rules.rules}): ${limits}, fino al ${rules.maxLevel}° livello.`, PDF_M, y, { size: 6.6, color: k.c.muted });
         y += 12;
       }
@@ -472,12 +474,12 @@ function pdfSpellPages(k, ch) {
       y += 12;
     }
     k.page.drawRectangle({ x: PDF_M + 2, y: PDF_H - (y + 11), width: PDF_W - 2 * PDF_M - 4, height: 11, color: index % 2 ? k.c.white : k.c.panel });
-    const prep = sp.lv === 0 ? '' : rules?.book ? (s.x || s.p ? '•' : 'o') : '';
-    const notes = [sp.conc ? 'Concentrazione' : '', sp.rit ? 'rituale' : '', s.x ? 'extra' : '', sp.save ? `TS ${sp.save}` : '', sp.atk ? 'attacco' : ''].filter(Boolean).join(', ');
+    const prep = sp.lv === 0 || !prepares ? '' : s.ritualOnly ? 'R' : isSpellReady(ch, s, sp) ? '•' : 'o';
+    const notes = [sp.conc ? 'Concentrazione' : '', sp.rit ? 'rituale' : '', s.always && !s.x ? 'sempre preparato' : '', s.x ? 'extra' : '', sp.save ? `TS ${sp.save}` : '', sp.atk ? 'attacco' : ''].filter(Boolean).join(', ');
     [prep, sp.n, sp.ct, sp.rg, sp.du, notes].forEach((cell, c) => pdfText(k, cell, cols[c][0], y + 2, { size: c === 1 ? 7.4 : 6.6, font: c === 1 ? bold : k.fonts.regular, maxWidth: cols[c][1] - 4 }));
     y += 12;
   }
-  if (rules?.book) pdfText(k, '• preparato   o nel libro, non preparato', PDF_M + 6, Math.min(y + 4, bottom), { size: 6, color: k.c.muted });
+  if (prepares) pdfText(k, `• preparato   o ${hasSpellbook(ch) ? 'nel libro, ' : ''}non preparato${spells.some(x => x.s.ritualOnly) ? '   R solo come rituale' : ''}`, PDF_M + 6, Math.min(y + 4, bottom), { size: 6, color: k.c.muted });
   return String(ch.spellsText || '').trim();
 }
 

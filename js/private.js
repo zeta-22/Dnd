@@ -239,10 +239,9 @@ async function renderStoryCard(ch) {
   const data = view.data || {};
   body.innerHTML = STORY_FIELDS.map(([field, label, placeholder, rows]) => `
     <label class="flex flex-col gap-1"><span class="font-bold text-[var(--muted)]">${label}</span>
-      <textarea class="input-field w-full text-sm leading-relaxed story-field auto-grow ${rows < 4 ? 'auto-grow-sm' : ''}" data-field="${field}" rows="${rows}" placeholder="${escapeHtml(placeholder)}" ${view.editable ? '' : 'readonly'}>${escapeHtml(data[field] || '')}</textarea>
+      <textarea class="input-field w-full text-sm leading-relaxed story-field" data-field="${field}" rows="${rows}" placeholder="${escapeHtml(placeholder)}" ${view.editable ? '' : 'readonly'}>${escapeHtml(data[field] || '')}</textarea>
     </label>`).join('');
   if (view.editable) body.querySelectorAll('.story-field').forEach(attachMentions);
-  growTextareas(body);
 }
 
 function readStoryFields() {
@@ -365,6 +364,7 @@ async function savePersonalNote() {
   App.editingNoteId = null;
   $('personalNoteTitle').value = '';
   $('personalNoteText').value = '';
+  autoSizeTextarea($('personalNoteText'));
   setText('btnSavePersonalNote', '💾 Salva nota');
   $('personalNoteText').blur();
   showToast('📓 Nota salvata: la leggi solo tu');
@@ -390,14 +390,16 @@ async function onPersonalNotesClick(e) {
     App.editingNoteId = note.id;
     $('personalNoteTitle').value = data.title || '';
     $('personalNoteText').value = data.text || '';
+    autoSizeTextarea($('personalNoteText'));
     setText('btnSavePersonalNote', '💾 Salva modifiche');
     focusSoon('personalNoteText');
   }
   if (e.target.closest('.note-share-btn')) {
     // Apre il modulo del Diario già compilato: si sceglie la categoria e si conferma
-    showEl('journalAddFormCard', true);
+    openJournalForm(true);
     $('journalInputTitle').value = data.title || '';
     $('journalInputDetails').value = data.text || '';
+    autoSizeTextarea($('journalInputDetails'));
     $('journalAddFormCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
     showToast('📤 Scegli la categoria e premi “Aggiungi”: la nota resta anche tra le tue', 4000);
   }

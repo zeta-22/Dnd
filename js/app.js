@@ -30,8 +30,9 @@ function renderAll() {
   collectUnusedImages();
   renderPersonalNotes();
   refreshSheetTypeSelects();
+  renderDock();
+  autoSizeTextareas();
   if (!isDM() && myChar()) ensureMyKeys();
-  growTextareas();
 }
 
 // ---------------------------------------------------------------------------
@@ -136,53 +137,121 @@ function openCloudModal() {
   renderCloudModal();
 }
 
-// ---------------------------------------------------------------------------
-// Schermo intero (mappa o scheda): la classe fs-target la stende su tutta la finestra;
-// dove il browser lo permette si nascondono anche le sue barre (non su iPhone, dove basta la classe)
-// ---------------------------------------------------------------------------
-
-function fullscreenElement() {
-  return document.fullscreenElement || document.webkitFullscreenElement || null;
-}
-
-function enterFullscreenView(targetId) {
-  if (App.fullscreen) exitFullscreenView();
-  $(targetId).classList.add('fs-target');
-  document.body.classList.add('fs-active');
-  App.fullscreen = targetId;
-  const root = document.documentElement;
-  try { (root.requestFullscreen || root.webkitRequestFullscreen)?.call(root)?.catch?.(() => {}); } catch (e) { /* resta la versione senza API */ }
-  afterFullscreenChange();
-}
-
-function exitFullscreenView() {
-  if (!App.fullscreen) return;
-  $(App.fullscreen)?.classList.remove('fs-target');
-  document.body.classList.remove('fs-active');
-  App.fullscreen = null;
-  if (fullscreenElement()) {
-    try { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document)?.catch?.(() => {}); } catch (e) { /* già uscito */ }
-  }
-  afterFullscreenChange();
-}
-
-function afterFullscreenChange() {
-  document.querySelectorAll('.fs-toggle').forEach(btn => {
-    const on = App.fullscreen === btn.dataset.fsTarget;
-    btn.innerHTML = on ? '✕ Esci' : btn.id === 'btnMapFullscreen' ? '⛶<span class="hidden sm:inline"> Schermo intero</span>' : '⛶ Schermo intero';
-    btn.title = on ? 'Esci dallo schermo intero' : btn.id === 'btnMapFullscreen' ? 'Mappa a schermo intero' : 'Scheda a schermo intero';
-  });
-  if (App.tab === 'tavolo') requestAnimationFrame(() => { App.zoomUserSet = false; fitZoom(); });
-  growTextareas();
-}
-
 function switchTab(tabId) {
-  if (App.fullscreen) exitFullscreenView();
   App.tab = tabId;
   document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabId));
   ['tavolo', 'personaggio', 'diario', 'regole', 'vistadm'].forEach(s => showEl(`tab-${s}`, s === tabId));
   if (tabId === 'tavolo' && !App.zoomUserSet) requestAnimationFrame(fitZoom);
   scheduleRender();
+}
+
+// ---------------------------------------------------------------------------
+// Schermo intero: sparisce la barra in alto e le schede si cambiano dal fondo
+// ---------------------------------------------------------------------------
+
+const DOCK_TABS = [
+  ['tavolo', '🗺️', 'Tavolo'],
+  ['personaggio', '🧝‍♀️', 'Scheda'],
+  ['diario', '📖', 'Diario'],
+  ['regole', '⚖️', 'Regole'],
+  ['vistadm', '🐉', 'Master']
+];
+let dockDrag = null;
+let dockSwiped = false;
+
+function dockTabs() {
+  return DOCK_TABS.filter(([id]) => id !== 'vistadm' || App.dmUnlocked);
+}
+
+function renderDock() {
+  if (!App.immersive) return;
+  const track = $('immersiveDockTrack');
+  const tabs = dockTabs();
+  const sig = tabs.map(t => t[0]).join();
+  if (track.dataset.sig !== sig) {
+    track.dataset.sig = sig;
+    track.querySelectorAll('.dock-tab').forEach(b => b.remove());
+    track.insertAdjacentHTML('beforeend', tabs.map(([id, icon, label]) => `
+      <button type="button" class="dock-tab" data-dock-tab="${id}"><span class="dock-icon" aria-hidden="true">${icon}</span><span>${label}</span></button>`).join(''));
+    track.style.setProperty('--dock-n', tabs.length);
+  }
+  const i = tabs.findIndex(t => t[0] === App.tab);
+  track.style.setProperty('--dock-i', Math.max(0, i));
+  track.classList.toggle('no-pill', i < 0);
+  track.querySelectorAll('.dock-tab').forEach(b => {
+    const active = b.dataset.dockTab === App.tab;
+    b.classList.toggle('active', active);
+    if (active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+}
+
+function fullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function setImmersive(on) {
+  App.immersive = on;
+  document.body.classList.toggle('immersive', on);
+  const root = document.documentElement;
+  if (on && !fullscreenElement()) {
+    // Dove il browser lo permette spariscono anche le sue barre (sull'iPhone no: resta la nostra modalità)
+    const req = root.requestFullscreen || root.webkitRequestFullscreen;
+    if (req) Promise.resolve(req.call(root, { navigationUI: 'hide' })).then(() => { App.immersiveFs = true; }).catch(() => {});
+  } else if (!on && App.immersiveFs && fullscreenElement()) {
+    (document.exitFullscreen || document.webkitExitFullscreen).call(document)?.catch?.(() => {});
+  }
+  if (!on) App.immersiveFs = false;
+  renderDock();
+  if (App.tab === 'tavolo' && !App.zoomUserSet) requestAnimationFrame(fitZoom);
+  scheduleRender();
+}
+
+function initDockEvents() {
+  $('btnToggleImmersive').addEventListener('click', () => setImmersive(true));
+  $('btnExitImmersive').addEventListener('click', () => setImmersive(false));
+  $('btnDockMessages').addEventListener('click', () => $('btnOpenMessages').click());
+  // Se si esce dallo schermo intero del browser (per esempio con Esc) torna anche la barra in alto
+  const onFsChange = () => { if (!fullscreenElement() && App.immersiveFs) setImmersive(false); };
+  document.addEventListener('fullscreenchange', onFsChange);
+  document.addEventListener('webkitfullscreenchange', onFsChange);
+
+  const track = $('immersiveDockTrack');
+  track.addEventListener('click', (e) => {
+    const b = e.target.closest('.dock-tab');
+    if (b && !dockSwiped) switchTab(b.dataset.dockTab);
+  });
+  // Trascinando il dito sulla barra la scheda evidenziata scorre e si ferma sulla più vicina
+  track.addEventListener('pointerdown', (e) => {
+    dockSwiped = false;
+    const tabs = dockTabs();
+    dockDrag = { x: e.clientX, id: e.pointerId, moved: false, tabs, i: Math.max(0, tabs.findIndex(t => t[0] === App.tab)), w: track.clientWidth / tabs.length, dx: 0 };
+  });
+  track.addEventListener('pointermove', (e) => {
+    if (!dockDrag || e.pointerId !== dockDrag.id) return;
+    const dx = e.clientX - dockDrag.x;
+    if (!dockDrag.moved) {
+      if (Math.abs(dx) < 10) return;
+      dockDrag.moved = true;
+      track.setPointerCapture(e.pointerId);
+      track.classList.add('dragging');
+    }
+    const { i, w, tabs } = dockDrag;
+    dockDrag.dx = Math.max(-i * w, Math.min((tabs.length - 1 - i) * w, dx));
+    track.style.setProperty('--dock-drag', `${dockDrag.dx}px`);
+  });
+  const endDrag = (e) => {
+    if (!dockDrag || e.pointerId !== dockDrag.id) return;
+    const { moved, i, w, dx, tabs } = dockDrag;
+    dockDrag = null;
+    track.classList.remove('dragging');
+    track.style.setProperty('--dock-drag', '0px');
+    if (!moved || e.type === 'pointercancel') return;
+    dockSwiped = true;
+    const target = tabs[Math.max(0, Math.min(tabs.length - 1, Math.round(i + dx / w)))][0];
+    if (target !== App.tab) switchTab(target); else renderDock();
+  };
+  track.addEventListener('pointerup', endDrag);
+  track.addEventListener('pointercancel', endDrag);
 }
 
 function toggleTheme() {
@@ -295,7 +364,6 @@ function renderLobby() {
 }
 
 function openLobbyHome() {
-  exitFullscreenView();
   showEl('homeLobbyScreen', true);
   closeTokenPopover();
   renderLobby();
@@ -648,7 +716,8 @@ async function createCharFromOnboarding() {
   const weapon = $('onbCharWeapon').value;
   const ch = createCharacter({
     name, race: $('onbCharRace').value.trim(), level, maxHp, hp: maxHp, ac: clampInt($('onbCharAc').value, 1, 40, 10),
-    className: clsKey && normalizeSearchText(clsKey) === normalizeSearchText(typedClass) ? clsKey : typedClass,
+    // Il nome del manuale ("maga", "wizard" → "Mago") serve al passaggio di livello guidato e alle regole della classe
+    className: clsKey && !/\s/.test(typedClass) ? clsKey : typedClass,
     bonusAction: $('onbCharBonus').value.trim(), abilities, spellSlots,
     hitDie: cls ? `d${cls.die}` : 'd8', savingThrowsProf: Object.fromEntries((cls?.saves || []).map(ab => [ab, true])),
     weapons: weapon ? [{ k: weapon }] : []
@@ -703,17 +772,13 @@ async function copyInviteLink() {
 // ---------------------------------------------------------------------------
 
 function initAppEvents() {
+  initDockEvents();
+  initAutoSizeEvents();
   $('btnOpenLobbyHome').addEventListener('click', openLobbyHome);
   $('btnCloseLobbyToTable').addEventListener('click', closeLobbyHome);
   document.querySelectorAll('.nav-tab').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
   document.querySelectorAll('[data-goto-tab]').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.gotoTab)));
   $('btnToggleTheme').addEventListener('click', toggleTheme);
-  document.querySelectorAll('.fs-toggle').forEach(btn => btn.addEventListener('click', () => {
-    if (App.fullscreen === btn.dataset.fsTarget) exitFullscreenView(); else enterFullscreenView(btn.dataset.fsTarget);
-  }));
-  // Uscendo con Esc o con il gesto del browser si esce anche dalla vista a schermo intero
-  ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { if (!fullscreenElement() && App.fullscreen) exitFullscreenView(); }));
-  document.addEventListener('input', (e) => { if (e.target.classList?.contains('auto-grow')) autoGrow(e.target, true); });
   $('btnOpenSupabaseModal').addEventListener('click', openCloudModal);
   $('btnLobbyOpenCloud').addEventListener('click', openCloudModal);
   $('btnCloseCloudModal').addEventListener('click', () => showEl('modalCloudStatus', false));
@@ -858,6 +923,7 @@ async function startApp() {
   initSheetEvents();
   initSpellEvents();
   initWizardEvents();
+  initLevelUpEvents();
   initJournalEvents();
   initBooksEvents();
   initDmEvents();

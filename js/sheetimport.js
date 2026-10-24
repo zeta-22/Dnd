@@ -345,6 +345,10 @@ async function buildImportedCharacter(raw, rules = campaignRules()) {
   const byName = new Map();
   (srd || []).forEach(s => { byName.set(spellKey(s.e), s); byName.set(spellKey(s.n), s); });
   const spellRules = classSpellRules({ className, level, abilities }, rules);
+  // Chi prepara (chierico, druido, paladino, mago): i preparati seguono la scheda, altrimenti i primi che ci stanno
+  const caster = { className, level, abilities, spellAbility: ABILITY_KEYS.includes(raw.spellcastingAbility) ? raw.spellcastingAbility : null, spells: [] };
+  const prepares = Boolean(spellPrepMode(caster));
+  const maxPrepared = prepares ? maxPreparedSpells(caster) : 0;
   const flagged = wanted.some(s => typeof s.prepared === 'boolean');
   const spells = [];
   const matchedSpells = [];
@@ -357,11 +361,11 @@ async function buildImportedCharacter(raw, rules = campaignRules()) {
       return;
     }
     if (spells.some(x => x.i === hit.i)) return;
-    const entry = { i: hit.i };
-    // Fuori dall'elenco della classe (razza, talenti…): non conta nei limiti
-    if (spellRules && !hit.cl.includes(spellRules.cls)) entry.x = true;
-    if (spellRules?.book && hit.lv > 0 && !entry.x) {
-      entry.p = flagged ? s.prepared === true : spells.filter(x => x.p).length < spellRules.spells;
+    const entry = { i: hit.i, prep: true, always: false };
+    // Fuori dall'elenco della classe (razza, talenti…): sempre pronto e non conta nei limiti
+    if (spellRules && !hit.cl.includes(spellRules.cls)) Object.assign(entry, { x: true, always: true });
+    else if (prepares && hit.lv > 0) {
+      entry.prep = flagged ? s.prepared === true : spells.filter(x => x.prep && !x.always && srdSpell(x.i)?.lv > 0).length < maxPrepared;
     }
     spells.push(entry);
     matchedSpells.push(`${hit.n}${entry.x ? ' (extra)' : ''}`);

@@ -42,11 +42,29 @@ function saveBonus(ch, ab) {
   return getAbilityMod(ch.abilities[ab]) + (ch.savingThrowsProf[ab] ? getProficiencyBonus(ch.level) : 0);
 }
 
-function parseAttacks(text) {
+// Negli attacchi si può scrivere FOR, DES… al posto dei numeri: nel bonus vale caratteristica + competenza
+// (con "DES+1" per un'arma +1), nei danni il modificatore. Così seguono da soli il livello e le caratteristiche.
+const ATTACK_ABILITY_RE = /([+-]?)\s*\b(FOR|DES|COS|INT|SAG|CAR)\b/g;
+
+function attackBonusValue(raw, ch) {
+  const text = String(raw || '').replace(/\s/g, '').toUpperCase();
+  const m = text.match(/^\+?(FOR|DES|COS|INT|SAG|CAR)([+-]\d+)?$/);
+  if (m) return getAbilityMod(ch.abilities[m[1]]) + getProficiencyBonus(ch.level) + (parseInt(m[2], 10) || 0);
+  const n = parseInt(text, 10);
+  return isNaN(n) ? null : n;
+}
+
+function attackDamageFormula(raw, ch) {
+  return String(raw || '').replace(ATTACK_ABILITY_RE, (_, sign, ab) => {
+    const mod = getAbilityMod(ch.abilities[ab]) * (sign === '-' ? -1 : 1);
+    return mod ? formatSignedMod(mod) : '';
+  });
+}
+
+function parseAttacks(text, ch) {
   return String(text || '').split('\n').map(line => line.trim()).filter(Boolean).map(line => {
     const parts = line.split('|').map(p => p.trim());
-    const bonus = parseInt(String(parts[1] || '').replace(/\s/g, ''), 10);
-    return { name: parts[0] || 'Attacco', bonus: isNaN(bonus) ? null : bonus, damage: parts[2] || '' };
+    return { name: parts[0] || 'Attacco', bonus: attackBonusValue(parts[1], ch), damage: attackDamageFormula(parts[2], ch) };
   });
 }
 
@@ -85,9 +103,34 @@ function adjustCharHp(ch, delta) {
   scheduleRender();
 }
 
+// Il Warlock recupera gli slot del patto con il riposo breve
+function restorePactSlots(ch) {
+  if (SRD_CLASSES[ch.className]?.casting?.type !== 'pact') return 0;
+  const table = classSpellSlots(ch.className, ch.level);
+  const i = table.findIndex(n => n > 0);
+  const slot = i >= 0 ? ch.spellSlots[i + 1] : null;
+  if (!slot || !slot.used) return 0;
+  const back = Math.min(slot.used, table[i]);
+  slot.used -= back;
+  return back;
+}
+
+function pactSlotsText(n) {
+  return n === 1 ? 'lo slot del patto' : `${n} slot del patto`;
+}
+
 function shortRest(ch) {
-  if (ch.hitDiceRemaining <= 0) { showToast('Nessun Dado Vita rimasto: serve un riposo lungo'); return; }
-  if (ch.hp >= ch.maxHp) { showToast('Hai già tutti i PF'); return; }
+  const pact = restorePactSlots(ch);
+  if (ch.hitDiceRemaining <= 0 || ch.hp >= ch.maxHp) {
+    if (pact) {
+      touchEnt(`char:${ch.id}`);
+      showToast(`⛺ ${ch.name} recupera ${pactSlotsText(pact)}`);
+      scheduleRender();
+      return;
+    }
+    showToast(ch.hitDiceRemaining <= 0 ? 'Nessun Dado Vita rimasto: serve un riposo lungo' : 'Hai già tutti i PF');
+    return;
+  }
   const sides = parseInt(ch.hitDie.slice(1), 10) || 8;
   const conMod = getAbilityMod(ch.abilities.COS);
   const v = rollDie(sides);
@@ -98,7 +141,7 @@ function shortRest(ch) {
   touchEnt(`char:${ch.id}`);
   const roll = { id: uid('roll'), at: Date.now(), by: ch.name, byId: DEVICE_ID, label: 'Dado Vita (riposo breve)', formula: describeFormula(1, sides, conMod), dice: [v], diceSides: [sides], bonus: conMod, total: heal };
   recordRoll(roll, false);
-  whenRollLands(roll, () => showToast(`⛺ ${ch.name} recupera ${heal} PF`));
+  whenRollLands(roll, () => showToast(`⛺ ${ch.name} recupera ${heal} PF${pact ? ` e ${pactSlotsText(pact)}` : ''}`));
   scheduleRender();
 }
 
@@ -111,7 +154,8 @@ function longRest(ch) {
   ch.conditions = ch.conditions.filter(c => c !== 'Indebolimento');
   ch.concentration = null;
   touchEnt(`char:${ch.id}`);
-  showToast(`🌙 ${ch.name} si è riposato: PF, Dadi Vita e slot recuperati`);
+  if (spellPrepMode(ch)) showToast(`🌙 ${ch.name} si è riposato: PF, Dadi Vita e slot recuperati. Ora può cambiare gli incantesimi preparati`, 4500);
+  else showToast(`🌙 ${ch.name} si è riposato: PF, Dadi Vita e slot recuperati`);
   scheduleRender();
 }
 
@@ -296,7 +340,7 @@ function renderSheetAttacks(ch, editable) {
           <button type="button" class="btn text-xs py-0.5 px-2 text-[var(--danger)] weapon-remove-btn">✕ Togli</button>
         </div></details>` : ''}
     </div>`);
-  const attacks = parseAttacks(ch.attacksText).map((a, i) => `
+  const attacks = parseAttacks(ch.attacksText, ch).map((a, i) => `
     <div class="card-surface2 p-2 flex flex-wrap items-center justify-between gap-2 text-xs">
       <strong class="font-serif-title text-sm">${escapeHtml(a.name)}</strong>
       <div class="flex items-center gap-1.5">
@@ -554,7 +598,7 @@ function onSheetClick(e) {
   }
   const attackBtn = t.closest('.attack-roll-btn');
   if (attackBtn) {
-    const a = parseAttacks(ch.attacksText)[parseInt(attackBtn.dataset.attackIndex, 10)];
+    const a = parseAttacks(ch.attacksText, ch)[parseInt(attackBtn.dataset.attackIndex, 10)];
     if (!a) return;
     const vsAc = parseInt($('inputTargetAc').value, 10) || null;
     const roll = performD20Roll({ label: a.name, bonus: a.bonus || 0, vsAc, by: isDM() ? `DM (${ch.name})` : ch.name });
@@ -563,7 +607,7 @@ function onSheetClick(e) {
   }
   const dmgBtn = t.closest('.damage-roll-btn');
   if (dmgBtn) {
-    const a = parseAttacks(ch.attacksText)[parseInt(dmgBtn.dataset.attackIndex, 10)];
+    const a = parseAttacks(ch.attacksText, ch)[parseInt(dmgBtn.dataset.attackIndex, 10)];
     if (!a) return;
     const last = App.lastAttack;
     const crit = Boolean(last && last.crit && last.charId === ch.id && last.name === a.name && Date.now() - last.at < 120000);

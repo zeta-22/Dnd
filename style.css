@@ -263,6 +263,50 @@ textarea.input-field { resize: vertical; }
   background: var(--surface); border: 1px solid var(--brass); border-radius: 8px; box-shadow: var(--shadow-md); padding: 0.2rem; }
 .mention-item { display: block; width: 100%; text-align: left; padding: 0.35rem 0.5rem; border-radius: 6px; font-size: 12px; }
 .mention-item.active, .mention-item:hover { background: var(--brass-soft); }
+/* Caselle di testo che crescono: il pulsante per aprirle o chiuderle quando sono molto lunghe */
+.textarea-more { align-self: flex-end; margin-left: auto; display: block; font-size: 11px; font-weight: 700; color: var(--brass);
+  padding: 0.1rem 0.3rem; border-radius: 6px; }
+.textarea-more:hover { background: var(--brass-soft); }
+
+/* Schermo intero: niente barra in alto, le schede stanno in fondo */
+:root { --dock-h: 60px; }
+.immersive-dock { display: none; }
+body.immersive > header { display: none; }
+body.immersive { padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
+body.immersive #activeCharSummaryBar { bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); }
+body.immersive #toastNotification { bottom: calc(var(--dock-h) + 4rem); }
+body.immersive .immersive-dock {
+  display: flex; align-items: stretch; gap: 0.25rem; position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+  height: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)); padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+  background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.12);
+}
+.dock-track {
+  position: relative; flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(var(--dock-n, 4), minmax(0, 1fr));
+  touch-action: pan-y; user-select: none; -webkit-user-select: none; max-width: 640px; margin: 0 auto;
+}
+.dock-pill {
+  position: absolute; top: 0; bottom: 0; left: 0; width: calc(100% / var(--dock-n, 4)); border-radius: 10px;
+  background: var(--surface2); border: 1px solid var(--brass); box-shadow: var(--shadow-sm);
+  transform: translateX(calc(var(--dock-i, 0) * 100% + var(--dock-drag, 0px))); transition: transform 0.25s ease;
+}
+.dock-track.dragging .dock-pill { transition: none; }
+.dock-track.no-pill .dock-pill { display: none; }
+.dock-tab {
+  position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  min-width: 0; font-family: 'Alegreya', serif; font-weight: 700; font-size: 11px; color: var(--muted); white-space: nowrap;
+}
+.dock-tab .dock-icon { font-size: 1.15rem; line-height: 1; }
+.dock-tab.active { color: var(--felt); }
+:root[data-theme="dark"] .dock-tab.active { color: var(--brass); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dock-tab.active { color: var(--brass); } }
+.dock-btn {
+  flex-shrink: 0; width: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface2); color: var(--ink); font-size: 1.05rem;
+}
+
+/* Passaggio di livello guidato: elenchi puntati */
+.lu-list { list-style: disc; padding-left: 1rem; }
+
 /* Schede personalizzate: le parti della scheda 5e spariscono, il resto resta */
 #sheetBody.is-custom .sheet-5e { display: none !important; }
 @media (min-width: 1024px) { #sheetBody.is-custom #sheetMainColumn { grid-column: span 12 / span 12; } }
@@ -302,18 +346,3 @@ textarea.input-field { resize: vertical; }
 .dice-total-badge.is-crit .dice-total-value { color: #c9930a; text-shadow: 0 0 12px rgba(255, 210, 74, 0.9); }
 .dice-total-badge.is-fumble { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(163, 57, 42, 0.3), 0 0 26px 6px rgba(200, 50, 30, 0.6); }
 .dice-total-badge.is-fumble .dice-total-value { color: var(--danger); }
-
-/* Schermo intero: la mappa o la scheda coprono tutta la finestra. Funziona anche dove il browser non ha
-   l'API Fullscreen (iPhone); dove c'è, l'app nasconde in più le barre del browser. Sotto finestre, pedine e dadi. */
-body.fs-active { overflow: hidden; }
-.fs-target {
-  position: fixed !important; inset: 0; z-index: 45; margin: 0 !important; border-radius: 0 !important; max-width: none !important;
-  background: var(--bg); overflow-y: auto; overscroll-behavior: contain;
-  padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
-}
-#mapCard.fs-target { background: var(--surface); overflow: hidden; }
-.fs-target .map-viewport { flex: 1 1 auto; min-height: 0; max-height: none; }
-
-/* Campi di testo che crescono mentre si scrive (field-sizing dove c'è, altrimenti ci pensa autoGrow) */
-textarea.auto-grow { resize: vertical; field-sizing: content; min-height: 6.5rem; }
-textarea.auto-grow.auto-grow-sm { min-height: 3.5rem; }
