@@ -352,7 +352,7 @@ function pdfMainPage(k, ch, extra) {
   const ey = my + 44;
   const eh = top + 6 * 80 - 9 - ey;
   pdfBox(k, cx, ey, cw, eh);
-  const equipmentLeft = pdfFlow(k, ch.equipmentText || '', cx + 6, ey + 6, cw - 12, eh - 20);
+  const equipmentLeft = pdfFlow(k, inventoryPlainText(ch), cx + 6, ey + 6, cw - 12, eh - 20);
   pdfLabel(k, 'Equipaggiamento', cx, ey + eh - 10, cw);
 
   // Privilegi e tratti

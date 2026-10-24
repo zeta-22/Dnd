@@ -259,8 +259,14 @@ function parseSheetFields(list) {
   const look = [['age', 'Età'], ['height', 'Altezza'], ['weight', 'Peso'], ['eyes', 'Occhi'], ['skin', 'Carnagione'], ['hair', 'Capelli']]
     .filter(([k]) => f.get(k)).map(([k, label]) => `${label}: ${f.get(k)}`).join(' · ');
   const hd = `${pick('hd')} ${pick('hdtotal', 'hitdice', 'dadivita')} ${pick('total')}`.match(/d\s*(\d+)/i);
-  const equipment = [...f].map(([k, v]) => [k.match(/^eqname(\d+)$/), v]).filter(([m]) => m)
-    .map(([m, v]) => { const qty = parseInt(String(f.get(`eqqty${m[1]}`) || '').replace(/[.,\s]/g, ''), 10); return qty > 1 ? `${v} (×${qty})` : v; });
+  // Equipaggiamento delle schede di D&D Beyond: nome, quantità e peso della riga in libbre
+  const items = [...f].map(([k, v]) => [k.match(/^eqname(\d+)$/), v]).filter(([m, v]) => m && String(v).trim()).map(([m, v]) => {
+    const it = itemFromText(v);
+    it.qty = Math.max(1, parseInt(String(f.get(`eqqty${m[1]}`) || '').replace(/[.,\s]/g, ''), 10) || it.qty);
+    const lb = parseItNumber(String(f.get(`eqweight${m[1]}`) || '').replace(/[^\d.,]/g, ''));
+    if (!it.k && lb > 0) it.wt = Math.round((lb * 0.5 * 1000) / it.qty) / 1000;
+    return it;
+  });
   const xp = pick('xp', 'experiencepoints');
 
   return {
@@ -277,7 +283,7 @@ function parseSheetFields(list) {
     speedMeters: parseSpeed(pick('speed', 'velocita')),
     hitDie: hd ? `d${hd[1]}` : '',
     spellcastingAbility: spellAbility,
-    equipment: [pick('equipment', 'equipaggiamento'), ...equipment].filter(Boolean).join('\n'), coins,
+    equipment: pick('equipment', 'equipaggiamento'), items, coins,
     features: [pick('featuresandtraits', 'features'), ...all(/^featurestraits\d+$/), pick('feattraits'),
       pick('defenses') && `Difese: ${pick('defenses')}`, pick('savemodifiers') && `Tiri salvezza: ${pick('savemodifiers')}`,
       pick('additionalsenses') && `Sensi: ${pick('additionalsenses')}`].filter(Boolean).join('\n\n'),
@@ -434,7 +440,8 @@ async function buildImportedCharacter(raw, rules = campaignRules()) {
       abilities, savingThrowsProf, skillsProf, weapons, attacksText: otherAttacks.join('\n'), spells, spellSlots,
       spellAbility: ABILITY_KEYS.includes(raw.spellcastingAbility) ? raw.spellcastingAbility : null,
       spellsText: otherSpells.map(s => `• ${s}`).join('\n'),
-      equipmentText: str(raw.equipment, 20000),
+      // Una riga per oggetto; quelli del manuale prendono peso e costo dal manuale
+      items: [...list(raw.items), ...itemsFromText(str(raw.equipment, 20000))].slice(0, 300).map(normalizeItem),
       coins: Object.fromEntries(SHEET_COINS.map(([en, it]) => [it, clampInt(raw.coins?.[en], 0, 9999999, 0)])),
       featuresText: [classExtra, str(raw.features, 20000), raw.proficiencies ? `Competenze e linguaggi:\n${str(raw.proficiencies, 2000)}` : ''].filter(Boolean).join('\n\n'),
       notes: [raw.alignment ? `Allineamento: ${str(raw.alignment, 60)}` : '', str(raw.notes, 3000)].filter(Boolean).join('\n'),
@@ -532,7 +539,7 @@ function renderSheetImportPreview() {
       ${slots.length ? `<div><strong>Slot incantesimo:</strong> ${slots.join(' · ')}</div>` : ''}
       <div><strong>Monete:</strong> ${escapeHtml(COIN_KEYS.filter(k => f.coins[k]).map(k => `${f.coins[k]} ${k}`).join(', ') || 'nessuna')}</div>
     </div>
-    ${longText('🎒 Equipaggiamento', f.equipmentText)}
+    ${longText(`🎒 Equipaggiamento (${f.items.length})`, f.items.map(it => `${it.qty !== 1 ? `${it.qty} × ` : ''}${it.name}${it.note ? ` — ${it.note}` : ''}`).join('\n'))}
     ${longText('⭐ Privilegi, tratti e competenze', f.featuresText)}
     ${longText('📝 Note', f.notes)}
     ${st.hasStory ? `${longText('📜 Storia e personalità', story)}

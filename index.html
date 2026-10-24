@@ -577,8 +577,30 @@
             </form>
             <p class="text-[11px] text-[var(--muted)] -mt-1">Se non hai la moneta giusta la scheda cambia da sola quelle più grandi e ti dà il resto.</p>
             <div id="sheetCoinLast" class="hidden flex-wrap items-center gap-2 text-[11px]"></div>
-            <label for="sheetTextareaEquipment" class="font-bold text-[var(--muted)] text-xs">Oggetti</label>
-            <textarea id="sheetTextareaEquipment" rows="5" class="input-field w-full text-sm leading-relaxed" placeholder="Uno per riga: zaino, corda (15 m), 2 torce, razioni per 5 giorni…"></textarea>
+            <div class="flex flex-wrap items-baseline justify-between gap-2 pt-2 border-t border-[var(--line)]">
+              <span class="font-bold text-[var(--muted)] text-xs">Oggetti</span>
+              <span id="sheetInvSummary" class="text-[11px] text-[var(--muted)]"></span>
+            </div>
+            <div id="sheetInvAddWrap" class="flex-col gap-1.5">
+              <form id="sheetInvAddForm" class="flex items-center gap-1.5 text-xs" autocomplete="off">
+                <input id="sheetInvAddInput" type="text" maxlength="80" class="input-field flex-1 min-w-0 text-xs" placeholder="Cerca o scrivi un oggetto (es. 10 torce)" aria-label="Oggetto da aggiungere" />
+                <button id="btnInvAdd" type="submit" class="btn btn-felt text-xs">+ Oggetto</button>
+              </form>
+              <div id="sheetInvSuggest" class="hidden flex-col gap-1"></div>
+            </div>
+            <div id="sheetInvUndo" class="hidden flex-wrap items-center gap-2 text-[11px]"></div>
+            <div id="sheetInvTable"></div>
+            <div class="flex flex-col gap-1 text-[11px]">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="font-bold">🏋️ Peso trasportato</span>
+                <span id="sheetInvWeightText" class="font-bold"></span>
+              </div>
+              <div class="w-full bg-[var(--surface)] h-2 rounded-full overflow-hidden border border-[var(--line)]">
+                <div id="sheetInvWeightFill" class="h-full bg-[var(--ok)] transition-all" style="width: 0%;"></div>
+              </div>
+              <span id="sheetInvWeightHint" class="text-[10px] text-[var(--muted)]"></span>
+              <span id="sheetInvWeightWarn" class="hidden leading-relaxed"></span>
+            </div>
           </div>
 
           <div class="card-surface p-4 flex flex-col gap-3 sheet-5e">
@@ -1675,6 +1697,7 @@
   <script src="js/diceanim.js"></script>
   <script src="js/table.js"></script>
   <script src="js/sheet.js"></script>
+  <script src="js/inventory.js"></script>
   <script src="js/spells.js"></script>
   <script src="js/wizard.js"></script>
   <script src="js/levelup.js"></script>

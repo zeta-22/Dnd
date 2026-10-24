@@ -47,6 +47,7 @@ const SHEET_PROMPT = [
   'Attacchi: nome italiano, nome inglese dell\'arma del manuale (es. "Longsword", anche se la scheda è in italiano), bonus, danno solo come formula di dadi (es. "1d8+3") e tipo di danno a parte.',
   'Incantesimi: tutti quelli conosciuti o preparati, con il nome italiano ufficiale, il nome inglese originale, il livello (0 per i trucchetti) e se è segnato come preparato. Slot: il numero massimo per livello.',
   'Monete: solo i numeri in "coins" (cp rame, sp argento, ep electrum, gp oro, pp platino), non nell\'equipaggiamento.',
+  'Equipaggiamento: un oggetto per riga, con la quantità davanti quando è più di uno (es. "10 Torcia") e tra parentesi quello che serve ricordare (cariche, sintonia…).',
   'Traduci anche i testi (equipaggiamento, privilegi e tratti, competenze e linguaggi, storia, aspetto, tratti caratteriali, ideali, legami, difetti) in un italiano naturale, senza togliere informazioni utili e senza aggiungerne.',
   'Non inventare: se un dato manca lascia una stringa vuota, 0 o null. In "warnings" elenca brevemente, in italiano, le parti illeggibili o dubbie.'
 ].join(' ');

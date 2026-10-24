@@ -921,6 +921,7 @@ async function startApp() {
   initMapEvents();
   initTableEvents();
   initSheetEvents();
+  initInventoryEvents();
   initSpellEvents();
   initWizardEvents();
   initLevelUpEvents();

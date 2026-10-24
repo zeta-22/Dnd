@@ -10,6 +10,9 @@ Modifiche fatte per Il Tavolo: nomi di mostri, incantesimi, attacchi, tipi di da
 campi tradotti in italiano; dati riorganizzati e accorciati. Le descrizioni restano nel
 testo inglese originale. Il Tavolo non è affiliato né approvato da Wizards of the Coast.
 
+Dall'SRD 5.1 vengono anche gli oggetti dell'inventario in `js/inventory.js` (equipaggiamento, strumenti, armature,
+costi e pesi), con i nomi tradotti in italiano, i pesi in chilogrammi e le regole riassunte in italiano.
+
 I dati sono stati ricavati dal pacchetto npm `dnd5-srd` 1.0.0 (5e-database,
 https://github.com/soryy708/5e-database) con `tools/build-srd.py`. Licenza del pacchetto:
 
