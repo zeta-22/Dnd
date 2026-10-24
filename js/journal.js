@@ -22,6 +22,30 @@ function canEditJournalEntry(j) {
   return isDM() || j.authorId === DEVICE_ID;
 }
 
+// Il modulo serve sia per le voci nuove sia per modificare quelle già scritte
+function openJournalForm(open, entry = null) {
+  const wasEditing = Boolean(App.editingJournalId);
+  App.editingJournalId = open && entry ? entry.id : null;
+  showEl('journalAddFormCard', open);
+  setText('journalFormHeading', entry ? '✏️ Modifica voce del Diario' : '✍️ Aggiungi voce al Diario');
+  setText('btnSubmitJournalEntry', entry ? '💾 Salva modifiche' : '📥 Aggiungi');
+  if (wasEditing && !entry) {
+    $('journalInputTitle').value = '';
+    $('journalInputDetails').value = '';
+  }
+  if (!open) return;
+  if (entry) {
+    $('journalInputCategory').value = entry.category;
+    $('journalInputTitle').value = entry.title;
+    $('journalInputDetails').value = entry.content;
+    $('journalAddFormCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else if (App.journalFilter !== 'Tutto') {
+    $('journalInputCategory').value = App.journalFilter;
+  }
+  autoSizeTextarea($('journalInputDetails'));
+  focusSoon('journalInputTitle');
+}
+
 function renderJournal() {
   const listEl = $('journalEntriesList');
   if (!listEl) return;
@@ -49,7 +73,10 @@ function renderJournal() {
               </div>
               <div class="text-[11px] text-[var(--muted)]">${icon} ${escapeHtml(j.category)} · ${escapeHtml(j.date)}${j.author ? ` · ${escapeHtml(j.author)}` : ''}</div>
             </div>
-            ${canEditJournalEntry(j) ? '<button type="button" class="btn text-[10px] py-0 px-1.5 journal-delete-btn" title="Elimina voce">🗑️</button>' : ''}
+            ${canEditJournalEntry(j) ? `<div class="flex gap-1 flex-shrink-0">
+              <button type="button" class="btn text-[10px] py-0 px-1.5 journal-edit-btn" title="Modifica voce">✏️</button>
+              <button type="button" class="btn text-[10px] py-0 px-1.5 journal-delete-btn" title="Elimina voce">🗑️</button>
+            </div>` : ''}
           </div>
           ${j.content ? `<p class="leading-relaxed whitespace-pre-wrap">${linkify(j.content, { kind: 'journal', id: j.id })}</p>` : ''}
           ${LINK_CATEGORIES.includes(j.category) ? citedInHtml('journal', j.id, j.title) : ''}
@@ -68,26 +95,33 @@ function initJournalEvents() {
     App.journalFilter = b.dataset.jfilter;
     renderJournal();
   }));
-  const openForm = (open) => {
-    showEl('journalAddFormCard', open);
-    if (open) {
-      if (App.journalFilter !== 'Tutto') $('journalInputCategory').value = App.journalFilter;
-      focusSoon('journalInputTitle');
-    }
-  };
-  $('btnToggleJournalForm').addEventListener('click', () => openForm($('journalAddFormCard').classList.contains('hidden')));
-  $('btnCloseJournalForm').addEventListener('click', () => openForm(false));
+  // Mentre si modifica una voce, "+ Aggiungi voce" passa a una voce nuova invece di chiudere il modulo
+  $('btnToggleJournalForm').addEventListener('click', () => openJournalForm($('journalAddFormCard').classList.contains('hidden') || Boolean(App.editingJournalId)));
+  $('btnCloseJournalForm').addEventListener('click', () => openJournalForm(false));
   $('btnSubmitJournalEntry').addEventListener('click', () => {
     if (!App.activeId) return;
+    const category = $('journalInputCategory').value;
     const title = $('journalInputTitle').value.trim();
     const content = $('journalInputDetails').value.trim();
     if (!title && !content) { showToast('Scrivi almeno un titolo'); return; }
-    addJournalEntry({ category: $('journalInputCategory').value, title: title || content.slice(0, 50), content });
+    if (App.editingJournalId) {
+      const j = ent(`journal:${App.editingJournalId}`);
+      if (!j || !canEditJournalEntry(j)) {
+        showToast('Questa voce del Diario non c\'è più');
+        openJournalForm(false);
+        return;
+      }
+      Object.assign(j, { category, title: title || content.slice(0, 50), content });
+      touchEnt(`journal:${j.id}`);
+      showToast('💾 Voce aggiornata');
+    } else {
+      addJournalEntry({ category, title: title || content.slice(0, 50), content });
+      showToast('📥 Voce aggiunta al diario');
+    }
     $('journalInputTitle').value = '';
     $('journalInputDetails').value = '';
-    openForm(false);
+    openJournalForm(false);
     renderJournal();
-    showToast('📥 Voce aggiunta al diario');
   });
 
   const list = $('journalEntriesList');
@@ -96,7 +130,9 @@ function initJournalEvents() {
     if (!card) return;
     const j = ent(`journal:${card.dataset.journalId}`);
     if (!j) return;
+    if (e.target.closest('.journal-edit-btn') && canEditJournalEntry(j)) openJournalForm(true, j);
     if (e.target.closest('.journal-delete-btn') && canEditJournalEntry(j)) {
+      if (App.editingJournalId === j.id) openJournalForm(false);
       removeEnt(`journal:${j.id}`);
       renderJournal();
     }

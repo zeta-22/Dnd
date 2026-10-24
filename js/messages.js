@@ -232,9 +232,11 @@ async function unreadCount() {
 
 async function renderMessagesBadge() {
   const n = await unreadCount();
-  const badge = $('messagesUnreadBadge');
-  badge.textContent = n > 9 ? '9+' : String(n);
-  badge.classList.toggle('hidden', n === 0);
+  ['messagesUnreadBadge', 'dockUnreadBadge'].forEach(id => {
+    const badge = $(id);
+    badge.textContent = n > 9 ? '9+' : String(n);
+    badge.classList.toggle('hidden', n === 0);
+  });
 }
 
 async function renderMessagesPanel() {
@@ -372,6 +374,7 @@ function initMessageEvents() {
     if (!ok) return;
     $('dmHandoutTitle').value = '';
     $('dmHandoutText').value = '';
+    autoSizeTextarea($('dmHandoutText'));
     $('dmHandoutImage').value = '';
     setText('dmHandoutImageName', '');
     showToast('📜 Dispensa mandata');

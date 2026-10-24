@@ -1,4 +1,4 @@
-// Creazione guidata del personaggio e passaggio di livello (classi e razze del regolamento base).
+// Creazione guidata del personaggio (classi e razze del regolamento base). Il passaggio di livello è in levelup.js.
 
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 const POINT_BUY_COST = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
@@ -76,11 +76,14 @@ function wizardAc(w, scores) {
   return 10 + dex;
 }
 
-function wizardAttackText(w, scores) {
-  const tpl = SRD_CLASSES[w.cls].attack || '';
-  const prof = getProficiencyBonus(w.level);
-  return tpl.replace(/\{(FOR|DES)\}/g, (_, ab) => String(prof + getAbilityMod(scores[ab])))
-    .replace(/\{(FOR|DES)mod\}/g, (_, ab) => { const m = getAbilityMod(scores[ab]); return m ? formatSignedMod(m) : ''; });
+// Il testo salvato usa FOR/DES, così bonus e danni seguono il livello e le caratteristiche
+function wizardAttackText(w) {
+  return (SRD_CLASSES[w.cls].attack || '').replace(/\+\{(FOR|DES)\}/g, '$1').replace(/\{(FOR|DES)mod\}/g, '+$1');
+}
+
+function wizardAttackPreview(w, scores) {
+  return parseAttacks(wizardAttackText(w), { abilities: scores, level: w.level })
+    .map(a => `${a.name} ${a.bonus !== null ? formatSignedMod(a.bonus) : ''} · ${a.damage}`).join(', ');
 }
 
 // Controlla il passo corrente: restituisce un messaggio se manca qualcosa
@@ -185,7 +188,7 @@ function renderWizard() {
         <div><strong>Tiri salvezza:</strong> ${cls.saves.join(', ')}</div>
         <div><strong>Abilità:</strong> ${escapeHtml(skills.join(', '))}</div>
         ${slots ? `<div><strong>Slot incantesimo:</strong> ${slots} · aggiungi gli incantesimi dalla scheda (“📖 Incantesimi”)</div>` : ''}
-        <div><strong>Attacco:</strong> <span class="font-mono">${escapeHtml(wizardAttackText(w, scores))}</span></div>
+        <div><strong>Attacco:</strong> ${escapeHtml(wizardAttackPreview(w, scores))}</div>
       </div>`;
   }
   const problem = wizardProblem(w);
@@ -219,7 +222,7 @@ async function finishCharWizard() {
     name: w.name.trim(), race: w.race, className: w.cls, level: w.level, background: w.background, bonusAction: cls.bonus,
     maxHp, hp: maxHp, ac: wizardAc(w, scores), speed: race.speed, hitDie: `d${cls.die}`, hitDiceRemaining: w.level,
     abilities: scores, savingThrowsProf, skillsProf, spellSlots, spellAbility: cls.casting?.ability || null,
-    attacksText: wizardAttackText(w, scores),
+    attacksText: wizardAttackText(w),
     featuresText: `${w.race}: ${race.traits}\n${w.cls}: ${cls.features}`
   };
   closeCharWizard();
@@ -304,76 +307,6 @@ function onWizardClick(e) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Passaggio di livello
-// ---------------------------------------------------------------------------
-
-function openLevelUp() {
-  const ch = currentSheetChar();
-  if (!ch || !canEditChar(ch) || ch.level >= 20) return;
-  App.levelUp = { charId: ch.id, hpMode: 'avg', rolled: null, asi: ['', ''] };
-  showEl('modalLevelUp', true);
-  renderLevelUp();
-}
-
-function levelUpGain(ch, lu) {
-  const die = parseInt(ch.hitDie.slice(1), 10) || 8;
-  const con = getAbilityMod(ch.abilities.COS);
-  const dwarf = /nano/i.test(ch.race) ? 1 : 0;
-  const base = lu.hpMode === 'roll' && lu.rolled ? lu.rolled : Math.floor(die / 2) + 1;
-  return Math.max(1, base + con + dwarf);
-}
-
-function renderLevelUp() {
-  const lu = App.levelUp;
-  const ch = lu && getChar(lu.charId);
-  if (!ch) return;
-  const next = ch.level + 1;
-  const die = parseInt(ch.hitDie.slice(1), 10) || 8;
-  const asi = classAsiLevels(ch.className).includes(next);
-  const slotsNow = classSpellSlots(ch.className, ch.level);
-  const slotsNext = classSpellSlots(ch.className, next);
-  const slotChange = SRD_CLASSES[ch.className]?.casting && slotsNext.join() !== slotsNow.join();
-  $('levelUpBody').innerHTML = `
-    <div class="font-serif-title text-lg font-bold">${escapeHtml(ch.name)}: livello ${ch.level} → ${next}</div>
-    <div class="card-surface2 p-3 flex flex-col gap-2">
-      <div class="font-bold">Punti ferita in più</div>
-      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="luHp" value="avg" ${lu.hpMode === 'avg' ? 'checked' : ''} class="accent-[var(--felt)]" /> Valore medio: <strong>+${levelUpGain(ch, Object.assign({}, lu, { hpMode: 'avg' }))}</strong></label>
-      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="luHp" value="roll" ${lu.hpMode === 'roll' ? 'checked' : ''} class="accent-[var(--felt)]" /> Tira 1d${die} + COS
-        <button type="button" class="btn btn-brass text-xs py-0.5 lu-roll">🎲 Tira</button>${lu.rolled ? `<span>uscito ${lu.rolled}: <strong>+${levelUpGain(ch, lu)}</strong></span>` : ''}</label>
-    </div>
-    ${asi ? `<div class="card-surface2 p-3 flex flex-col gap-2"><div class="font-bold">Aumento dei punteggi di caratteristica</div>
-      <div class="text-[11px] text-[var(--muted)]">Due volte +1 (anche alla stessa caratteristica per fare +2). Massimo 20.</div>
-      <div class="flex gap-2">${[0, 1].map(i => `<select class="input-field lu-asi" data-i="${i}"><option value="">—</option>${ABILITY_KEYS.map(k => `<option value="${k}" ${lu.asi[i] === k ? 'selected' : ''}>+1 ${k} (${ch.abilities[k]})</option>`).join('')}</select>`).join('')}</div></div>` : ''}
-    ${slotChange ? `<div class="card-surface2 p-3"><strong>Nuovi slot incantesimo:</strong> ${slotsNext.map((n, i) => n ? `${i + 1}°: ${n}` : '').filter(Boolean).join(' · ')}</div>` : ''}
-    <div class="text-[11px] text-[var(--muted)]">Bonus di competenza al ${next}° livello: ${formatSignedMod(getProficiencyBonus(next))}. Controlla sul manuale i nuovi privilegi della tua classe.</div>`;
-}
-
-function applyLevelUp() {
-  const lu = App.levelUp;
-  const ch = lu && getChar(lu.charId);
-  if (!ch || !canEditChar(ch)) return;
-  if (lu.hpMode === 'roll' && !lu.rolled) { showToast('Tira il dado vita oppure scegli il valore medio'); return; }
-  const gain = levelUpGain(ch, lu);
-  ch.level += 1;
-  ch.maxHp += gain;
-  ch.hp = Math.min(ch.maxHp, ch.hp + gain);
-  ch.hitDiceRemaining = Math.min(ch.level, ch.hitDiceRemaining + 1);
-  lu.asi.filter(Boolean).forEach(k => { ch.abilities[k] = Math.min(20, ch.abilities[k] + 1); });
-  if (SRD_CLASSES[ch.className]?.casting) {
-    classSpellSlots(ch.className, ch.level).forEach((n, i) => {
-      const s = ch.spellSlots[i + 1];
-      s.max = Math.max(s.max, n);
-      s.used = Math.min(s.used, s.max);
-    });
-  }
-  touchEnt(`char:${ch.id}`);
-  showEl('modalLevelUp', false);
-  App.levelUp = null;
-  showToast(`⬆️ ${ch.name} è ora di livello ${ch.level} (+${gain} PF)`, 3500);
-  scheduleRender();
-}
-
 function initWizardEvents() {
   $('btnCloseWizard').addEventListener('click', closeCharWizard);
   $('wizardBody').addEventListener('change', onWizardInput);
@@ -390,24 +323,4 @@ function initWizardEvents() {
   });
   $('btnOnbWizard').addEventListener('click', () => openCharWizard('onboarding', App.onboardingCampId));
   $('btnSheetWizard').addEventListener('click', () => { if (App.activeId) openCharWizard('sheet', App.activeId); });
-
-  $('btnLevelUp').addEventListener('click', openLevelUp);
-  $('btnCloseLevelUp').addEventListener('click', () => showEl('modalLevelUp', false));
-  $('btnApplyLevelUp').addEventListener('click', applyLevelUp);
-  $('levelUpBody').addEventListener('change', (e) => {
-    const lu = App.levelUp;
-    if (!lu) return;
-    if (e.target.name === 'luHp') lu.hpMode = e.target.value;
-    if (e.target.classList.contains('lu-asi')) lu.asi[parseInt(e.target.dataset.i, 10)] = e.target.value;
-    renderLevelUp();
-  });
-  $('levelUpBody').addEventListener('click', (e) => {
-    const lu = App.levelUp;
-    const ch = lu && getChar(lu.charId);
-    if (!ch || !e.target.closest('.lu-roll')) return;
-    const die = parseInt(ch.hitDie.slice(1), 10) || 8;
-    lu.rolled = rollDie(die);
-    lu.hpMode = 'roll';
-    renderLevelUp();
-  });
 }

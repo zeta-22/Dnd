@@ -18,6 +18,7 @@ const App = {
   drag: null,
   fogPaint: null,
   journalFilter: 'Tutto',
+  editingJournalId: null,
   books: [],
   secretRolls: [],
   chat: [],
@@ -25,6 +26,8 @@ const App = {
   lobby: [],
   lobbyLoaded: false,
   onboardingCampId: null,
+  immersive: false,
+  immersiveFs: false,
   extracted: []
 };
 
@@ -263,6 +266,60 @@ function safeRebuild(container, build) {
   }
   container.dataset.staleRender = '';
   build();
+}
+
+// ---------------------------------------------------------------------------
+// Caselle di testo che crescono con quello che c'è scritto
+// ---------------------------------------------------------------------------
+// Crescono fino a metà schermo; oltre compare "Mostra tutto" (e poi "Mostra meno").
+// Non scendono mai sotto l'altezza scelta con "rows".
+
+function autoSizeTextarea(el) {
+  if (!el || !el.isConnected || !el.offsetParent) return; // nascosta: si misura quando si vede
+  // Mentre la casella torna piccola per misurarla, la pagina non deve saltare
+  const scrolled = [];
+  for (let p = el.parentElement; p; p = p.parentElement) if (p.scrollTop) scrolled.push([p, p.scrollTop]);
+  const pageY = window.scrollY;
+  el.style.height = 'auto';
+  const minHeight = el.offsetHeight;
+  const full = el.scrollHeight + el.offsetHeight - el.clientHeight;
+  const max = Math.max(minHeight, Math.round(window.innerHeight * 0.5));
+  const expanded = el.dataset.expanded === '1';
+  const capped = !expanded && full > max;
+  el.style.height = `${capped ? max : full}px`;
+  el.style.overflowY = capped ? 'auto' : 'hidden';
+  scrolled.forEach(([p, top]) => { p.scrollTop = top; });
+  if (window.scrollY !== pageY) window.scrollTo(window.scrollX, pageY);
+  el.dataset.autoKey = `${el.value.length}|${el.clientWidth}|${window.innerHeight}|${expanded}`;
+
+  let more = el._moreBtn;
+  if (full <= max) { if (more) more.classList.add('hidden'); return; }
+  if (!more) {
+    more = el._moreBtn = document.createElement('button');
+    more.type = 'button';
+    more.className = 'textarea-more';
+    more.addEventListener('click', () => {
+      el.dataset.expanded = el.dataset.expanded === '1' ? '' : '1';
+      autoSizeTextarea(el);
+    });
+    el.insertAdjacentElement('afterend', more);
+  }
+  more.classList.remove('hidden');
+  more.textContent = expanded ? 'Mostra meno ▴' : 'Mostra tutto ▾';
+}
+
+// Dopo ogni disegno: solo le caselle visibili il cui testo o la cui larghezza sono cambiati
+function autoSizeTextareas() {
+  document.querySelectorAll('textarea').forEach(el => {
+    if (!el.offsetParent) return;
+    if (el.dataset.autoKey !== `${el.value.length}|${el.clientWidth}|${window.innerHeight}|${el.dataset.expanded === '1'}`) autoSizeTextarea(el);
+  });
+}
+
+function initAutoSizeEvents() {
+  document.addEventListener('input', (e) => { if (e.target.tagName === 'TEXTAREA') autoSizeTextarea(e.target); });
+  document.addEventListener('focusin', (e) => { if (e.target.tagName === 'TEXTAREA') autoSizeTextarea(e.target); });
+  window.addEventListener('resize', debounce(autoSizeTextareas, 150));
 }
 
 // Porta il cursore su un campo appena compare, ma solo se l'utente non sta già scrivendo altrove
