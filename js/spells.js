@@ -42,11 +42,13 @@ function maxPreparedSpells(ch) {
 function preparedSpellCount(ch) {
   return ch.spells.filter(s => {
     const sp = srdSpell(Number(s.i));
-    return sp && sp.lv > 0 && s.prep && !s.always;
+    return sp && sp.lv > 0 && s.prep && !s.always && !s.ritualOnly;
   }).length;
 }
 
+// "ritualOnly": i rituali del Libro dei segreti antichi del Warlock si lanciano solo come rituali
 function isSpellReady(ch, entry, sp) {
+  if (entry.ritualOnly) return false;
   return sp.lv === 0 || !spellPrepMode(ch) || Boolean(entry.prep || entry.always);
 }
 
@@ -58,6 +60,7 @@ function hasSpellbook(ch) {
 // Per le classi fuori dal regolamento base non conosciamo le regole e si lasciano lanciare; gli altri incantatori no.
 function canCastAsRitual(ch, entry, sp) {
   if (!sp.rit) return false;
+  if (entry.ritualOnly) return true;
   const cls = SRD_CLASSES[ch.className];
   if (!cls) return true;
   const mode = cls.casting?.ritual;
@@ -67,8 +70,11 @@ function canCastAsRitual(ch, entry, sp) {
 }
 
 function availableSlotLevels(ch, minLevel) {
+  // Gli slot dell'Arcanum mistico (6°-9° del Warlock) valgono solo per gli incantesimi di quel livello
+  const pact = SRD_CLASSES[ch.className]?.casting?.type === 'pact';
   const out = [];
   for (let lvl = Math.max(1, minLevel); lvl <= 9; lvl++) {
+    if (pact && lvl > 5 && lvl !== minLevel) continue;
     const s = ch.spellSlots[lvl];
     if (s && s.max > s.used) out.push(lvl);
   }
@@ -236,9 +242,9 @@ function renderSpellsCard(ch, editable) {
     const ritual = canCastAsRitual(ch, entry, sp);
     const slots = sp.lv > 0 ? availableSlotLevels(ch, sp.lv) : [];
     let slotSelect = '';
-    if (sp.lv > 0 && !ready) slotSelect = '<span class="text-[10px] text-[var(--muted)]">non preparato</span>';
+    if (sp.lv > 0 && !ready) slotSelect = `<span class="text-[10px] text-[var(--muted)]">${entry.ritualOnly ? 'solo come rituale' : 'non preparato'}</span>`;
     else if (sp.lv > 0) slotSelect = slots.length ? `<select class="input-field text-[11px] py-0 px-1 spell-slot-select" aria-label="Slot">${slots.map(l => `<option value="${l}">slot ${l}°</option>`).join('')}</select>` : '<span class="text-[10px] text-[var(--danger)]">niente slot</span>';
-    const canPrep = prepares && sp.lv > 0;
+    const canPrep = prepares && sp.lv > 0 && !entry.ritualOnly;
     const prepToggle = canPrep && !entry.always
       ? `<input type="checkbox" class="w-4 h-4 mt-0.5 accent-[var(--felt)] spell-prep-toggle" ${entry.prep ? 'checked' : ''} ${editable ? '' : 'disabled'} title="Preparato" aria-label="Preparato" />`
       : '';

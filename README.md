@@ -25,9 +25,15 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
   preparati”. I **rituali** si lanciano senza slot con 10 minuti in più: il Mago anche quelli non preparati del suo libro,
   Chierico e Druido quelli preparati, il Bardo quelli che conosce.
 - **Creazione guidata del personaggio** (razza, classe, caratteristiche con serie standard, acquisto a punti o 4d6, abilità)
-  e **passaggio di livello** con PF, aumenti di caratteristica e nuovi slot (anche quelli del patto del Warlock, che si
-  recuperano col riposo breve, e i PF in più per i livelli già fatti quando sale la Costituzione). Negli attacchi si può
-  scrivere FOR o DES al posto dei numeri (“Spada lunga | FOR | 1d8+FOR”): bonus e danni si aggiornano da soli.
+  e **passaggio di livello guidato** fino al 20°, per tutte le 12 classi del regolamento base. Passo per passo dice
+  cosa si ottiene (privilegi di classe, sottoclasse e razza, risorse che crescono) e propone le scelte spiegando ogni
+  opzione: sottoclasse, aumento o talento, stili di combattimento, maestrie, Metamagia, suppliche e dono del patto,
+  nemici e terreni del ranger, trucchetti e incantesimi nuovi, Segreti magici, Arcanum mistico, incantesimi del libro.
+  Poi aggiorna la scheda: PF (anche i PF in più quando sale la Costituzione), slot (anche quelli del patto del Warlock,
+  che si recuperano col riposo breve), incantesimi sempre preparati del dominio, del giuramento o del circolo, e scrive
+  i privilegi nuovi nella scheda. Le scelte saltate dai personaggi già esistenti si recuperano al primo passaggio.
+  Negli attacchi si può scrivere FOR o DES al posto dei numeri (“Spada lunga | FOR | 1d8+FOR”): bonus e danni si
+  aggiornano da soli.
 - **Messaggi privati** tra Master e giocatori e **dispense** (testo e immagini) per tutti o per un solo giocatore.
 - **Diario condiviso** (missioni, PNG, luoghi, bottino, domande per il DM con risposta): ogni voce si può correggere o
   eliminare da chi l'ha scritta e dal Master. **Note personali** che legge solo chi le scrive (nemmeno il Master),
@@ -146,12 +152,14 @@ js/store.js         modello dati, valori di default, conversione dal vecchio for
 js/sync.js          sincronizzazione con Supabase (tempo reale + controllo periodico), cassaforte del Master, codice del gruppo
 js/core.js          stato dell'interfaccia e permessi (chi può modificare cosa), condizioni, mappe
 js/srd.js           mostri, incantesimi, classi e razze del regolamento base
+js/classes.js       privilegi, sottoclassi, risorse e scelte di ogni classe dal 1° al 20° livello
 js/map.js           mappe, griglia, nebbia, pedine, schede dei mostri
 js/diceanim.js      animazione dei dadi sul tavolo
 js/table.js         iniziativa, dadi, assistente, barra del personaggio
 js/sheet.js         scheda personaggio
 js/spells.js        incantesimi, slot e concentrazione
-js/wizard.js        creazione guidata del personaggio e passaggio di livello
+js/wizard.js        creazione guidata del personaggio
+js/levelup.js       passaggio di livello guidato
 js/journal.js       diario
 js/books.js         PDF, ricerca, assistente
 js/dm.js            schermo del Master, esporta/importa/duplica/elimina

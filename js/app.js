@@ -905,6 +905,7 @@ async function startApp() {
   initSheetEvents();
   initSpellEvents();
   initWizardEvents();
+  initLevelUpEvents();
   initJournalEvents();
   initBooksEvents();
   initDmEvents();

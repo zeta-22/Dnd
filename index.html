@@ -1308,14 +1308,19 @@
   </div>
 
   <div id="modalLevelUp" class="hidden fixed inset-0 z-[55] bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
-    <div class="card-surface p-5 w-full max-w-lg flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto">
+    <div class="card-surface p-5 w-full max-w-2xl flex flex-col gap-3 border-2 border-[var(--brass)] shadow-2xl my-auto">
       <div class="flex items-center justify-between border-b border-[var(--line)] pb-2">
-        <h3 class="font-serif-title font-bold text-xl">⬆️ Sali di livello</h3>
+        <div>
+          <span id="levelUpStepLabel" class="text-[11px] font-bold uppercase tracking-wider text-[var(--brass)]">⬆️ Sali di livello</span>
+          <h3 id="levelUpTitle" class="font-serif-title font-bold text-2xl">Cosa cambia</h3>
+        </div>
         <button id="btnCloseLevelUp" type="button" class="btn text-xs" aria-label="Chiudi">✕</button>
       </div>
       <div id="levelUpBody" class="text-xs flex flex-col gap-3"></div>
-      <div class="flex justify-end pt-2 border-t border-[var(--line)]">
-        <button id="btnApplyLevelUp" type="button" class="btn btn-felt text-sm font-bold px-5">Conferma</button>
+      <div class="flex items-center justify-between gap-2 pt-2 border-t border-[var(--line)]">
+        <button id="btnLevelUpBack" type="button" class="btn text-xs">← Indietro</button>
+        <span id="levelUpProblem" class="text-[11px] font-bold text-[var(--danger)] text-center"></span>
+        <button id="btnApplyLevelUp" type="button" class="btn btn-felt text-sm font-bold px-5">Avanti →</button>
       </div>
     </div>
   </div>
@@ -1581,12 +1586,14 @@
   <script src="js/core.js"></script>
   <script src="js/bestiary.js"></script>
   <script src="js/srd.js"></script>
+  <script src="js/classes.js"></script>
   <script src="js/map.js"></script>
   <script src="js/diceanim.js"></script>
   <script src="js/table.js"></script>
   <script src="js/sheet.js"></script>
   <script src="js/spells.js"></script>
   <script src="js/wizard.js"></script>
+  <script src="js/levelup.js"></script>
   <script src="js/journal.js"></script>
   <script src="js/books.js"></script>
   <script src="js/dm.js"></script>

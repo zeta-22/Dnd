@@ -134,6 +134,8 @@ function classSpellSlots(className, level) {
     const count = lv === 1 ? 1 : lv <= 10 ? 2 : lv <= 16 ? 3 : 4;
     const slotLevel = Math.min(5, Math.ceil(lv / 2));
     out[slotLevel - 1] = count;
+    // Arcanum mistico: uno slot di 6°-9° solo per l'incantesimo dell'arcanum, si recupera col riposo lungo
+    Object.entries(MYSTIC_ARCANUM).forEach(([from, spellLv]) => { if (lv >= Number(from)) out[spellLv - 1] = 1; });
     return out;
   }
   const table = cls.casting.type === 'full' ? FULL_CASTER_SLOTS : HALF_CASTER_SLOTS;

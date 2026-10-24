@@ -304,6 +304,9 @@ body.immersive .immersive-dock {
   border: 1px solid var(--line); background: var(--surface2); color: var(--ink); font-size: 1.05rem;
 }
 
+/* Passaggio di livello guidato: elenchi puntati */
+.lu-list { list-style: disc; padding-left: 1rem; }
+
 /* Schede personalizzate: le parti della scheda 5e spariscono, il resto resta */
 #sheetBody.is-custom .sheet-5e { display: none !important; }
 @media (min-width: 1024px) { #sheetBody.is-custom #sheetMainColumn { grid-column: span 12 / span 12; } }

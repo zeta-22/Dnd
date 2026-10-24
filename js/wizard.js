@@ -1,4 +1,4 @@
-// Creazione guidata del personaggio e passaggio di livello (classi e razze del regolamento base).
+// Creazione guidata del personaggio (classi e razze del regolamento base). Il passaggio di livello è in levelup.js.
 
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 const POINT_BUY_COST = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
@@ -307,136 +307,6 @@ function onWizardClick(e) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Passaggio di livello
-// ---------------------------------------------------------------------------
-
-function openLevelUp() {
-  const ch = currentSheetChar();
-  if (!ch || !canEditChar(ch) || ch.level >= 20) return;
-  App.levelUp = { charId: ch.id, hpMode: 'avg', rolled: null, asi: ['', ''] };
-  showEl('modalLevelUp', true);
-  renderLevelUp();
-}
-
-function raisedScore(score, n) {
-  return n ? Math.max(score, Math.min(20, score + n)) : score;
-}
-
-// PF del nuovo livello. Se l'aumento fa salire il modificatore di Costituzione, il nuovo modificatore
-// vale anche per i livelli già fatti: un PF in più per ognuno (Manuale del Giocatore, cap. 1).
-function levelUpHp(ch, lu) {
-  const die = parseInt(ch.hitDie.slice(1), 10) || 8;
-  const oldMod = getAbilityMod(ch.abilities.COS);
-  const newMod = getAbilityMod(raisedScore(ch.abilities.COS, lu.asi.filter(k => k === 'COS').length));
-  const dwarf = /nano/i.test(ch.race) ? 1 : 0;
-  const base = lu.hpMode === 'roll' && lu.rolled ? lu.rolled : Math.floor(die / 2) + 1;
-  const level = Math.max(1, base + newMod + dwarf);
-  const retro = (newMod - oldMod) * ch.level;
-  return { level, retro, total: level + retro };
-}
-
-function levelUpGain(ch, lu) {
-  return levelUpHp(ch, lu).total;
-}
-
-function levelUpHpNote(ch, lu) {
-  const { retro } = levelUpHp(ch, lu);
-  return retro > 0 ? ` <span class="text-[11px] text-[var(--muted)]">(di cui +${retro} perché sale la Costituzione: +1 per ogni livello già fatto)</span>` : '';
-}
-
-const FINESSE_HINT = /arco|balestra|pugnale|stocco|spada corta|scimitarra|fionda|dard|frusta|senz'armi/i;
-
-// Gli attacchi scritti con i numeri passano a FOR/DES quando i conti tornano, così da ora in poi si aggiornano da soli.
-// Restituisce i nomi di quelli che non si riescono a collegare (armi magiche, stili di combattimento…).
-function linkAttacksToAbilities(ch) {
-  const prof = getProficiencyBonus(ch.level);
-  const unlinked = [];
-  ch.attacksText = String(ch.attacksText || '').split('\n').map(line => {
-    const parts = line.split('|').map(p => p.trim());
-    const raw = (parts[1] || '').replace(/\s/g, '');
-    if (parts.length < 2 || !/^[+-]?\d+$/.test(raw)) return line;
-    const bonus = parseInt(raw, 10);
-    const fits = ['FOR', 'DES'].filter(ab => prof + getAbilityMod(ch.abilities[ab]) === bonus);
-    if (!fits.length) { unlinked.push(parts[0] || 'Attacco'); return line; }
-    const ab = fits.length > 1 && FINESSE_HINT.test(parts[0]) ? 'DES' : fits[0];
-    const mod = getAbilityMod(ch.abilities[ab]);
-    parts[1] = ab;
-    const dmg = (parts[2] || '').replace(/\s/g, '');
-    if (dmg && !mod && /^\d*d\d+$/i.test(dmg)) parts[2] = `${dmg}+${ab}`;
-    else if (dmg && mod && dmg.endsWith(formatSignedMod(mod))) parts[2] = `${dmg.slice(0, -formatSignedMod(mod).length)}+${ab}`;
-    return parts.join(' | ');
-  }).join('\n');
-  return unlinked;
-}
-
-// Gli slot seguono la tabella della classe e quelli aggiunti a mano restano.
-// Il Warlock ha gli slot del patto tutti dello stesso livello, che sale: si spostano, compresi quelli già spesi.
-function updateClassSlots(ch, before, after) {
-  const from = before.findIndex(n => n > 0);
-  const to = after.findIndex(n => n > 0);
-  const moving = SRD_CLASSES[ch.className].casting.type === 'pact' && from >= 0 && to >= 0 && from !== to;
-  const spent = moving ? Math.min(before[from], ch.spellSlots[from + 1].used) : 0;
-  if (moving) ch.spellSlots[from + 1].used -= spent;
-  after.forEach((n, i) => {
-    const slot = ch.spellSlots[i + 1];
-    slot.max = Math.min(9, Math.max(n, slot.max + n - before[i]));
-    slot.used = Math.min(slot.used, slot.max);
-  });
-  if (moving) ch.spellSlots[to + 1].used = Math.min(ch.spellSlots[to + 1].max, ch.spellSlots[to + 1].used + spent);
-}
-
-function renderLevelUp() {
-  const lu = App.levelUp;
-  const ch = lu && getChar(lu.charId);
-  if (!ch) return;
-  const next = ch.level + 1;
-  const die = parseInt(ch.hitDie.slice(1), 10) || 8;
-  const asi = classAsiLevels(ch.className).includes(next);
-  const slotsNow = classSpellSlots(ch.className, ch.level);
-  const slotsNext = classSpellSlots(ch.className, next);
-  const slotChange = SRD_CLASSES[ch.className]?.casting && slotsNext.join() !== slotsNow.join();
-  const unlinked = linkAttacksToAbilities(Object.assign({}, ch));
-  $('levelUpBody').innerHTML = `
-    <div class="font-serif-title text-lg font-bold">${escapeHtml(ch.name)}: livello ${ch.level} → ${next}</div>
-    <div class="card-surface2 p-3 flex flex-col gap-2">
-      <div class="font-bold">Punti ferita in più</div>
-      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="luHp" value="avg" ${lu.hpMode === 'avg' ? 'checked' : ''} class="accent-[var(--felt)]" /> Valore medio: <strong>+${levelUpGain(ch, Object.assign({}, lu, { hpMode: 'avg' }))}</strong></label>
-      <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="luHp" value="roll" ${lu.hpMode === 'roll' ? 'checked' : ''} class="accent-[var(--felt)]" /> Tira 1d${die} + COS
-        <button type="button" class="btn btn-brass text-xs py-0.5 lu-roll">🎲 Tira</button>${lu.rolled ? `<span>uscito ${lu.rolled}: <strong>+${levelUpGain(ch, lu)}</strong></span>` : ''}</label>
-      ${levelUpHpNote(ch, lu)}
-    </div>
-    ${asi ? `<div class="card-surface2 p-3 flex flex-col gap-2"><div class="font-bold">Aumento dei punteggi di caratteristica</div>
-      <div class="text-[11px] text-[var(--muted)]">Due volte +1 (anche alla stessa caratteristica per fare +2). Massimo 20.</div>
-      <div class="flex gap-2">${[0, 1].map(i => `<select class="input-field lu-asi" data-i="${i}"><option value="">—</option>${ABILITY_KEYS.map(k => `<option value="${k}" ${lu.asi[i] === k ? 'selected' : ''}>+1 ${k} (${ch.abilities[k]})</option>`).join('')}</select>`).join('')}</div></div>` : ''}
-    ${slotChange ? `<div class="card-surface2 p-3"><strong>Nuovi slot incantesimo:</strong> ${slotsNext.map((n, i) => n ? `${i + 1}°: ${n}` : '').filter(Boolean).join(' · ')}</div>` : ''}
-    ${unlinked.length ? `<div class="card-surface2 p-3 text-[11px]"><strong class="text-[var(--brass)]">⚠️ Attacchi da controllare a mano:</strong> ${escapeHtml(unlinked.join(', '))}.
-      I loro numeri non tornano con FOR o DES (arma magica, stile di combattimento…), quindi non si aggiornano da soli.</div>` : ''}
-    <div class="text-[11px] text-[var(--muted)]">Bonus di competenza al ${next}° livello: ${formatSignedMod(getProficiencyBonus(next))}: gli attacchi e gli incantesimi si aggiornano da soli. Controlla sul manuale i nuovi privilegi della tua classe.</div>`;
-}
-
-function applyLevelUp() {
-  const lu = App.levelUp;
-  const ch = lu && getChar(lu.charId);
-  if (!ch || !canEditChar(ch)) return;
-  if (lu.hpMode === 'roll' && !lu.rolled) { showToast('Tira il dado vita oppure scegli il valore medio'); return; }
-  const gain = levelUpGain(ch, lu);
-  // Prima di cambiare livello e caratteristiche, finché i numeri degli attacchi tornano con quelli di adesso
-  const unlinked = linkAttacksToAbilities(ch);
-  const slotsBefore = classSpellSlots(ch.className, ch.level);
-  ch.level += 1;
-  ch.maxHp += gain;
-  ch.hp = Math.min(ch.maxHp, ch.hp + gain);
-  ch.hitDiceRemaining = Math.min(ch.level, ch.hitDiceRemaining + 1);
-  lu.asi.filter(Boolean).forEach(k => { ch.abilities[k] = raisedScore(ch.abilities[k], 1); });
-  if (SRD_CLASSES[ch.className]?.casting) updateClassSlots(ch, slotsBefore, classSpellSlots(ch.className, ch.level));
-  touchEnt(`char:${ch.id}`);
-  showEl('modalLevelUp', false);
-  App.levelUp = null;
-  showToast(`⬆️ ${ch.name} è ora di livello ${ch.level} (+${gain} PF)${unlinked.length ? ` · ⚠️ controlla a mano: ${unlinked.join(', ')}` : ''}`, unlinked.length ? 6000 : 3500);
-  scheduleRender();
-}
-
 function initWizardEvents() {
   $('btnCloseWizard').addEventListener('click', closeCharWizard);
   $('wizardBody').addEventListener('change', onWizardInput);
@@ -453,24 +323,4 @@ function initWizardEvents() {
   });
   $('btnOnbWizard').addEventListener('click', () => openCharWizard('onboarding', App.onboardingCampId));
   $('btnSheetWizard').addEventListener('click', () => { if (App.activeId) openCharWizard('sheet', App.activeId); });
-
-  $('btnLevelUp').addEventListener('click', openLevelUp);
-  $('btnCloseLevelUp').addEventListener('click', () => showEl('modalLevelUp', false));
-  $('btnApplyLevelUp').addEventListener('click', applyLevelUp);
-  $('levelUpBody').addEventListener('change', (e) => {
-    const lu = App.levelUp;
-    if (!lu) return;
-    if (e.target.name === 'luHp') lu.hpMode = e.target.value;
-    if (e.target.classList.contains('lu-asi')) lu.asi[parseInt(e.target.dataset.i, 10)] = e.target.value;
-    renderLevelUp();
-  });
-  $('levelUpBody').addEventListener('click', (e) => {
-    const lu = App.levelUp;
-    const ch = lu && getChar(lu.charId);
-    if (!ch || !e.target.closest('.lu-roll')) return;
-    const die = parseInt(ch.hitDie.slice(1), 10) || 8;
-    lu.rolled = rollDie(die);
-    lu.hpMode = 'roll';
-    renderLevelUp();
-  });
 }
