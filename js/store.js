@@ -115,7 +115,9 @@ function ensureCharacterDefaults(char) {
   Object.keys(char.classPicks).forEach(k => { if (!Array.isArray(char.classPicks[k])) delete char.classPicks[k]; });
   if (char.spellAbility && !ABILITY_KEYS.includes(char.spellAbility)) char.spellAbility = null;
   if (char.concentration && typeof char.concentration !== 'object') char.concentration = null;
-  ['equipmentText', 'spellsText', 'featuresText', 'notes'].forEach(f => { if (typeof char[f] !== 'string') char[f] = char[f] ? String(char[f]) : ''; });
+  ['spellsText', 'featuresText', 'notes'].forEach(f => { if (typeof char[f] !== 'string') char[f] = char[f] ? String(char[f]) : ''; });
+  // Oggetti dell'inventario (vedi inventory.js); l'equipaggiamento scritto nelle schede di prima diventa una riga per oggetto
+  char.items = normalizeCharItems(char);
   if (char.ownerId === undefined) char.ownerId = null;
   return char;
 }
@@ -306,7 +308,9 @@ function buildNewCampaignEntities(title, options = {}) {
     savingThrowsProf: { DES: true, INT: true },
     skillsProf: { 'Furtività': 2, 'Acrobazia': 1, 'Percezione': 1, 'Rapidità di Mano': 2, 'Indagare': 1 },
     weapons: [{ k: 'shortsword' }, { k: 'shortbow' }],
-    equipmentText: 'Zaino, attrezzi da scasso, corda (15 m), 2 torce.', coins: { mo: 15 },
+    items: [{ k: 'w-shortsword' }, { k: 'w-shortbow' }, { k: 'quiver' }, { k: 'arrows', note: 'Ne restano 17' }, { k: 'backpack' },
+      { k: 'thievestools' }, { k: 'ropehemp' }, { k: 'torch', qty: 2 }, { k: 'healing', note: 'Regalo del sacerdote del villaggio' }],
+    coins: { mo: 15 },
     featuresText: 'Attacco furtivo (1d6), Azione scaltra, Gergo ladresco.'
   });
   const goblinA = { id: uid('tok'), name: 'Goblin', type: 'enemy', gridX: 11, gridY: 4, hp: 7, maxHp: 7, ac: 15, hidden: false, initMod: 2 };

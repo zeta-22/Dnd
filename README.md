@@ -21,6 +21,13 @@ Il Master crea l'avventura e manda un link; ognuno entra dal proprio telefono o 
 - **Scheda personaggio** semplice o completa: PF e PF temporanei, riposi, tiri salvezza contro morte, abilità con competenza e maestria, attacchi, condizioni.
 - **Monete**: platino, oro, electrum, argento e rame con il totale in monete d'oro; si ricevono e si spendono dalla scheda
   (se manca la moneta giusta la scheda cambia da sola quelle più grandi e dà il resto) e l'ultima operazione si può annullare.
+- **Inventario a tabella**: ogni oggetto ha la sua riga con quantità (− e +), peso e costo. Toccando un oggetto si aggiunge
+  una nota veloce (cariche rimaste, chi l'ha dato…) e si cambiano nome, peso, costo e rarità, o lo si segna in sintonia
+  (al massimo 3). Dal manuale (equipaggiamento, munizioni, focus, strumenti, armi, armature, pozioni di guarigione e
+  dotazioni, che si aprono negli oggetti che contengono) gli oggetti arrivano con peso, costo e le regole in breve; gli
+  altri si scrivono a mano, anche con la quantità davanti (“10 torce”). Sotto la tabella c'è il peso trasportato rispetto
+  alla capacità di trasporto (Forza × 7,5 kg, monete comprese) con l'avviso dell'ingombro. L'equipaggiamento scritto
+  nelle schede di prima diventa da solo una riga per oggetto.
 - **Schede in PDF**: ogni scheda si scarica in PDF (⬇️ PDF) con un'impaginazione come quella di D&D Beyond: caratteristiche,
   tiri salvezza e abilità con i pallini, CA e PF, armi e trucchetti, equipaggiamento e monete, storia e incantesimi con gli slot.
   Il Master scarica tutte le schede dei giocatori in un unico PDF dallo schermo del Master. Anche le schede personalizzate.
@@ -180,6 +187,7 @@ js/map.js           mappe, griglia, nebbia, pedine, schede dei mostri
 js/diceanim.js      animazione dei dadi sul tavolo
 js/table.js         iniziativa, dadi, assistente, barra del personaggio
 js/sheet.js         scheda personaggio
+js/inventory.js     inventario: oggetti del manuale con peso, costo e regole, tabella degli oggetti, peso trasportato
 js/spells.js        incantesimi, slot e concentrazione
 js/wizard.js        creazione guidata del personaggio
 js/levelup.js       passaggio di livello guidato
@@ -221,7 +229,7 @@ Le campagne salvate con la prima versione (file `.json`) si possono caricare con
 
 ## Crediti
 
-Mostri, incantesimi, classi e razze vengono dal System Reference Document 5.1 di Wizards of the Coast LLC,
+Mostri, incantesimi, classi, razze ed equipaggiamento vengono dal System Reference Document 5.1 di Wizards of the Coast LLC,
 distribuito con licenza [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/legalcode),
 con i nomi tradotti in italiano per questa app. I dati sono ricavati da [5e-database](https://github.com/soryy708/5e-database) (MIT).
 Dettagli in [`data/LICENZE.md`](data/LICENZE.md). Il Tavolo non è affiliato a Wizards of the Coast.

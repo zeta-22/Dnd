@@ -13,7 +13,6 @@ const SHEET_FIELDS = {
   sheetInputSpeed: { field: 'speed', type: 'float', min: 0, max: 60 },
   sheetInputHitDie: { field: 'hitDie', type: 'text' },
   sheetTextareaAttacks: { field: 'attacksText', type: 'text' },
-  sheetTextareaEquipment: { field: 'equipmentText', type: 'text' },
   sheetTextareaSpells: { field: 'spellsText', type: 'text' },
   sheetTextareaFeatures: { field: 'featuresText', type: 'text' },
   sheetTextareaNotes: { field: 'notes', type: 'text' }
@@ -261,6 +260,7 @@ function renderSheet() {
 
   renderSheetAttacks(ch, editable);
   renderCoins(ch);
+  renderInventory(ch, editable);
   renderSpellSlots(ch, editable, complete);
   renderSpellsCard(ch, editable);
   renderConditions(ch, editable);
